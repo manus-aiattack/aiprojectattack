@@ -9,17 +9,34 @@ echo "🚀 dLNk Attack Platform - Quick Install"
 echo "========================================"
 echo ""
 
-# Check if Python 3.11 is available
-if ! command -v python3.11 &> /dev/null; then
-    echo "📦 Installing Python 3.11..."
+# Detect Python version
+if command -v python3.12 &> /dev/null; then
+    PYTHON_CMD=python3.12
+    PYTHON_VERSION="3.12"
+elif command -v python3.11 &> /dev/null; then
+    PYTHON_CMD=python3.11
+    PYTHON_VERSION="3.11"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD=python3
+    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+else
+    echo "❌ Python 3 not found!"
+    exit 1
+fi
+
+echo "✅ Detected Python $PYTHON_VERSION"
+
+# Install Python and venv if needed
+if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+    echo "📦 Installing Python $PYTHON_VERSION venv..."
     sudo apt update
-    sudo apt install -y python3.11 python3.11-venv python3.11-dev
+    sudo apt install -y python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev
 fi
 
 # Create virtual environment
 if [ ! -d "venv" ]; then
-    echo "📦 Creating virtual environment..."
-    python3.11 -m venv venv
+    echo "📦 Creating virtual environment with Python $PYTHON_VERSION..."
+    $PYTHON_CMD -m venv venv
 fi
 
 # Activate virtual environment
