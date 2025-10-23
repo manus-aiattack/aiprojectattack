@@ -20,6 +20,8 @@ from core.logger import log
 from core.data_models import Strategy
 from config.settings import DEFAULT_WORKFLOW, WORKSPACE_DIR, API_DEBUG
 import json
+import os
+from datetime import datetime
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -272,6 +274,211 @@ async def get_result(index: int):
     
     result = orchestrator.campaign_results[index]
     return result.dict() if hasattr(result, 'dict') else str(result)
+
+
+# ==================== LOOT MANAGEMENT ENDPOINTS ====================
+
+@app.get("/loot/summary")
+async def get_loot_summary():
+    """รับสรุป Loot ทั้งหมด"""
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    loot_dir = Path(orchestrator.workspace_dir) / "loot"
+    
+    if not loot_dir.exists():
+        return {
+            "total_items": 0,
+            "categories": {},
+            "loot_dir": str(loot_dir)
+        }
+    
+    # Count loot by category
+    categories = {
+        "database_dumps": 0,
+        "credentials": 0,
+        "session_tokens": 0,
+        "files": 0,
+        "webshells": 0,
+        "c2_agents": 0
+    }
+    
+    total_size = 0
+    
+    for category in categories.keys():
+        cat_dir = loot_dir / category
+        if cat_dir.exists():
+            files = list(cat_dir.glob("*"))
+            categories[category] = len(files)
+            total_size += sum(f.stat().st_size for f in files if f.is_file())
+    
+    return {
+        "total_items": sum(categories.values()),
+        "categories": categories,
+        "total_size_bytes": total_size,
+        "total_size_mb": round(total_size / (1024 * 1024), 2),
+        "loot_dir": str(loot_dir)
+    }
+
+
+@app.get("/loot/{category}")
+async def get_loot_by_category(category: str):
+    """รับ Loot ตามหมวดหมู่"""
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    valid_categories = ["database_dumps", "credentials", "session_tokens", "files", "webshells", "c2_agents"]
+    
+    if category not in valid_categories:
+        raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {', '.join(valid_categories)}")
+    
+    loot_dir = Path(orchestrator.workspace_dir) / "loot" / category
+    
+    if not loot_dir.exists():
+        return {
+            "category": category,
+            "items": [],
+            "count": 0
+        }
+    
+    items = []
+    for file_path in loot_dir.glob("*"):
+        if file_path.is_file():
+            stat = file_path.stat()
+            items.append({
+                "filename": file_path.name,
+                "size_bytes": stat.st_size,
+                "size_kb": round(stat.st_size / 1024, 2),
+                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "download_url": f"/loot/download/{category}/{file_path.name}"
+            })
+    
+    # Sort by modified time (newest first)
+    items.sort(key=lambda x: x["modified"], reverse=True)
+    
+    return {
+        "category": category,
+        "items": items,
+        "count": len(items)
+    }
+
+
+@app.get("/loot/download/{category}/{filename}")
+async def download_loot(category: str, filename: str):
+    """ดาวน์โหลด Loot ไฟล์"""
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    # Security: Prevent path traversal
+    if ".." in filename or ".." in category or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    loot_file = Path(orchestrator.workspace_dir) / "loot" / category / filename
+    
+    if not loot_file.exists() or not loot_file.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(
+        path=str(loot_file),
+        filename=filename,
+        media_type="application/octet-stream"
+    )
+
+
+@app.get("/loot/reports")
+async def get_loot_reports():
+    """รับ Loot Reports ทั้งหมด"""
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    reports_dir = Path(orchestrator.workspace_dir) / "loot"
+    
+    if not reports_dir.exists():
+        return {
+            "reports": [],
+            "count": 0
+        }
+    
+    reports = []
+    for report_file in reports_dir.glob("loot_report_*.json"):
+        if report_file.is_file():
+            try:
+                with open(report_file, 'r') as f:
+                    report_data = json.load(f)
+                
+                stat = report_file.stat()
+                reports.append({
+                    "filename": report_file.name,
+                    "attack_id": report_data.get("attack_id", "unknown"),
+                    "target": report_data.get("target", "unknown"),
+                    "loot_count": len(report_data.get("loot", [])),
+                    "timestamp": report_data.get("timestamp", ""),
+                    "size_kb": round(stat.st_size / 1024, 2),
+                    "download_url": f"/loot/download/reports/{report_file.name}"
+                })
+            except Exception as e:
+                log.error(f"Failed to read report {report_file}: {e}")
+    
+    # Sort by timestamp (newest first)
+    reports.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    return {
+        "reports": reports,
+        "count": len(reports)
+    }
+
+
+@app.delete("/loot/{category}/{filename}")
+async def delete_loot(category: str, filename: str):
+    """ลบ Loot ไฟล์"""
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    # Security: Prevent path traversal
+    if ".." in filename or ".." in category or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    loot_file = Path(orchestrator.workspace_dir) / "loot" / category / filename
+    
+    if not loot_file.exists() or not loot_file.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        loot_file.unlink()
+        log.info(f"Deleted loot file: {loot_file}")
+        return {"success": True, "message": f"Deleted {filename}"}
+    except Exception as e:
+        log.error(f"Failed to delete {loot_file}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+
+@app.post("/auto-exploit")
+async def auto_exploit(target_url: str, background_tasks: BackgroundTasks):
+    """โจมตีอัตโนมัติ"""
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    # Safety check
+    if not orchestrator.is_target_safe(target_url):
+        raise HTTPException(status_code=400, detail="Target is blocked for safety reasons (localhost/127.0.0.1)")
+    
+    # Run auto exploit in background
+    async def run_auto_exploit():
+        try:
+            result = await orchestrator.auto_exploit_target(target_url)
+            log.success(f"Auto exploit completed for {target_url}")
+            return result
+        except Exception as e:
+            log.error(f"Auto exploit failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    background_tasks.add_task(run_auto_exploit)
+    
+    return {
+        "success": True,
+        "message": f"Auto exploit started for {target_url}",
+        "target": target_url
+    }
 
 
 # Error handlers

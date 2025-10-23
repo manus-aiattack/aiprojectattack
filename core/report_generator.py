@@ -8,7 +8,7 @@ import os
 
 
 class ReportGenerator:
-    """สร้างรายงานแบบครอบคลุม"""
+    """สร้างรายงาน Loot และข้อมูลที่ขโมยได้"""
 
     def __init__(self, result_aggregator: ResultAggregator):
         self.result_aggregator = result_aggregator
@@ -32,12 +32,9 @@ class ReportGenerator:
         """โหลด report templates"""
         try:
             self.report_templates = {
-                "executive_summary": self._generate_executive_summary,
+                "loot_report": self._generate_loot_report,
                 "technical_details": self._generate_technical_details,
-                "vulnerability_report": self._generate_vulnerability_report,
                 "exploit_report": self._generate_exploit_report,
-                "findings_report": self._generate_findings_report,
-                "recommendations": self._generate_recommendations,
                 "full_report": self._generate_full_report
             }
 
@@ -95,86 +92,128 @@ class ReportGenerator:
             log.error(f"❌ สร้างรายงานล้มเหลว: {e}")
             return {"error": str(e)}
 
-    async def _generate_executive_summary(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """สร้างสรุปผู้บริหาร"""
+    async def _generate_loot_report(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """สร้างรายงาน Loot - ข้อมูลที่ขโมยได้"""
         try:
-            summary = {
-                "title": "Executive Summary",
+            loot_report = {
+                "title": "Loot Report - Stolen Data",
                 "timestamp": datetime.now().isoformat(),
-                "overview": {
-                    "total_phases": results.get("statistics", {}).get("total_phases", 0),
-                    "total_agents": results.get("statistics", {}).get("total_agents", 0),
-                    "total_vulnerabilities": results.get("statistics", {}).get("total_vulnerabilities", 0),
-                    "total_exploits": results.get("statistics", {}).get("total_exploits", 0),
-                    "total_findings": results.get("statistics", {}).get("total_findings", 0)
+                "attack_id": results.get("session_id", "unknown"),
+                "target": results.get("target", "unknown"),
+                "status": "exploited" if results.get("exploits", []) else "scanning",
+                "summary": {
+                    "total_databases_dumped": 0,
+                    "total_credentials_stolen": 0,
+                    "total_files_stolen": 0,
+                    "total_sessions_stolen": 0,
+                    "active_webshells": 0,
+                    "active_c2_agents": 0
                 },
-                "key_findings": [],
-                "risk_assessment": {
-                    "high_risk": 0,
-                    "medium_risk": 0,
-                    "low_risk": 0
-                },
-                "recommendations": []
+                "loot": {
+                    "database_dumps": [],
+                    "credentials": [],
+                    "session_tokens": [],
+                    "files": [],
+                    "webshells": [],
+                    "c2_agents": []
+                }
             }
 
-            # วิเคราะห์ key findings
-            vulnerabilities = results.get("vulnerabilities", [])
-            for vuln in vulnerabilities:
-                severity = vuln.get("severity", "low").lower()
-                if severity == "high":
-                    summary["risk_assessment"]["high_risk"] += 1
-                elif severity == "medium":
-                    summary["risk_assessment"]["medium_risk"] += 1
-                else:
-                    summary["risk_assessment"]["low_risk"] += 1
-
-                if severity in ["high", "critical"]:
-                    summary["key_findings"].append({
-                        "type": "vulnerability",
-                        "severity": severity,
-                        "description": vuln.get("description", ""),
-                        "location": vuln.get("location", "")
-                    })
-
-            # วิเคราะห์ exploits
+            # วิเคราะห์ข้อมูลที่ขโมยได้จาก exploits
             exploits = results.get("exploits", [])
             for exploit in exploits:
-                if exploit.get("success", False):
-                    summary["key_findings"].append({
-                        "type": "exploit",
-                        "success": True,
-                        "description": exploit.get("description", ""),
-                        "target": exploit.get("target", "")
-                    })
+                if not exploit.get("success", False):
+                    continue
 
-            # วิเคราะห์ findings
+                exploit_type = exploit.get("type", "").lower()
+                exploit_data = exploit.get("data", {})
+
+                # SQL Injection - Database dumps
+                if "sql" in exploit_type or "database" in exploit_type:
+                    db_dump = {
+                        "type": "database_dump",
+                        "database": exploit_data.get("database", "unknown"),
+                        "tables": exploit_data.get("tables", []),
+                        "file_path": exploit_data.get("dump_file", ""),
+                        "size": exploit_data.get("size", 0),
+                        "timestamp": exploit.get("timestamp", "")
+                    }
+                    loot_report["loot"]["database_dumps"].append(db_dump)
+                    loot_report["summary"]["total_databases_dumped"] += 1
+
+                # XSS - Session tokens
+                if "xss" in exploit_type or "session" in exploit_type:
+                    sessions = exploit_data.get("sessions", [])
+                    for session in sessions:
+                        loot_report["loot"]["session_tokens"].append({
+                            "type": "session_token",
+                            "token": session.get("token", ""),
+                            "cookie_name": session.get("name", ""),
+                            "domain": session.get("domain", ""),
+                            "timestamp": exploit.get("timestamp", "")
+                        })
+                        loot_report["summary"]["total_sessions_stolen"] += 1
+
+                # File Upload - Webshells
+                if "upload" in exploit_type or "shell" in exploit_type:
+                    webshell = {
+                        "type": "webshell",
+                        "url": exploit_data.get("shell_url", ""),
+                        "password": exploit_data.get("password", ""),
+                        "shell_type": exploit_data.get("shell_type", "php"),
+                        "access_command": exploit_data.get("access_command", ""),
+                        "status": "active",
+                        "timestamp": exploit.get("timestamp", "")
+                    }
+                    loot_report["loot"]["webshells"].append(webshell)
+                    loot_report["summary"]["active_webshells"] += 1
+
+                # Credentials
+                if "auth" in exploit_type or "credential" in exploit_type or "password" in exploit_type:
+                    credentials = exploit_data.get("credentials", [])
+                    for cred in credentials:
+                        loot_report["loot"]["credentials"].append({
+                            "type": "credential",
+                            "username": cred.get("username", ""),
+                            "password": cred.get("password", ""),
+                            "hash": cred.get("hash", ""),
+                            "source": cred.get("source", ""),
+                            "timestamp": exploit.get("timestamp", "")
+                        })
+                        loot_report["summary"]["total_credentials_stolen"] += 1
+
+            # วิเคราะห์ไฟล์ที่ขโมยได้
             findings = results.get("findings", [])
             for finding in findings:
-                if "sensitive" in finding.get("description", "").lower():
-                    summary["key_findings"].append({
-                        "type": "finding",
-                        "sensitive": True,
-                        "description": finding.get("description", ""),
-                        "location": finding.get("location", "")
+                if finding.get("type", "") == "file" or "file" in finding.get("description", "").lower():
+                    loot_report["loot"]["files"].append({
+                        "type": "file",
+                        "file_path": finding.get("location", ""),
+                        "file_name": finding.get("name", ""),
+                        "content": finding.get("content", ""),
+                        "size": finding.get("size", 0),
+                        "timestamp": finding.get("timestamp", "")
                     })
+                    loot_report["summary"]["total_files_stolen"] += 1
 
-            # สร้างคำแนะนำ
-            if summary["risk_assessment"]["high_risk"] > 0:
-                summary["recommendations"].append(
-                    "พบช่องโหว่ระดับสูง ควรแก้ไขทันที")
+            # วิเคราะห์ C2 agents
+            agents = results.get("c2_agents", [])
+            for agent in agents:
+                if agent.get("status", "") == "active":
+                    loot_report["loot"]["c2_agents"].append({
+                        "type": "c2_agent",
+                        "agent_id": agent.get("agent_id", ""),
+                        "callback_url": agent.get("callback_url", ""),
+                        "status": agent.get("status", ""),
+                        "last_seen": agent.get("last_seen", ""),
+                        "capabilities": agent.get("capabilities", [])
+                    })
+                    loot_report["summary"]["active_c2_agents"] += 1
 
-            if summary["risk_assessment"]["medium_risk"] > 0:
-                summary["recommendations"].append(
-                    "พบช่องโหว่ระดับกลาง ควรวางแผนแก้ไข")
-
-            if summary["key_findings"]:
-                summary["recommendations"].append(
-                    "พบการแสวงหาประโยชน์ที่สำเร็จ ควรตรวจสอบระบบ")
-
-            return summary
+            return loot_report
 
         except Exception as e:
-            log.error(f"❌ สร้าง executive summary ล้มเหลว: {e}")
+            log.error(f"❌ สร้าง loot report ล้มเหลว: {e}")
             return {"error": str(e)}
 
     async def _generate_technical_details(self, results: Dict[str, Any]) -> Dict[str, Any]:
@@ -201,8 +240,6 @@ class ReportGenerator:
                     "agents_used": phase_data.get("agents_used", []),
                     "results": phase_data.get("results", {}),
                     "errors": phase_data.get("errors", []),
-                    "findings": phase_data.get("findings", []),
-                    "vulnerabilities": phase_data.get("vulnerabilities", []),
                     "exploits": phase_data.get("exploits", [])
                 }
 
@@ -217,8 +254,6 @@ class ReportGenerator:
                     "duration": agent_data.get("duration", 0),
                     "results": agent_data.get("results", {}),
                     "errors": agent_data.get("errors", []),
-                    "findings": agent_data.get("findings", []),
-                    "vulnerabilities": agent_data.get("vulnerabilities", []),
                     "exploits": agent_data.get("exploits", [])
                 }
 
@@ -249,65 +284,8 @@ class ReportGenerator:
             log.error(f"❌ สร้าง technical details ล้มเหลว: {e}")
             return {"error": str(e)}
 
-    async def _generate_vulnerability_report(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """สร้างรายงานช่องโหว่"""
-        try:
-            vulnerability_report = {
-                "title": "Vulnerability Report",
-                "timestamp": datetime.now().isoformat(),
-                "summary": {
-                    "total_vulnerabilities": len(results.get("vulnerabilities", [])),
-                    "by_severity": {},
-                    "by_type": {}
-                },
-                "vulnerabilities": results.get("vulnerabilities", []),
-                "recommendations": []
-            }
-
-            # วิเคราะห์ vulnerabilities
-            vulnerabilities = results.get("vulnerabilities", [])
-            for vuln in vulnerabilities:
-                severity = vuln.get("severity", "unknown")
-                vuln_type = vuln.get("type", "unknown")
-
-                # นับตาม severity
-                if severity not in vulnerability_report["summary"]["by_severity"]:
-                    vulnerability_report["summary"]["by_severity"][severity] = 0
-                vulnerability_report["summary"]["by_severity"][severity] += 1
-
-                # นับตาม type
-                if vuln_type not in vulnerability_report["summary"]["by_type"]:
-                    vulnerability_report["summary"]["by_type"][vuln_type] = 0
-                vulnerability_report["summary"]["by_type"][vuln_type] += 1
-
-            # สร้างคำแนะนำ
-            high_severity_count = vulnerability_report["summary"]["by_severity"].get(
-                "high", 0)
-            critical_severity_count = vulnerability_report["summary"]["by_severity"].get(
-                "critical", 0)
-
-            if critical_severity_count > 0:
-                vulnerability_report["recommendations"].append(
-                    "พบช่องโหว่ระดับวิกฤต ต้องแก้ไขด่วน")
-
-            if high_severity_count > 0:
-                vulnerability_report["recommendations"].append(
-                    "พบช่องโหว่ระดับสูง ควรแก้ไขทันที")
-
-            medium_severity_count = vulnerability_report["summary"]["by_severity"].get(
-                "medium", 0)
-            if medium_severity_count > 0:
-                vulnerability_report["recommendations"].append(
-                    "พบช่องโหว่ระดับกลาง ควรวางแผนแก้ไข")
-
-            return vulnerability_report
-
-        except Exception as e:
-            log.error(f"❌ สร้าง vulnerability report ล้มเหลว: {e}")
-            return {"error": str(e)}
-
     async def _generate_exploit_report(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """สร้างรายงานการแสวงหาประโยชน์"""
+        """สร้างรายงานการโจมตี"""
         try:
             exploit_report = {
                 "title": "Exploit Report",
@@ -318,8 +296,7 @@ class ReportGenerator:
                     "failed_exploits": 0,
                     "by_type": {}
                 },
-                "exploits": results.get("exploits", []),
-                "recommendations": []
+                "exploits": results.get("exploits", [])
             }
 
             # วิเคราะห์ exploits
@@ -335,148 +312,21 @@ class ReportGenerator:
                     exploit_report["summary"]["by_type"][exploit_type] = 0
                 exploit_report["summary"]["by_type"][exploit_type] += 1
 
-            # สร้างคำแนะนำ
-            if exploit_report["summary"]["successful_exploits"] > 0:
-                exploit_report["recommendations"].append(
-                    "พบการแสวงหาประโยชน์ที่สำเร็จ ควรตรวจสอบระบบ")
-
-            if exploit_report["summary"]["failed_exploits"] > 0:
-                exploit_report["recommendations"].append(
-                    "พบการแสวงหาประโยชน์ที่ล้มเหลว ควรตรวจสอบระบบป้องกัน")
-
             return exploit_report
 
         except Exception as e:
             log.error(f"❌ สร้าง exploit report ล้มเหลว: {e}")
             return {"error": str(e)}
 
-    async def _generate_findings_report(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """สร้างรายงานการค้นพบ"""
-        try:
-            findings_report = {
-                "title": "Findings Report",
-                "timestamp": datetime.now().isoformat(),
-                "summary": {
-                    "total_findings": len(results.get("findings", [])),
-                    "by_type": {},
-                    "sensitive_findings": 0
-                },
-                "findings": results.get("findings", []),
-                "recommendations": []
-            }
-
-            # วิเคราะห์ findings
-            findings = results.get("findings", [])
-            for finding in findings:
-                finding_type = finding.get("type", "unknown")
-                if finding_type not in findings_report["summary"]["by_type"]:
-                    findings_report["summary"]["by_type"][finding_type] = 0
-                findings_report["summary"]["by_type"][finding_type] += 1
-
-                if "sensitive" in finding.get("description", "").lower():
-                    findings_report["summary"]["sensitive_findings"] += 1
-
-            # สร้างคำแนะนำ
-            if findings_report["summary"]["sensitive_findings"] > 0:
-                findings_report["recommendations"].append(
-                    "พบข้อมูลที่ละเอียดอ่อน ควรตรวจสอบการเข้าถึง")
-
-            return findings_report
-
-        except Exception as e:
-            log.error(f"❌ สร้าง findings report ล้มเหลว: {e}")
-            return {"error": str(e)}
-
-    async def _generate_recommendations(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """สร้างคำแนะนำ"""
-        try:
-            recommendations = {
-                "title": "Recommendations",
-                "timestamp": datetime.now().isoformat(),
-                "immediate_actions": [],
-                "short_term_actions": [],
-                "long_term_actions": [],
-                "security_improvements": [],
-                "monitoring_recommendations": []
-            }
-
-            # วิเคราะห์ vulnerabilities
-            vulnerabilities = results.get("vulnerabilities", [])
-            for vuln in vulnerabilities:
-                severity = vuln.get("severity", "low").lower()
-                if severity == "critical":
-                    recommendations["immediate_actions"].append({
-                        "action": f"แก้ไขช่องโหว่ {vuln.get('type', '')} ที่ {vuln.get('location', '')}",
-                        "reason": "ช่องโหว่ระดับวิกฤต",
-                        "priority": "critical"
-                    })
-                elif severity == "high":
-                    recommendations["immediate_actions"].append({
-                        "action": f"แก้ไขช่องโหว่ {vuln.get('type', '')} ที่ {vuln.get('location', '')}",
-                        "reason": "ช่องโหว่ระดับสูง",
-                        "priority": "high"
-                    })
-                elif severity == "medium":
-                    recommendations["short_term_actions"].append({
-                        "action": f"แก้ไขช่องโหว่ {vuln.get('type', '')} ที่ {vuln.get('location', '')}",
-                        "reason": "ช่องโหว่ระดับกลาง",
-                        "priority": "medium"
-                    })
-
-            # วิเคราะห์ exploits
-            exploits = results.get("exploits", [])
-            for exploit in exploits:
-                if exploit.get("success", False):
-                    recommendations["immediate_actions"].append({
-                        "action": f"ตรวจสอบการแสวงหาประโยชน์ {exploit.get('type', '')} ที่ {exploit.get('target', '')}",
-                        "reason": "การแสวงหาประโยชน์สำเร็จ",
-                        "priority": "high"
-                    })
-
-            # วิเคราะห์ findings
-            findings = results.get("findings", [])
-            for finding in findings:
-                if "sensitive" in finding.get("description", "").lower():
-                    recommendations["immediate_actions"].append({
-                        "action": f"ตรวจสอบการเข้าถึงข้อมูลที่ละเอียดอ่อน: {finding.get('description', '')}",
-                        "reason": "พบข้อมูลที่ละเอียดอ่อน",
-                        "priority": "high"
-                    })
-
-            # คำแนะนำด้านความปลอดภัย
-            recommendations["security_improvements"] = [
-                "ใช้การเข้ารหัสข้อมูลที่แข็งแกร่ง",
-                "ใช้การตรวจสอบสิทธิ์แบบหลายขั้นตอน",
-                "ใช้การตรวจสอบการเข้าถึงแบบแยกส่วน",
-                "ใช้การตรวจสอบความปลอดภัยแบบต่อเนื่อง"
-            ]
-
-            # คำแนะนำด้านการติดตาม
-            recommendations["monitoring_recommendations"] = [
-                "ติดตามการเข้าถึงระบบแบบ real-time",
-                "ติดตามการเปลี่ยนแปลงไฟล์สำคัญ",
-                "ติดตามการเข้าถึงข้อมูลที่ละเอียดอ่อน",
-                "ติดตามการแสวงหาประโยชน์ที่อาจเกิดขึ้น"
-            ]
-
-            return recommendations
-
-        except Exception as e:
-            log.error(f"❌ สร้างคำแนะนำล้มเหลว: {e}")
-            return {"error": str(e)}
-
     async def _generate_full_report(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """สร้างรายงานแบบเต็ม"""
         try:
             full_report = {
-                "title": "Full Security Assessment Report",
+                "title": "Full Attack Report",
                 "timestamp": datetime.now().isoformat(),
-                "executive_summary": await self._generate_executive_summary(results),
+                "loot_report": await self._generate_loot_report(results),
                 "technical_details": await self._generate_technical_details(results),
-                "vulnerability_report": await self._generate_vulnerability_report(results),
-                "exploit_report": await self._generate_exploit_report(results),
-                "findings_report": await self._generate_findings_report(results),
-                "recommendations": await self._generate_recommendations(results)
+                "exploit_report": await self._generate_exploit_report(results)
             }
 
             return full_report
@@ -488,8 +338,8 @@ class ReportGenerator:
     async def _save_json_report(self, report_id: str, report_data: Dict[str, Any]):
         """บันทึกรายงานเป็น JSON"""
         try:
-            os.makedirs("reports", exist_ok=True)
-            report_file = f"reports/{report_id}.json"
+            os.makedirs("workspace/loot", exist_ok=True)
+            report_file = f"workspace/loot/{report_id}.json"
 
             with open(report_file, 'w', encoding='utf-8') as f:
                 json.dump(report_data, f, indent=2, ensure_ascii=False)
@@ -505,8 +355,8 @@ class ReportGenerator:
             # สร้าง HTML template
             html_content = await self._generate_html_content(report_data)
 
-            os.makedirs("reports", exist_ok=True)
-            report_file = f"reports/{report_id}.html"
+            os.makedirs("workspace/loot", exist_ok=True)
+            report_file = f"workspace/loot/{report_id}.html"
 
             with open(report_file, 'w', encoding='utf-8') as f:
                 f.write(html_content)
@@ -519,84 +369,151 @@ class ReportGenerator:
     async def _save_pdf_report(self, report_id: str, report_data: Dict[str, Any]):
         """บันทึกรายงานเป็น PDF"""
         try:
-            # สร้าง HTML content ก่อน
+            # สร้าง HTML ก่อน
             html_content = await self._generate_html_content(report_data)
 
-            # ใช้ weasyprint หรือ library อื่นสำหรับสร้าง PDF
-            # สำหรับตอนนี้ให้บันทึกเป็น HTML
-            os.makedirs("reports", exist_ok=True)
-            report_file = f"reports/{report_id}.html"
+            os.makedirs("workspace/loot", exist_ok=True)
+            report_file = f"workspace/loot/{report_id}.pdf"
 
-            with open(report_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
+            # แปลง HTML เป็น PDF (ต้องติดตั้ง weasyprint หรือ wkhtmltopdf)
+            # ตัวอย่างนี้ใช้ weasyprint
+            try:
+                from weasyprint import HTML
+                HTML(string=html_content).write_pdf(report_file)
+            except ImportError:
+                log.warning("⚠️ weasyprint ไม่พร้อมใช้งาน บันทึกเป็น HTML แทน")
+                html_file = f"workspace/loot/{report_id}.html"
+                with open(html_file, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                return
 
-            log.info(f"📄 บันทึกรายงาน PDF (HTML): {report_file}")
+            log.info(f"📄 บันทึกรายงาน PDF: {report_file}")
 
         except Exception as e:
             log.error(f"❌ บันทึกรายงาน PDF ล้มเหลว: {e}")
 
     async def _generate_html_content(self, report_data: Dict[str, Any]) -> str:
-        """สร้าง HTML content"""
+        """สร้างเนื้อหา HTML สำหรับรายงาน"""
         try:
-            html_content = f"""
+            html = f"""
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{report_data.get('title', 'Security Assessment Report')}</title>
+    <title>{report_data.get('title', 'Attack Report')}</title>
     <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        h1, h2, h3 {{ color: #333; }}
-        .summary {{ background-color: #f5f5f5; padding: 15px; border-radius: 5px; }}
-        .vulnerability {{ background-color: #ffe6e6; padding: 10px; margin: 5px 0; border-radius: 3px; }}
-        .exploit {{ background-color: #e6f3ff; padding: 10px; margin: 5px 0; border-radius: 3px; }}
-        .finding {{ background-color: #f0f8e6; padding: 10px; margin: 5px 0; border-radius: 3px; }}
-        .recommendation {{ background-color: #fff3cd; padding: 10px; margin: 5px 0; border-radius: 3px; }}
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #0a0a0a;
+            color: #00ff00;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }}
+        h1 {{
+            color: #00ff00;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+        }}
+        h2 {{
+            color: #00cc00;
+            margin-top: 30px;
+        }}
+        .section {{
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #0d0d0d;
+            border-left: 3px solid #00ff00;
+        }}
+        .loot-item {{
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+        }}
+        .credential {{
+            color: #ff0000;
+            font-weight: bold;
+        }}
+        .success {{
+            color: #00ff00;
+        }}
+        .warning {{
+            color: #ffaa00;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }}
+        th, td {{
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #00ff00;
+        }}
+        th {{
+            background-color: #0d0d0d;
+            color: #00ff00;
+        }}
+        pre {{
+            background-color: #0d0d0d;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }}
     </style>
 </head>
 <body>
-    <h1>{report_data.get('title', 'Security Assessment Report')}</h1>
-    <p>Generated: {report_data.get('timestamp', '')}</p>
-    
-    <div class="summary">
-        <h2>Executive Summary</h2>
-        <p>This report contains the results of a comprehensive security assessment.</p>
-    </div>
-    
-    <h2>Vulnerabilities</h2>
-    <div class="vulnerability">
-        <p>Total vulnerabilities found: {len(report_data.get('vulnerabilities', []))}</p>
-    </div>
-    
-    <h2>Exploits</h2>
-    <div class="exploit">
-        <p>Total exploits attempted: {len(report_data.get('exploits', []))}</p>
-    </div>
-    
-    <h2>Findings</h2>
-    <div class="finding">
-        <p>Total findings: {len(report_data.get('findings', []))}</p>
-    </div>
-    
-    <h2>Recommendations</h2>
-    <div class="recommendation">
-        <p>Please review the detailed recommendations in the full report.</p>
+    <div class="container">
+        <h1>{report_data.get('title', 'Attack Report')}</h1>
+        <p><strong>Timestamp:</strong> {report_data.get('timestamp', '')}</p>
+        
+        <div class="section">
+            <h2>📊 Summary</h2>
+            <pre>{json.dumps(report_data.get('summary', {}), indent=2, ensure_ascii=False)}</pre>
+        </div>
+        
+        <div class="section">
+            <h2>💰 Loot Collected</h2>
+            <pre>{json.dumps(report_data.get('loot', {}), indent=2, ensure_ascii=False)}</pre>
+        </div>
+        
+        <div class="section">
+            <h2>🔧 Technical Details</h2>
+            <pre>{json.dumps(report_data, indent=2, ensure_ascii=False)}</pre>
+        </div>
     </div>
 </body>
 </html>
-            """
-
-            return html_content
+"""
+            return html
 
         except Exception as e:
             log.error(f"❌ สร้าง HTML content ล้มเหลว: {e}")
-            return "<html><body><h1>Error generating report</h1></body></html>"
+            return f"<html><body><h1>Error generating report</h1><p>{str(e)}</p></body></html>"
 
-    def get_generated_reports(self) -> Dict[str, Any]:
-        """รับรายการรายงานที่สร้างแล้ว"""
-        return self.generated_reports
+    def get_report(self, report_id: str) -> Optional[Dict[str, Any]]:
+        """ดึงรายงานที่สร้างแล้ว"""
+        return self.generated_reports.get(report_id)
 
-    def get_report(self, report_id: str) -> Dict[str, Any]:
-        """รับรายงานตาม ID"""
-        return self.generated_reports.get(report_id, {})
+    def list_reports(self) -> List[Dict[str, Any]]:
+        """แสดงรายการรายงานทั้งหมด"""
+        return [
+            {
+                "report_id": report_id,
+                "session_id": report_data["session_id"],
+                "report_type": report_data["report_type"],
+                "timestamp": report_data["timestamp"]
+            }
+            for report_id, report_data in self.generated_reports.items()
+        ]
+

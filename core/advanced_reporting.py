@@ -269,12 +269,6 @@ class AdvancedReportGenerator:
         # Generate timeline
         timeline = self._generate_timeline(attack_timeline)
         
-        # Generate executive summary
-        executive_summary = self._generate_executive_summary(findings_with_cvss, stats)
-        
-        # Generate recommendations
-        recommendations = self._generate_recommendations(findings_with_cvss)
-        
         # Generate compliance mapping
         compliance = self._generate_compliance_mapping(findings_with_cvss)
         
@@ -283,11 +277,9 @@ class AdvancedReportGenerator:
             "session_id": session_id,
             "generated_at": datetime.now().isoformat(),
             "target": target_info,
-            "executive_summary": executive_summary,
             "statistics": stats,
-            "findings": findings_with_cvss,
+            "exploits": findings_with_cvss,
             "timeline": timeline,
-            "recommendations": recommendations,
             "compliance": compliance
         }
         

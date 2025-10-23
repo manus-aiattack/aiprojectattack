@@ -20,7 +20,7 @@ from core.data_models import Strategy
 from config.settings import DEFAULT_WORKFLOW, WORKSPACE_DIR
 
 # Import new CLI modules
-from cli import ui, attack_cli, license_cli
+from cli import ui, attack_cli, license_cli, loot_cli
 
 
 class dLNkdLNkCLI:
@@ -276,9 +276,10 @@ def version():
     click.echo("Powered by dLNk")
 
 
-# Add attack and license commands
+# Add attack, license, and loot commands
 cli.add_command(attack_cli.attack_group)
 cli.add_command(license_cli.license_group)
+cli.add_command(loot_cli.loot_group)
 
 
 if __name__ == '__main__':

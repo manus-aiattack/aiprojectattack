@@ -16,6 +16,8 @@ from .context_manager import ContextManager
 from .pubsub_manager import PubSubManager
 from .data_models import Strategy, AgentData, ErrorType, AttackPhase
 from .workflow_executor import WorkflowExecutor
+from .data_exfiltration import DataExfiltrator
+from .auto_exploit import AutoExploiter
 
 
 class Orchestrator:
@@ -39,6 +41,8 @@ class Orchestrator:
         self.context_manager = ContextManager()
         self.pubsub_manager = PubSubManager()
         self.workflow_executor = WorkflowExecutor(self)
+        self.data_exfiltrator = DataExfiltrator(workspace_dir=str(self.workspace_dir))
+        self.auto_exploiter = AutoExploiter(orchestrator=self)
         
         # State management
         self.running = False
@@ -46,6 +50,14 @@ class Orchestrator:
         self.current_phase = None
         self.start_time = None
         self.end_time = None
+        
+        # Safety: Blocked domains
+        self.blocked_domains = [
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            '::1'
+        ]
 
         log.info("Orchestrator initialized successfully")
 
@@ -244,8 +256,78 @@ class Orchestrator:
                 error_type=ErrorType.EXECUTION_FAILED
             )
 
+    def is_target_safe(self, target: str) -> bool:
+        """
+        ตรวจสอบว่า target ปลอดภัยหรือไม่ (ไม่ใช่ localhost หรือ internal)
+        
+        Args:
+            target: URL หรือ IP ของเป้าหมาย
+        
+        Returns:
+            True ถ้าปลอดภัย, False ถ้าเป็น blocked domain
+        """
+        from urllib.parse import urlparse
+        
+        try:
+            parsed = urlparse(target if '://' in target else f'http://{target}')
+            hostname = parsed.hostname or parsed.netloc
+            
+            # Check blocked domains
+            for blocked in self.blocked_domains:
+                if blocked in hostname.lower():
+                    log.error(f"[SAFETY] Target {target} is BLOCKED (matches {blocked})")
+                    return False
+            
+            # Check private IP ranges
+            if hostname.startswith('192.168.') or hostname.startswith('10.') or hostname.startswith('172.'):
+                log.warning(f"[SAFETY] Target {target} is in private IP range")
+                # Allow private IPs but log warning
+                return True
+            
+            return True
+            
+        except Exception as e:
+            log.error(f"[SAFETY] Failed to parse target {target}: {e}")
+            return False
+    
+    async def auto_exploit_target(self, target: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        โจมตีเป้าหมายอัตโนมัติ
+        
+        Args:
+            target: URL หรือ IP ของเป้าหมาย
+            context: ข้อมูลเพิ่มเติม
+        
+        Returns:
+            ผลการโจมตีและ loot ที่ได้
+        """
+        # Safety check
+        if not self.is_target_safe(target):
+            return {
+                "success": False,
+                "error": "Target is blocked for safety reasons",
+                "target": target
+            }
+        
+        log.info(f"[Orchestrator] Starting auto exploitation on {target}")
+        
+        # Use AutoExploiter
+        result = await self.auto_exploiter.auto_exploit_target(target, context)
+        
+        return result
+
     async def execute_agent_directly(self, agent_name: str, strategy: Strategy) -> AgentData:
         """Execute a single agent directly"""
+        # Safety check on target
+        target = strategy.context.get('url') or strategy.context.get('target')
+        if target and not self.is_target_safe(target):
+            return AgentData(
+                agent_name=agent_name,
+                success=False,
+                errors=[f"Target {target} is blocked for safety reasons"],
+                error_type=ErrorType.EXECUTION_FAILED
+            )
+        
         try:
             agent = await self.agent_registry.get_agent(
                 agent_name,
