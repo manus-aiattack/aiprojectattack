@@ -10,8 +10,25 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 import ollama
 from core.base_agent import BaseAgent
-from core.data_models import AgentData, AttackPhase
+from core.data_models import AgentData, AttackPhase, Strategy
 from core.logger import log
+
+# Import advanced tools
+try:
+    from advanced_agents.symbolic_executor import SymbolicExecutor
+    from advanced_agents.exploit_generator import ExploitGenerator
+    from advanced_agents.crash_triager import CrashTriager
+    ADVANCED_TOOLS_AVAILABLE = True
+except ImportError:
+    ADVANCED_TOOLS_AVAILABLE = False
+    log.warning("[ZeroDayHunter] Advanced tools not available")
+
+try:
+    from agents.afl_agent import AFLAgent
+    AFL_AVAILABLE = True
+except ImportError:
+    AFL_AVAILABLE = False
+    log.warning("[ZeroDayHunter] AFL agent not available")
 
 
 class ZeroDayHunterAgent(BaseAgent):
@@ -34,6 +51,17 @@ class ZeroDayHunterAgent(BaseAgent):
         self.llm_model = "mixtral:latest"  # Main strategist
         self.results_dir = "/home/ubuntu/dlnk/workspace/loot/zero_day"
         self.discovered_vulns = []
+        
+        # Initialize advanced tools
+        if ADVANCED_TOOLS_AVAILABLE:
+            self.symbolic_executor = SymbolicExecutor()
+            self.exploit_generator = ExploitGenerator()
+            self.crash_triager = CrashTriager()
+            log.info("[ZeroDayHunter] Advanced tools initialized")
+        else:
+            self.symbolic_executor = None
+            self.exploit_generator = None
+            self.crash_triager = None
         
     async def run(self, directive: str, context: Dict[str, Any]) -> AgentData:
         """
@@ -376,4 +404,232 @@ Respond with ONLY the Python code, no explanations:
         
         log.info(f"[ZeroDayHunter] Results saved to {filename}")
         return filename
+
+
+
+    async def _run_afl_fuzzing(self, target_binary: str, input_dir: str, duration: int = 3600) -> Dict:
+        """
+        Integrate AFL++ fuzzing into zero-day discovery workflow
+        
+        Args:
+            target_binary: Path to binary to fuzz
+            input_dir: Directory with seed inputs
+            duration: Fuzzing duration in seconds
+        
+        Returns:
+            Dict with fuzzing results and crashes
+        """
+        if not AFL_AVAILABLE:
+            log.warning("[ZeroDayHunter] AFL agent not available")
+            return {"success": False, "error": "AFL not available"}
+        
+        try:
+            log.info(f"[ZeroDayHunter] Running AFL++ fuzzing on {target_binary}")
+            
+            # Initialize AFL agent
+            afl = AFLAgent(self.context_manager, self.orchestrator)
+            
+            # Run AFL++ fuzzing
+            result = await afl.run(
+                strategy=Strategy(context={
+                    "target_binary": target_binary,
+                    "input_dir": input_dir,
+                    "fuzz_duration": duration
+                })
+            )
+            
+            if not result.success:
+                return {"success": False, "error": "AFL fuzzing failed"}
+            
+            # Analyze crashes if found
+            crashes = await self._analyze_afl_crashes(result.data)
+            
+            return {
+                "success": True,
+                "fuzzing_result": result.data,
+                "crashes": crashes,
+                "total_crashes": len(crashes)
+            }
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunter] AFL fuzzing failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def _analyze_afl_crashes(self, afl_result: Dict) -> List[Dict]:
+        """
+        Triage and analyze AFL++ crashes
+        
+        Args:
+            afl_result: Result from AFL fuzzing
+        
+        Returns:
+            List of analyzed crashes
+        """
+        import glob
+        
+        crashes = []
+        
+        # Get crash directory from AFL result
+        crash_dir = None
+        for finding in afl_result.get("findings", []):
+            if finding.get("type") == "fuzz_output_dir":
+                crash_dir = finding.get("path")
+                break
+        
+        if not crash_dir:
+            log.warning("[ZeroDayHunter] No crash directory found in AFL results")
+            return crashes
+        
+        # Find crash files
+        crash_files = glob.glob(f"{crash_dir}/crashes/*")
+        
+        if not crash_files:
+            log.info("[ZeroDayHunter] No crashes found")
+            return crashes
+        
+        log.info(f"[ZeroDayHunter] Found {len(crash_files)} crashes, triaging...")
+        
+        # Triage each crash
+        if self.crash_triager:
+            binary = afl_result.get("target_url")  # AFL uses target_url field for binary path
+            
+            for crash_file in crash_files[:10]:  # Limit to first 10 crashes
+                triage_result = await self.crash_triager.triage_crash(crash_file, binary)
+                
+                if triage_result.get("exploitable"):
+                    # If exploitable, try to generate exploit
+                    if self.exploit_generator:
+                        exploit = await self.exploit_generator.generate_buffer_overflow_exploit(
+                            binary,
+                            offset=64  # Default offset, should be determined from crash
+                        )
+                        triage_result["exploit"] = exploit
+                    
+                    # Try symbolic execution
+                    if self.symbolic_executor:
+                        with open(crash_file, 'rb') as f:
+                            crash_input = f.read()
+                        
+                        symbolic_result = await self.symbolic_executor.analyze_crash(
+                            binary,
+                            crash_input
+                        )
+                        triage_result["symbolic_analysis"] = symbolic_result
+                
+                crashes.append(triage_result)
+        
+        # Sort by severity
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        crashes.sort(key=lambda x: severity_order.get(x.get("severity", "low"), 99))
+        
+        log.success(f"[ZeroDayHunter] Triaged {len(crashes)} crashes, {sum(1 for c in crashes if c.get('exploitable'))} exploitable")
+        
+        return crashes
+    
+    async def _advanced_exploit_generation(self, vulnerability: Dict) -> Dict:
+        """
+        Generate advanced exploits using pwntools and symbolic execution
+        
+        Args:
+            vulnerability: Vulnerability information
+        
+        Returns:
+            Dict with exploit information
+        """
+        if not self.exploit_generator:
+            log.warning("[ZeroDayHunter] Exploit generator not available")
+            return {"success": False, "error": "Exploit generator not available"}
+        
+        try:
+            log.info("[ZeroDayHunter] Generating advanced exploit...")
+            
+            vuln_type = vulnerability.get("type", "unknown")
+            
+            # Generate exploit based on vulnerability type
+            if vuln_type == "buffer_overflow":
+                exploit = await self.exploit_generator.generate_buffer_overflow_exploit(
+                    binary_path=vulnerability.get("binary"),
+                    offset=vulnerability.get("offset", 64)
+                )
+            
+            elif vuln_type == "format_string":
+                exploit = await self.exploit_generator.generate_format_string_exploit(
+                    binary_path=vulnerability.get("binary"),
+                    offset=vulnerability.get("offset", 6),
+                    target_address=vulnerability.get("target_address", 0x404040)
+                )
+            
+            elif vuln_type in ["write_access_violation", "heap_corruption"]:
+                # Try to generate ROP chain
+                exploit = await self.exploit_generator.generate_rop_chain(
+                    binary_path=vulnerability.get("binary"),
+                    crash_info=vulnerability
+                )
+            
+            else:
+                # Generic shellcode generation
+                exploit = await self.exploit_generator.generate_shellcode(
+                    arch=vulnerability.get("arch", "amd64"),
+                    payload_type="shell"
+                )
+            
+            return exploit
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunter] Advanced exploit generation failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def _binary_analysis_workflow(self, binary_path: str, input_dir: str = None) -> Dict:
+        """
+        Complete binary analysis workflow with AFL++, symbolic execution, and exploit generation
+        
+        Args:
+            binary_path: Path to target binary
+            input_dir: Directory with seed inputs for fuzzing
+        
+        Returns:
+            Dict with complete analysis results
+        """
+        log.info(f"[ZeroDayHunter] Starting binary analysis workflow for {binary_path}")
+        
+        results = {
+            "binary": binary_path,
+            "started_at": datetime.now().isoformat(),
+            "phases": {}
+        }
+        
+        # Phase 1: Static analysis with symbolic executor
+        if self.symbolic_executor:
+            log.info("[ZeroDayHunter] Phase 1: Static analysis")
+            static_analysis = await self.symbolic_executor.find_vulnerable_paths(binary_path)
+            results["phases"]["static_analysis"] = static_analysis
+        
+        # Phase 2: Fuzzing with AFL++
+        if AFL_AVAILABLE and input_dir:
+            log.info("[ZeroDayHunter] Phase 2: AFL++ fuzzing")
+            fuzzing_result = await self._run_afl_fuzzing(binary_path, input_dir, duration=1800)
+            results["phases"]["fuzzing"] = fuzzing_result
+            
+            # Phase 3: Crash triage and exploit generation
+            if fuzzing_result.get("success") and fuzzing_result.get("crashes"):
+                log.info("[ZeroDayHunter] Phase 3: Exploit generation")
+                exploits = []
+                
+                for crash in fuzzing_result["crashes"]:
+                    if crash.get("exploitable"):
+                        exploit = await self._advanced_exploit_generation(crash)
+                        exploits.append(exploit)
+                
+                results["phases"]["exploitation"] = {
+                    "success": len(exploits) > 0,
+                    "exploits": exploits
+                }
+        
+        results["completed_at"] = datetime.now().isoformat()
+        results["success"] = any(phase.get("success") for phase in results["phases"].values())
+        
+        # Save results
+        self._save_results(binary_path, "binary_analysis", results)
+        
+        return results
 
