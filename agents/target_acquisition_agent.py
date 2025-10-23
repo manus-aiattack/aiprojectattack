@@ -163,33 +163,58 @@ class TargetAcquisitionAgent:
         targets = []
         
         try:
-            # Simulate newly registered domain discovery
-            # In production, you would use APIs like:
-            # - WhoisXML API
-            # - DomainTools
-            # - SecurityTrails
+            # Real domain discovery using DNS and WHOIS
+            import dns.resolver
+            import httpx
             
-            # For now, we'll use a simple heuristic approach
             for keyword in self.keywords:
-                # Search for domains with keyword in name
+                # Generate potential domain names
                 potential_domains = [
                     f"{keyword.replace(' ', '')}.com",
                     f"{keyword.replace(' ', '')}-app.com",
                     f"new-{keyword.replace(' ', '')}.com",
-                    f"{keyword.replace(' ', '')}2024.com",
+                    f"{keyword.replace(' ', '')}2025.com",
                 ]
                 
                 for domain in potential_domains:
-                    targets.append({
-                        'url': f'https://{domain}',
-                        'domain': domain,
-                        'source': 'newly_registered',
-                        'keyword': keyword,
-                        'discovered_at': datetime.now().isoformat(),
-                        'registration_date': (datetime.now() - timedelta(days=7)).isoformat()
-                    })
+                    try:
+                        # Check if domain resolves
+                        resolver = dns.resolver.Resolver()
+                        resolver.timeout = 2
+                        resolver.lifetime = 2
+                        
+                        try:
+                            answers = resolver.resolve(domain, 'A')
+                            ip = str(answers[0])
+                            
+                            # Domain exists - check if web server is running
+                            async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
+                                try:
+                                    response = await client.get(f'https://{domain}', follow_redirects=True)
+                                    if response.status_code < 500:
+                                        targets.append({
+                                            'url': f'https://{domain}',
+                                            'domain': domain,
+                                            'ip': ip,
+                                            'source': 'newly_registered',
+                                            'keyword': keyword,
+                                            'discovered_at': datetime.now().isoformat(),
+                                            'status_code': response.status_code
+                                        })
+                                        logger.info(f"Found active domain: {domain}")
+                                except Exception:
+                                    pass
+                        
+                        except dns.resolver.NXDOMAIN:
+                            # Domain doesn't exist
+                            pass
+                        except Exception:
+                            pass
+                    
+                    except Exception as e:
+                        logger.debug(f"Domain check failed for {domain}: {e}")
             
-            logger.info(f"Generated {len(targets)} potential newly registered domains")
+            logger.info(f"Found {len(targets)} active newly registered domains")
             
         except Exception as e:
             logger.error(f"Newly registered domain search failed: {e}")
@@ -205,22 +230,47 @@ class TargetAcquisitionAgent:
         targets = []
         
         try:
-            # In production, you would use Shodan API, Censys, or similar
-            # For now, we'll simulate with common patterns
+            # Real service discovery using Shodan API (if available)
+            shodan_api_key = os.environ.get('SHODAN_API_KEY')
             
-            for keyword in self.keywords:
-                # Common ports and services
-                services = [
-                    ('8080', 'web'),
-                    ('8443', 'web-ssl'),
-                    ('3000', 'nodejs'),
-                    ('5000', 'flask'),
-                    ('8000', 'django'),
-                ]
+            if shodan_api_key:
+                # Use real Shodan API
+                import httpx
                 
-                # Simulate discovered services
-                # In production, this would be real Shodan/Censys data
-                logger.info(f"Simulating service discovery for keyword: {keyword}")
+                for keyword in self.keywords:
+                    try:
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            response = await client.get(
+                                f'https://api.shodan.io/shodan/host/search',
+                                params={
+                                    'key': shodan_api_key,
+                                    'query': keyword
+                                }
+                            )
+                            
+                            if response.status_code == 200:
+                                data = response.json()
+                                matches = data.get('matches', [])
+                                
+                                for match in matches[:10]:  # Limit to 10 results
+                                    ip = match.get('ip_str')
+                                    port = match.get('port')
+                                    
+                                    targets.append({
+                                        'url': f'http://{ip}:{port}',
+                                        'ip': ip,
+                                        'port': port,
+                                        'source': 'shodan',
+                                        'keyword': keyword,
+                                        'discovered_at': datetime.now().isoformat()
+                                    })
+                                
+                                logger.info(f"Found {len(matches)} services via Shodan for: {keyword}")
+                    
+                    except Exception as e:
+                        logger.error(f"Shodan search failed for {keyword}: {e}")
+            else:
+                logger.warning("SHODAN_API_KEY not set - skipping Shodan search")
                 
         except Exception as e:
             logger.error(f"Shodan-like search failed: {e}")
@@ -242,7 +292,35 @@ class TargetAcquisitionAgent:
             # - Configuration files with URLs
             # - README files mentioning services
             
-            logger.info("GitHub repository search simulated")
+            # Real GitHub search using GitHub API
+            github_token = os.environ.get('GITHUB_TOKEN')
+            
+            if github_token:
+                import httpx
+                
+                for keyword in self.keywords:
+                    try:
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            headers = {
+                                'Authorization': f'token {github_token}',
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                            
+                            response = await client.get(
+                                'https://api.github.com/search/repositories',
+                                headers=headers,
+                                params={'q': f'{keyword} in:readme', 'per_page': 10}
+                            )
+                            
+                            if response.status_code == 200:
+                                data = response.json()
+                                repos = data.get('items', [])
+                                logger.info(f"Found {len(repos)} GitHub repos for: {keyword}")
+                    
+                    except Exception as e:
+                        logger.error(f"GitHub search failed for {keyword}: {e}")
+            else:
+                logger.warning("GITHUB_TOKEN not set - skipping GitHub search")
             
         except Exception as e:
             logger.error(f"GitHub search failed: {e}")

