@@ -42,8 +42,8 @@ A sophisticated, fully automated penetration testing framework powered by AI (Mi
 
 ```bash
 # Clone repository
-git clone https://github.com/vtvx4myqq9-stack/Manus.git
-cd Manus/dlnk_dlnk_FINAL
+git clone https://github.com/donlasahachat1-sys/manus.git
+cd manus
 
 # Run quick start script
 ./quickstart.sh
@@ -53,8 +53,8 @@ cd Manus/dlnk_dlnk_FINAL
 
 ```bash
 # Clone repository
-git clone https://github.com/vtvx4myqq9-stack/Manus.git
-cd Manus/dlnk_dlnk_FINAL
+git clone https://github.com/donlasahachat1-sys/manus.git
+cd manus
 
 # Run WSL fix script first
 ./wsl-fix.sh
@@ -357,7 +357,7 @@ This project is for educational and authorized security testing purposes only.
 
 ## 🔗 Links
 
-- **GitHub:** https://github.com/vtvx4myqq9-stack/Manus
+- **GitHub:** https://github.com/donlasahachat1-sys/manus
 - **Ollama:** https://ollama.ai
 - **Mixtral Model:** https://ollama.ai/library/mixtral
 

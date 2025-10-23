@@ -83,9 +83,9 @@
 ### ขั้นตอนที่ 1: Clone Repository
 
 ```bash
-cd /mnt/c/Users/atSine/Downloads/
-git clone https://github.com/vtvx4myqq9-stack/Manus.git
-cd Manus/dlnk_dlnk_FINAL
+cd ~
+git clone https://github.com/donlasahachat1-sys/manus.git
+cd manus
 ```
 
 ### ขั้นตอนที่ 2: ติดตั้ง Ollama และ LLM Models
@@ -684,7 +684,7 @@ ln -s /opt/sqlmap/sqlmap.py /usr/local/bin/sqlmap
 
 สำหรับคำถาม ปัญหา หรือข้อเสนอแนะ กรุณาติดต่อผ่าน:
 
-- **GitHub Issues**: https://github.com/vtvx4myqq9-stack/Manus/issues
+- **GitHub Issues**: https://github.com/donlasahachat1-sys/manus/issues
 - **Email**: (ระบุ email ของคุณ)
 
 ---

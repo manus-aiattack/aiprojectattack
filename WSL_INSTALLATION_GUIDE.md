@@ -186,9 +186,9 @@ ollama pull mixtral:latest
 ### 6. Clone repository
 
 ```bash
-cd /mnt/c/projecattack  # หรือที่อื่นที่ต้องการ
-git clone https://github.com/vtvx4myqq9-stack/Manus.git
-cd Manus/dlnk_dlnk_FINAL
+cd ~  # หรือที่อื่นที่ต้องการ
+git clone https://github.com/donlasahachat1-sys/manus.git
+cd manus
 ```
 
 ### 7. สร้าง virtual environment
