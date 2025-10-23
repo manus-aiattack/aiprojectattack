@@ -365,10 +365,10 @@ if __name__ == "__main__":
     async def main():
         # Configuration
         config = {
-            "splunk_hec_url": "https://splunk.example.com:8088",
+            "splunk_hec_url": "http://localhost:8088",
             "splunk_hec_token": "YOUR-HEC-TOKEN",
             "splunk_index": "security",
-            "elasticsearch_url": "http://elasticsearch.example.com:9200",
+            "elasticsearch_url": "http://localhost:9200",
             "elk_index_prefix": "dlnk"
         }
         
@@ -381,7 +381,7 @@ if __name__ == "__main__":
             "severity": "Critical",
             "cvss_score": 9.8,
             "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-            "target": "https://example.com",
+            "target": "http://localhost:8000",
             "location": "/api/users?id=1",
             "description": "SQL injection in user_id parameter",
             "remediation": "Use prepared statements"
@@ -393,7 +393,7 @@ if __name__ == "__main__":
         # Send attack log
         attack_log = {
             "session_id": "session_123",
-            "target": "https://example.com",
+            "target": "http://localhost:8000",
             "attack_type": "web_application",
             "status": "completed",
             "vulnerabilities_found": 5

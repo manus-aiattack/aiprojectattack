@@ -625,7 +625,7 @@ if __name__ == "__main__":
         try:
             user = await auth.register_user(
                 "testuser",
-                "test@example.com",
+                "testuser@localhost",
                 "password123"
             )
             print(f"✅ User registered: {user}")

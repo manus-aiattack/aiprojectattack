@@ -618,7 +618,7 @@ if __name__ == "__main__":
         
         # Target info
         target = {
-            "target": "https://example.com",
+            "target": "http://localhost:8000",
             "technology": "PHP + MySQL + Apache",
             "vulnerabilities_found": 0,
             "successful_exploits": 0,

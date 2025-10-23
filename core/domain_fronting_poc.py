@@ -58,8 +58,8 @@ class FrontingAdapter(HTTPAdapter):
 
 
 # --- Example Usage ---
-# The IP address of a CDN endpoint that hosts 'fronted.example.com'
-# and can route traffic to 'actual.example.com' based on the Host header.
+# The IP address of a CDN endpoint that hosts 'fronted.localhost:8000'
+# and can route traffic to 'actual.localhost:8000' based on the Host header.
 # Replace with actual IP and domains for a real-world test.
 # Note: Many cloud providers now actively block domain fronting. [5]
 CDN_IP = "54.230.14.90"  # Example IP, might not be valid or frontable

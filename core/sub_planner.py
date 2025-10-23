@@ -271,7 +271,7 @@ Based on all the information above, provide the next logical strategy in the spe
             else:
                 context["target_url"] = self.orchestrator.state.target_url
 
-        if context.get("hostname") in ["example.com", "<target_hostname>"]:
+        if context.get("hostname") in ["localhost:8000", "<target_hostname>"]:
             context["hostname"] = self.orchestrator.state.target_host
             log.info(
                 f"Replaced placeholder hostname with actual target: {context['hostname']}")

@@ -16,7 +16,7 @@ class DoHChannel:
         self.app = app # aiohttp app, if needed for server-side DoH handling
         self.redis = redis_client # Redis client for command/output queues
         self.doh_server_url = settings.DOH_SERVER_URL # e.g., "https://cloudflare-dns.com/dns-query"
-        self.c2_domain = settings.C2_DOMAIN # The domain agents will beacon to, e.g., "c2.example.com"
+        self.c2_domain = settings.C2_DOMAIN # The domain agents will beacon to, e.g., "c2.localhost:8000"
 
         if not self.c2_domain:
             log.warning("C2_DOMAIN not set in settings. DoHChannel may not function correctly.")

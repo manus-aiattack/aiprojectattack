@@ -207,7 +207,7 @@ def demo():
     print()
     
     target = {
-        "target": "https://example.com",
+        "target": "http://localhost:8000",
         "type": "Web Application",
         "technology": "PHP + MySQL"
     }

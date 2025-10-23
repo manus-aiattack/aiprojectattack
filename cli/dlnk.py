@@ -40,7 +40,7 @@ def cli():
     
     \b
     Examples:
-        dlnk attack https://example.com
+        dlnk attack https://localhost:8000
         dlnk status <attack_id>
         dlnk history
         dlnk admin keys
@@ -62,9 +62,9 @@ def attack(target_url, mode, follow):
     
     \b
     Examples:
-        dlnk attack https://example.com
-        dlnk attack https://example.com --mode stealth
-        dlnk attack https://example.com --follow
+        dlnk attack https://localhost:8000
+        dlnk attack https://localhost:8000 --mode stealth
+        dlnk attack https://localhost:8000 --follow
     """
     asyncio.run(_attack(target_url, mode, follow))
 

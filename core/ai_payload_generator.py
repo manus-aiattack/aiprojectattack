@@ -381,7 +381,7 @@ async def main():
     generator = AIPayloadGenerator()
     
     target_context = {
-        'url': 'https://example.com/login',
+        'url': 'http://localhost:8000/login',
         'technologies': ['PHP', 'MySQL', 'Apache'],
         'server': 'Apache/2.4.41',
         'waf': 'ModSecurity'

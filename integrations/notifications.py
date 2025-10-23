@@ -467,7 +467,7 @@ if __name__ == "__main__":
             "description": "SQL injection vulnerability in user_id parameter"
         }
         
-        results = await manager.send_vulnerability_alert(vulnerability, "https://example.com")
+        results = await manager.send_vulnerability_alert(vulnerability, "http://localhost:8000")
         print(f"Vulnerability alert sent: {results}")
         
         # Send attack complete notification
@@ -480,7 +480,7 @@ if __name__ == "__main__":
             "duration": "45 minutes"
         }
         
-        results = await manager.send_attack_complete("session_123", "https://example.com", stats)
+        results = await manager.send_attack_complete("session_123", "http://localhost:8000", stats)
         print(f"Attack complete notification sent: {results}")
     
     asyncio.run(main())

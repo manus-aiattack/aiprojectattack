@@ -640,7 +640,7 @@ if __name__ == "__main__":
     ]
     
     target_info = {
-        "url": "https://example.com",
+        "url": "http://localhost:8000",
         "technology": "PHP + MySQL"
     }
     

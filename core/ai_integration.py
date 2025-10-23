@@ -284,7 +284,7 @@ if __name__ == "__main__":
     
     # Example: Plan attack workflow
     target = {
-        "target": "https://example.com",
+        "target": "http://localhost:8000",
         "type": "Web Application",
         "technology": "PHP + MySQL"
     }

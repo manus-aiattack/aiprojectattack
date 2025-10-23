@@ -619,12 +619,12 @@ Example for a Laravel RCE vulnerability:
         [
           {{
             "method": "POST",
-            "url": "https://example.com/api/login",
+            "url": "http://localhost:8000/api/login",
             "data": {{ "user": "test", "pass": "password" }}
           }},
           {{
             "method": "GET",
-            "url": "https://example.com/api/data?id=123",
+            "url": "http://localhost:8000/api/data?id=123",
             "headers": {{ "Authorization": "Bearer <token_from_previous_step>" }}
           }}
         ]

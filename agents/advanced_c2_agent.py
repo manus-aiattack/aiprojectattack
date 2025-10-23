@@ -6,6 +6,7 @@ Provides sophisticated C2 communication channels with evasion capabilities
 import asyncio
 import base64
 import json
+import os
 import random
 from typing import Dict, List, Any, Optional
 from datetime import datetime

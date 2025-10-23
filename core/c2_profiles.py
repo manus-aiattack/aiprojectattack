@@ -71,7 +71,7 @@ PROFILES = {
         protocol='dns',
         host='8.8.8.8',
         port=53,
-        domain='example.com'
+        domain='localhost:8000'
     ),
     'doh_covert': DoHProfile(
         name='DoH Covert',
@@ -79,7 +79,7 @@ PROFILES = {
         host='dns.google',
         port=443,
         doh_server='https://dns.google/dns-query',
-        domain='example.com'
+        domain='localhost:8000'
     )
 }
 

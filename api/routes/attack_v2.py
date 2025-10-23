@@ -24,7 +24,7 @@ class AttackRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "target_url": "https://example.com",
+                "target_url": "http://localhost:8000",
                 "attack_mode": "auto"
             }
         }
