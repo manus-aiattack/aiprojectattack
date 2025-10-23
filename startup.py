@@ -49,13 +49,14 @@ def check_environment():
     console.print("\n[bold cyan]Checking Environment Variables...[/bold cyan]")
     
     required_vars = [
-        "DATABASE_URL",
-        "OLLAMA_HOST",
-        "WORKSPACE_DIR",
-        "LOOT_DIR"
+        "C2_DOMAIN"
     ]
     
     optional_vars = [
+        "DATABASE_URL",
+        "OLLAMA_HOST",
+        "WORKSPACE_DIR",
+        "LOOT_DIR",
         "NOTIFICATION_CHANNELS",
         "SMTP_HOST",
         "TELEGRAM_BOT_TOKEN",
