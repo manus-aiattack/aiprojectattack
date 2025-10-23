@@ -26,12 +26,10 @@ fi
 
 echo "✅ Detected Python $PYTHON_VERSION"
 
-# Install Python and venv if needed
-if ! $PYTHON_CMD -m venv --help &> /dev/null; then
-    echo "📦 Installing Python $PYTHON_VERSION venv..."
-    sudo apt update
-    sudo apt install -y python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev
-fi
+# Install Python venv and dev packages
+echo "📦 Installing Python $PYTHON_VERSION venv and dev packages..."
+sudo apt update
+sudo apt install -y python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev
 
 # Create virtual environment
 if [ ! -d "venv" ]; then
