@@ -238,7 +238,8 @@ class AdvancedC2Agent(BaseAgent):
         except Exception as e:
             log.error(f"[AdvancedC2Agent] Failed to setup WebSocket C2: {e}")
             return None
-        async def _deploy_http_c2_client(self, c2_config: Dict, backdoor_info: Dict):
+    
+    async def _deploy_http_c2_client(self, c2_config: Dict, backdoor_info: Dict):
         """Deploy C2 client on target via webshell"""
         try:
             # Generate C2 client code

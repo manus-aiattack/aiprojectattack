@@ -13,7 +13,7 @@ from typing import Optional, Dict, List
 from dataclasses import dataclass, asdict
 from enum import Enum
 import json
-import aioredis
+import redis.asyncio as aioredis
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr

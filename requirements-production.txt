@@ -33,6 +33,7 @@ openai==1.10.0
 
 # ===== Data Processing =====
 pydantic==2.5.3
+email-validator==2.1.0
 python-dotenv==1.0.0
 pyyaml>=6.0.1
 toml==0.10.2
@@ -59,7 +60,6 @@ beautifulsoup4==4.12.3
 
 # ===== Redis =====
 redis==5.0.1
-aioredis==2.0.1
 
 # ===== Email =====
 aiosmtplib==3.0.1

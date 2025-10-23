@@ -15,7 +15,7 @@ from pydantic import BaseModel
 import jwt
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from core.logger import log
 from core.context_manager import ContextManager
@@ -117,7 +117,7 @@ class LicenseService:
     
     def _derive_encryption_key(self) -> bytes:
         """Derive encryption key from secret"""
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'dlnk_salt',

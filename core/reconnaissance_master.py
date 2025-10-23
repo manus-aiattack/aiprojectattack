@@ -7,7 +7,7 @@ from config import settings
 import os
 import asyncio
 import re
-import aioredis # Import aioredis
+import redis.asyncio as aioredis # Import aioredis
 import time
 from core.context_manager import ContextManager # Import ContextManager
 
