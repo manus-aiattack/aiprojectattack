@@ -6,34 +6,58 @@
 
 ## 📋 ข้อกำหนดระบบ
 
+- **OS:** Ubuntu 22.04+ (หรือ Debian-based)
 - **Python:** 3.11
-- **Database:** PostgreSQL 13+ (optional, สำหรับ persistence)
-- **Redis:** 5.0+ (optional, สำหรับ session management)
+- **Database:** PostgreSQL 13+ (optional)
+- **Redis:** 5.0+ (optional)
 - **RAM:** 4GB ขึ้นไป
 - **Disk:** 10GB ขึ้นไป
 
 ---
 
-## 🚀 วิธีการติดตั้งและรัน
+## 🚀 วิธีติดตั้งและรัน (Ubuntu 24.04)
 
-### Option 1: รันด้วย Docker (แนะนำ)
+### ⚡ วิธีที่ 1: Quick Install (แนะนำ - ง่ายที่สุด)
 
 ```bash
 # 1. Clone repository
 git clone https://github.com/donlasahachat1-sys/manus.git
 cd manus
 
-# 2. สร้าง .env file
+# 2. รันสคริปต์ติดตั้ง (จัดการ venv อัตโนมัติ)
+chmod +x QUICK_INSTALL.sh
+./QUICK_INSTALL.sh
+
+# 3. Activate virtual environment
+source venv/bin/activate
+
+# 4. สร้าง .env
 cp env.template .env
 
-# 3. แก้ไข .env (ถ้าต้องการ)
-# - C2_DOMAIN=your-server-ip:8000  (ถ้ารันบน server จริง)
-# - DATABASE_URL, REDIS_URL, etc.
+# 5. รัน server
+python startup.py
 
-# 4. Build Docker image
+# 6. เข้าใช้งาน
+# API: http://localhost:8000
+# Docs: http://localhost:8000/docs
+```
+
+---
+
+### 🐳 วิธีที่ 2: Docker (ไม่ต้องจัดการ dependencies)
+
+```bash
+# 1. Clone repository
+git clone https://github.com/donlasahachat1-sys/manus.git
+cd manus
+
+# 2. สร้าง .env
+cp env.template .env
+
+# 3. Build Docker image
 docker build -t dlnk-platform .
 
-# 5. รัน container
+# 4. รัน container
 docker run -d \
   --name dlnk \
   -p 8000:8000 \
@@ -42,68 +66,66 @@ docker run -d \
   --env-file .env \
   dlnk-platform
 
-# 6. ตรวจสอบ logs
+# 5. ตรวจสอบ logs
 docker logs -f dlnk
 
-# 7. เข้าใช้งาน
+# 6. เข้าใช้งาน
 # API: http://localhost:8000
 # Docs: http://localhost:8000/docs
 ```
 
 ---
 
-### Option 2: รันแบบ Manual (Development)
+### 🔧 วิธีที่ 3: Manual Install (สำหรับ Advanced Users)
 
 ```bash
 # 1. Clone repository
 git clone https://github.com/donlasahachat1-sys/manus.git
 cd manus
 
-# 2. ติดตั้ง dependencies
-chmod +x install_dependencies.sh
-./install_dependencies.sh
+# 2. ติดตั้ง Python 3.11 (ถ้ายังไม่มี)
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3.11-dev
 
-# หรือติดตั้งด้วย pip
-pip3 install -r requirements-dev.txt
+# 3. สร้าง virtual environment
+python3.11 -m venv venv
 
-# 3. สร้าง .env file
+# 4. Activate virtual environment
+source venv/bin/activate
+
+# 5. Upgrade pip
+pip install --upgrade pip setuptools wheel
+
+# 6. ติดตั้ง dependencies
+pip install -r requirements-production.txt
+
+# 7. สร้าง .env
 cp env.template .env
 
-# 4. แก้ไข .env
-nano .env
-# ตั้งค่า:
-# - C2_DOMAIN=localhost:8000
-# - DATABASE_URL (ถ้าใช้ PostgreSQL)
-# - MIXTRAL_API_KEY (ถ้าใช้ AI Planning)
+# 8. รัน server
+python startup.py
 
-# 5. รัน API server
-python3.11 startup.py
-
-# หรือรันด้วย uvicorn โดยตรง
+# หรือรันด้วย uvicorn
 uvicorn api.main_api:app --host 0.0.0.0 --port 8000 --reload
-
-# 6. เข้าใช้งาน
-# API: http://localhost:8000
-# Docs: http://localhost:8000/docs
-# Interactive: http://localhost:8000/console
 ```
 
 ---
 
-### Option 3: รันด้วย CLI
+### 💻 วิธีที่ 4: CLI Mode
 
 ```bash
-# 1. ติดตั้ง CLI
+# 1. ติดตั้งตามวิธีที่ 1 หรือ 3 ก่อน
+
+# 2. Activate venv (ถ้ายังไม่ได้ activate)
+source venv/bin/activate
+
+# 3. ติดตั้ง CLI
 chmod +x install_cli.sh
 ./install_cli.sh
 
-# 2. ใช้งาน CLI
+# 4. ใช้งาน
 dlnk --help
-
-# 3. เริ่ม attack
 dlnk attack http://target-url.com
-
-# 4. ใช้ Interactive Console
 dlnk console
 ```
 
@@ -114,21 +136,41 @@ dlnk console
 ### ไฟล์ .env ที่สำคัญ
 
 ```bash
+# ============================================================================
 # C2 Configuration (สำคัญ!)
-C2_DOMAIN=localhost:8000          # เปลี่ยนเป็น IP/domain จริงถ้า deploy บน server
-C2_PROTOCOL=http                  # เปลี่ยนเป็น https ถ้ามี SSL
+# ============================================================================
 
-# Database (Optional)
+# สำหรับรันบน localhost (เครื่องตัวเอง)
+C2_DOMAIN=localhost:8000
+C2_PROTOCOL=http
+
+# สำหรับรันบน server จริง (มี public IP)
+# C2_DOMAIN=your-public-ip:8000
+# C2_PROTOCOL=http
+
+# ถ้ามี domain name และ SSL
+# C2_DOMAIN=your-domain.com
+# C2_PROTOCOL=https
+
+# ============================================================================
+# Database (Optional - ถ้าไม่มีจะใช้ in-memory)
+# ============================================================================
 DATABASE_URL=postgresql://user:pass@localhost:5432/dlnk
 
-# Redis (Optional)
+# ============================================================================
+# Redis (Optional - ถ้าไม่มีจะใช้ in-memory)
+# ============================================================================
 REDIS_URL=redis://localhost:6379/0
 
-# AI/LLM (Optional)
+# ============================================================================
+# AI/LLM (Optional - ถ้าต้องการ AI Planning)
+# ============================================================================
 MIXTRAL_API_KEY=your-api-key
 OPENAI_API_KEY=your-api-key
 
+# ============================================================================
 # SMTP (Optional - สำหรับ email exfiltration)
+# ============================================================================
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
@@ -144,7 +186,7 @@ SMTP_TO=your-email@gmail.com
 ### ตรวจสอบว่าระบบรันได้
 
 ```bash
-# ตรวจสอบ API
+# ตรวจสอบ API health
 curl http://localhost:8000/health
 
 # ตรวจสอบ version
@@ -157,10 +199,10 @@ curl http://localhost:8000/api/agents
 ### ตรวจสอบ logs
 
 ```bash
-# Docker
+# ถ้ารันด้วย Docker
 docker logs -f dlnk
 
-# Manual
+# ถ้ารันแบบ manual
 tail -f logs/dlnk.log
 ```
 
@@ -186,6 +228,9 @@ curl -X POST http://localhost:8000/api/v2/attack \
 
 ### 3. ผ่าน CLI
 ```bash
+# Activate venv ก่อน
+source venv/bin/activate
+
 # Auto attack
 dlnk attack http://target.com
 
@@ -198,56 +243,72 @@ dlnk attack http://target.com --follow
 
 ---
 
-## 🔒 Security Notes
+## 🐛 Troubleshooting
 
-1. **C2_DOMAIN:** 
-   - Default: `localhost:8000` (ปลอดภัยสำหรับ local testing)
-   - Production: เปลี่ยนเป็น IP/domain ของ server จริง
-   - ทุก payload จะ callback กลับมาที่ C2_DOMAIN
+### ปัญหา: externally-managed-environment
 
-2. **Firewall:**
-   - เปิด port 8000 (API)
-   - เปิด port ที่ต้องการสำหรับ C2 callbacks
+**สาเหตุ:** Ubuntu 24.04 ไม่อนุญาตให้ติดตั้ง pip packages ตรงๆ
 
-3. **SSL/TLS:**
-   - แนะนำใช้ reverse proxy (nginx/caddy) พร้อม SSL
-   - เปลี่ยน C2_PROTOCOL=https
+**วิธีแก้:**
+```bash
+# ใช้ virtual environment
+python3.11 -m venv venv
+source venv/bin/activate
+pip install -r requirements-production.txt
+```
+
+**หรือใช้ QUICK_INSTALL.sh:**
+```bash
+./QUICK_INSTALL.sh
+```
 
 ---
 
-## 🐛 Troubleshooting
+### ปัญหา: Python 3.11 not found
 
-### ปัญหา: Import errors
 ```bash
-# ติดตั้ง dependencies ใหม่
-pip3 install -r requirements-production.txt
+# ติดตั้ง Python 3.11
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3.11-dev
 ```
 
+---
+
+### ปัญหา: Import errors
+
+```bash
+# ตรวจสอบว่า activate venv แล้ว
+source venv/bin/activate
+
+# ติดตั้ง dependencies ใหม่
+pip install -r requirements-production.txt
+```
+
+---
+
 ### ปัญหา: Database connection
+
 ```bash
 # ตรวจสอบ PostgreSQL
 pg_isready
 
-# ตรวจสอบ connection string
-echo $DATABASE_URL
+# หรือใช้ in-memory mode (ไม่ต้องมี database)
+# แก้ไข .env: DATABASE_URL=sqlite:///dlnk.db
 ```
 
-### ปัญหา: Redis connection
-```bash
-# ตรวจสอบ Redis
-redis-cli ping
-
-# ตรวจสอบ connection string
-echo $REDIS_URL
-```
+---
 
 ### ปัญหา: Port already in use
+
 ```bash
 # หา process ที่ใช้ port 8000
 lsof -i :8000
 
 # Kill process
 kill -9 <PID>
+
+# หรือเปลี่ยน port
+uvicorn api.main_api:app --host 0.0.0.0 --port 8080
 ```
 
 ---
@@ -256,35 +317,53 @@ kill -9 <PID>
 
 - **API Documentation:** http://localhost:8000/docs
 - **README:** [README.md](README.md)
-- **Development Guide:** [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)
-- **Deployment Guide:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
+- **Completion Report:** [PROJECT_COMPLETION_REPORT.md](PROJECT_COMPLETION_REPORT.md)
 
 ---
 
 ## ✅ Verification Checklist
 
-ก่อนใช้งาน Production ตรวจสอบ:
+ก่อนใช้งาน ตรวจสอบ:
 
 - [ ] Python 3.11 installed
-- [ ] Dependencies installed (`requirements-production.txt`)
-- [ ] `.env` file configured
-- [ ] `C2_DOMAIN` set correctly
-- [ ] Database running (if used)
-- [ ] Redis running (if used)
-- [ ] Firewall configured
+- [ ] Virtual environment created (`venv/`)
+- [ ] Virtual environment activated (`source venv/bin/activate`)
+- [ ] Dependencies installed (`pip list`)
+- [ ] `.env` file created
+- [ ] `C2_DOMAIN` set correctly (localhost:8000 for local)
 - [ ] API accessible (http://localhost:8000/health)
 
 ---
 
 ## 🎉 พร้อมใช้งาน!
 
-ระบบพร้อม Production 100%
+### คำสั่งสรุป (Copy-Paste ได้เลย)
 
-**User แค่:**
-1. ตั้งค่า `.env` (C2_DOMAIN)
-2. รันคำสั่งข้างต้น
-3. เข้าใช้งานที่ http://localhost:8000
-4. กรอก Target URL และเริ่ม attack
+```bash
+# ติดตั้งและรัน
+git clone https://github.com/donlasahachat1-sys/manus.git
+cd manus
+chmod +x QUICK_INSTALL.sh
+./QUICK_INSTALL.sh
+source venv/bin/activate
+cp env.template .env
+python startup.py
+```
 
-**ระบบจะจัดการที่เหลือทั้งหมดอัตโนมัติ!**
+### เข้าใช้งาน
+- **Web UI:** http://localhost:8000
+- **API Docs:** http://localhost:8000/docs
+- **Health Check:** http://localhost:8000/health
+
+**User แค่กรอก Target URL และระบบทำงานอัตโนมัติ!** 🚀
+
+---
+
+## 💡 Tips
+
+1. **ใช้ Docker** ถ้าไม่อยากจัดการ dependencies
+2. **ใช้ QUICK_INSTALL.sh** สำหรับ Ubuntu 24.04
+3. **อย่าลืม activate venv** ก่อนรันทุกครั้ง
+4. **C2_DOMAIN=localhost:8000** เหมาะกับการรันบนเครื่องตัวเอง
+5. **ตรวจสอบ logs** ถ้ามีปัญหา
 
