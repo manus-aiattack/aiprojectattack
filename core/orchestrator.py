@@ -19,6 +19,15 @@ from .workflow_executor import WorkflowExecutor
 from .data_exfiltration import DataExfiltrator
 from .auto_exploit import AutoExploiter
 
+# Import new modules
+try:
+    from agents.exploitation import RCEAgent, XXEAgent, SSRFAgent, DeserializationAgent
+    from agents.credential_harvesting import CredentialHarvester
+    from agents.pivoting import NetworkPivot
+except ImportError:
+    RCEAgent = XXEAgent = SSRFAgent = DeserializationAgent = None
+    CredentialHarvester = NetworkPivot = None
+
 
 class Orchestrator:
     """Main orchestrator that manages agent execution and workflow"""
@@ -43,6 +52,28 @@ class Orchestrator:
         self.workflow_executor = WorkflowExecutor(self)
         self.data_exfiltrator = DataExfiltrator(workspace_dir=str(self.workspace_dir))
         self.auto_exploiter = AutoExploiter(orchestrator=self)
+        
+        # Initialize advanced modules
+        if RCEAgent:
+            self.rce_agent = RCEAgent(data_exfiltrator=self.data_exfiltrator)
+            self.xxe_agent = XXEAgent(data_exfiltrator=self.data_exfiltrator)
+            self.ssrf_agent = SSRFAgent(data_exfiltrator=self.data_exfiltrator)
+            self.deser_agent = DeserializationAgent(data_exfiltrator=self.data_exfiltrator)
+        else:
+            self.rce_agent = self.xxe_agent = self.ssrf_agent = self.deser_agent = None
+        
+        if CredentialHarvester:
+            self.cred_harvester = CredentialHarvester(
+                webshell_manager=None,  # Will be set later
+                data_exfiltrator=self.data_exfiltrator
+            )
+        else:
+            self.cred_harvester = None
+        
+        if NetworkPivot:
+            self.network_pivot = NetworkPivot(webshell_manager=None)  # Will be set later
+        else:
+            self.network_pivot = None
         
         # State management
         self.running = False
