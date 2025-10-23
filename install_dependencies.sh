@@ -34,9 +34,9 @@ echo "📦 Installing pydantic (Python 3.11 compatible)..."
 pip install "pydantic>=2.5.3"
 echo ""
 
-# Install from requirements-dev.txt (includes production dependencies)
-echo "📦 Installing dependencies from requirements-dev.txt..."
-pip install -r requirements-dev.txt
+# Install from requirements-production.txt (production only)
+echo "📦 Installing dependencies from requirements-production.txt..."
+pip install -r requirements-production.txt
 echo ""
 
 # Install additional packages
