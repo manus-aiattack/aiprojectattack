@@ -14,9 +14,15 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = "gpt-4.1-mini"  # or gpt-4.1-nano, gemini-2.5-flash
 OPENAI_BASE_URL = None  # Use default
 
-# Ollama Configuration (Local)
+# Ollama Configuration (Local - ฟรี 100%)
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
-OLLAMA_MODEL = "mixtral:latest"  # or llama3.2, mistral, codellama
+# Available models:
+# - mixtral:latest (26GB) - Best for complex tasks
+# - llama3:8b-instruct-fp16 (16GB) - High quality instruction following
+# - llama3:latest (4.7GB) - Fast and efficient
+# - codellama:latest (3.8GB) - Best for code generation
+# - mistral:latest (4.4GB) - Good balance
+OLLAMA_MODEL = "mixtral:latest"  # เปลี่ยนได้ตามต้องการ
 OLLAMA_API_KEY = "ollama"  # Not used but required by OpenAI client
 
 # LM Studio Configuration (Local)

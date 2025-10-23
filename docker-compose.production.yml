@@ -51,7 +51,8 @@ services:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_HOST=http://ollama:11434
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - SIMULATION_MODE=False
       - MAX_CONCURRENT_ATTACKS=${MAX_CONCURRENT_ATTACKS:-10}
       - WORKSPACE_DIR=/app/workspace
