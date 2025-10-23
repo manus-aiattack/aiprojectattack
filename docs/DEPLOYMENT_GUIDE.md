@@ -107,7 +107,7 @@ dlnk_dlnk_redis_1   docker-entrypoint.sh redis ...   Up      6379/tcp
 You can also check the health of the API:
 
 ```bash
-curl http://localhost:8000/health
+curl localhost:8000/health
 ```
 
 This should return a `{"status": "healthy"}` response.

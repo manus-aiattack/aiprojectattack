@@ -16,6 +16,6 @@ class IPAAnalysisAgent(BaseAgent):
             if not ipa_path or not os.path.exists(ipa_path):
                 return AgentData(success=False, errors=["IPA file not found"])
             
-            return AgentData(success=True, data={'file': ipa_path, 'status': 'IPA analysis placeholder'})
+            return AgentData(success=True, data={'file': ipa_path, 'status': 'Not implemented - IPA analysis requires manual configuration'})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])

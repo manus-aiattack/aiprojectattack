@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # dLNk - Complete Dependencies Installation Script
-# For Python 3.13
+# For Python 3.11
 
 set -e
 
@@ -29,14 +29,14 @@ echo "📦 Upgrading pip..."
 pip install --upgrade pip setuptools wheel
 echo ""
 
-# Install pydantic first (Python 3.13 compatible version)
-echo "📦 Installing pydantic (Python 3.13 compatible)..."
-pip install "pydantic>=2.10.0" "pydantic-core>=2.27.0"
+# Install pydantic first (Python 3.11 compatible version)
+echo "📦 Installing pydantic (Python 3.11 compatible)..."
+pip install "pydantic>=2.5.3"
 echo ""
 
-# Install from requirements-python313.txt
-echo "📦 Installing dependencies from requirements-python313.txt..."
-pip install -r requirements-python313.txt
+# Install from requirements-dev.txt (includes production dependencies)
+echo "📦 Installing dependencies from requirements-dev.txt..."
+pip install -r requirements-dev.txt
 echo ""
 
 # Install additional packages

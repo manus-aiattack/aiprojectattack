@@ -138,7 +138,7 @@ job_id = await orchestrator.submit_job(
 calculator = CVSSCalculator()
 score = calculator.calculate_from_vulnerability({
     "type": "SQL Injection",
-    "target": "https://example.com"
+    "target": "https://localhost:8000"
 })
 # Output: CVSSScore(base_score=9.8, severity="Critical", ...)
 ```

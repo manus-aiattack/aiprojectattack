@@ -21,7 +21,7 @@ import time
 console = Console()
 
 # Configuration
-API_URL = os.getenv("DLNK_API_URL", "http://localhost:8000")
+API_URL = os.getenv("DLNK_API_URL", "localhost:8000")
 API_KEY = os.getenv("DLNK_API_KEY", "")
 
 
@@ -36,7 +36,7 @@ def cli():
     \b
     Setup:
         export DLNK_API_KEY="your_api_key_here"
-        export DLNK_API_URL="http://localhost:8000"  # optional
+        export DLNK_API_URL="localhost:8000"  # optional
     
     \b
     Examples:

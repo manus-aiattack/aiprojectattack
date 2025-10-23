@@ -313,7 +313,7 @@ exit                     - Exit console
 **Example Usage**:
 ```
 dLNk > use sql_injection
-dLNk(sql_injection) > set target_url https://example.com
+dLNk(sql_injection) > set target_url https://localhost:8000
 dLNk(sql_injection) > set threads 20
 dLNk(sql_injection) > show options
 dLNk(sql_injection) > run
@@ -479,7 +479,7 @@ await c2_server.initialize()
 
 ```bash
 # .env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=localhost:8000
 VITE_WS_URL=ws://localhost:8000
 ```
 

@@ -66,13 +66,13 @@ cd dlnk_dlnk_framework_v3/dlnk_dlnk
 python api/main_api.py
 ```
 
-The server will start on `http://localhost:8000`
+The server will start on `localhost:8000`
 
 ### 4. Access Interfaces
 
-- **API Documentation**: http://localhost:8000/api/docs
-- **Main Dashboard**: http://localhost:8000/dashboard/dashboard_dlnk.html
-- **Admin Panel**: http://localhost:8000/admin/admin_panel.html
+- **API Documentation**: localhost:8000/api/docs
+- **Main Dashboard**: localhost:8000/dashboard/dashboard_dlnk.html
+- **Admin Panel**: localhost:8000/admin/admin_panel.html
 
 ---
 
@@ -121,7 +121,7 @@ Content-Type: application/json
 
 {
   "username": "newuser",
-  "email": "user@example.com",
+  "email": "user@localhost:8000",
   "password": "securepassword",
   "role": "user"
 }
@@ -214,7 +214,7 @@ Authorization: Bearer <admin_access_token>
 Content-Type: application/json
 
 {
-  "email": "newemail@example.com",
+  "email": "newemail@localhost:8000",
   "role": "admin",
   "is_active": true,
   "license_key": "DLNK-ENT-..."
@@ -245,7 +245,7 @@ Authorization: Bearer <api_key>
 import requests
 
 # Login
-response = requests.post('http://localhost:8000/api/auth/login', json={
+response = requests.post('localhost:8000/api/auth/login', json={
     'username': 'admin',
     'password': 'admin123'
 })
@@ -254,7 +254,7 @@ access_token = data['access_token']
 
 # Use token in subsequent requests
 headers = {'Authorization': f'Bearer {access_token}'}
-response = requests.get('http://localhost:8000/api/auth/me', headers=headers)
+response = requests.get('localhost:8000/api/auth/me', headers=headers)
 print(response.json())
 ```
 
@@ -262,7 +262,7 @@ print(response.json())
 
 ```javascript
 // Login
-const response = await fetch('http://localhost:8000/api/auth/login', {
+const response = await fetch('localhost:8000/api/auth/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
@@ -278,7 +278,7 @@ const accessToken = data.access_token;
 localStorage.setItem('access_token', accessToken);
 
 // Use token
-const userResponse = await fetch('http://localhost:8000/api/auth/me', {
+const userResponse = await fetch('localhost:8000/api/auth/me', {
     headers: {'Authorization': `Bearer ${accessToken}`}
 });
 ```
@@ -308,7 +308,7 @@ Authorization: Bearer <access_token>
 ```bash
 # Same as JWT token
 curl -H "Authorization: Bearer DLNK-your-api-key" \
-     http://localhost:8000/api/auth/verify-api-key
+     localhost:8000/api/auth/verify-api-key
 ```
 
 ### Reset API Key
@@ -418,7 +418,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
     
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -528,7 +528,7 @@ async def zeroday_hunt(
 
 2. Check if API server is running:
    ```bash
-   curl http://localhost:8000/health
+   curl localhost:8000/health
    ```
 
 3. Verify credentials:
@@ -654,8 +654,8 @@ logging.basicConfig(
 ## API Reference
 
 Complete API documentation is available at:
-- **Swagger UI**: http://localhost:8000/api/docs
-- **ReDoc**: http://localhost:8000/api/redoc
+- **Swagger UI**: localhost:8000/api/docs
+- **ReDoc**: localhost:8000/api/redoc
 
 ---
 

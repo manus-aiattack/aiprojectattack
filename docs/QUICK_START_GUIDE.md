@@ -43,12 +43,12 @@ docker-compose exec app dlnk-dlnk license status
 
 The framework is now ready for action. The easiest way to see it in action is to use the `full-auto` attack mode, which automates the entire process from scanning to exploitation.
 
-For this example, we will use a publicly available test site, `http://testphp.vulnweb.com`.
+For this example, we will use a publicly available test site, `localhost:8000`.
 
 **Execute the command:**
 
 ```bash
-docker-compose exec app dlnk-dlnk attack full-auto --target http://testphp.vulnweb.com
+docker-compose exec app dlnk-dlnk attack full-auto --target localhost:8000
 ```
 
 ---
@@ -64,7 +64,7 @@ Once the attack is launched, you can monitor its progress in real-time in two wa
     ```
 
 2.  **Via the Web Dashboard:**
-    Open your web browser and navigate to `http://localhost:8000`. The dashboard provides a live stream of logs and a high-level overview of the operation.
+    Open your web browser and navigate to `localhost:8000`. The dashboard provides a live stream of logs and a high-level overview of the operation.
 
 ---
 

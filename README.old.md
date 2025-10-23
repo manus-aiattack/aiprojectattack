@@ -48,14 +48,14 @@ The framework's architecture is centered around a core `Orchestrator` that coord
     docker-compose up --build -d
     ```
 4.  **Access the Framework**:
-    *   **Web Dashboard**: `http://localhost:8000/dashboard`
-    *   **API (Swagger UI)**: `http://localhost:8000/docs`
+    *   **Web Dashboard**: `localhost:8000/dashboard`
+    *   **API (Swagger UI)**: `localhost:8000/docs`
 
 ## Usage
 
 ### Web Dashboard
 
-Navigate to `http://localhost:8000/dashboard` to see the live dashboard. From here, you can monitor running workflows and see logs stream in real-time.
+Navigate to `localhost:8000/dashboard` to see the live dashboard. From here, you can monitor running workflows and see logs stream in real-time.
 
 ### Command-Line Interface (CLI)
 
@@ -63,7 +63,7 @@ The `dlnk-dlnk` command is the primary entry point for terminal-based operations
 
 *   **Run a workflow**:
     ```bash
-    dlnk-dlnk run --workflow config/default_workflow.yaml --target http://example.com
+    dlnk-dlnk run --workflow config/default_workflow.yaml --target localhost:8000
     ```
 
 *   **List all available agents**:
@@ -78,7 +78,7 @@ The `dlnk-dlnk` command is the primary entry point for terminal-based operations
 
 ### RESTful API
 
-The API provides programmatic control over the framework. See the Swagger UI at `http://localhost:8000/docs` for a full list of endpoints.
+The API provides programmatic control over the framework. See the Swagger UI at `localhost:8000/docs` for a full list of endpoints.
 
 *   **Execute Workflow**: `POST /workflows/execute`
 *   **Live Log Stream**: `WS /ws/logs`

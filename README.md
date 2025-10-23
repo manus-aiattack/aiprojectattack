@@ -136,8 +136,8 @@ python3 api/main.py
 ```
 
 API will be available at:
-- **API:** http://localhost:8000
-- **Docs:** http://localhost:8000/docs
+- **API:** localhost:8000
+- **Docs:** localhost:8000/docs
 - **Admin Key:** See `ADMIN_KEY.txt`
 
 ### API Examples
@@ -145,11 +145,11 @@ API will be available at:
 #### 1. Start Full Auto Attack
 
 ```bash
-curl -X POST http://localhost:8000/api/attack/start \
+curl -X POST localhost:8000/api/attack/start \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "target_url": "http://testphp.vulnweb.com",
+    "target_url": "localhost:8000",
     "attack_type": "full_auto"
   }'
 ```
@@ -157,28 +157,28 @@ curl -X POST http://localhost:8000/api/attack/start \
 #### 2. Check Attack Status
 
 ```bash
-curl http://localhost:8000/api/attack/{attack_id}/status \
+curl localhost:8000/api/attack/{attack_id}/status \
   -H "X-API-Key: YOUR_API_KEY"
 ```
 
 #### 3. Get Attack Results
 
 ```bash
-curl http://localhost:8000/api/attack/{attack_id}/results \
+curl localhost:8000/api/attack/{attack_id}/results \
   -H "X-API-Key: YOUR_API_KEY"
 ```
 
 #### 4. List Exfiltrated Files
 
 ```bash
-curl http://localhost:8000/api/files/attack/{attack_id} \
+curl localhost:8000/api/files/attack/{attack_id} \
   -H "X-API-Key: YOUR_API_KEY"
 ```
 
 #### 5. Generate Report
 
 ```bash
-curl -X POST http://localhost:8000/api/attack/{attack_id}/report \
+curl -X POST localhost:8000/api/attack/{attack_id}/report \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"format": "html"}'
@@ -211,7 +211,7 @@ docker-compose down
 ```
 
 Services:
-- **API Server:** http://localhost:8000
+- **API Server:** localhost:8000
 - **PostgreSQL:** localhost:5432
 - **Ollama:** http://localhost:11434
 
@@ -286,7 +286,7 @@ Services:
 
 ## 📚 Documentation
 
-- **API Documentation:** http://localhost:8000/docs (when running)
+- **API Documentation:** localhost:8000/docs (when running)
 - **DEPLOYMENT_GUIDE.md:** Complete deployment and configuration guide
 - **NEWPLAN.MD:** Development roadmap and features
 

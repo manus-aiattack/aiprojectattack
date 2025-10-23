@@ -776,7 +776,7 @@ docker-compose -f docker-compose.production.yml up -d
 ### 5. ตรวจสอบ
 ```bash
 # API
-curl http://localhost:8000/health
+curl localhost:8000/health
 
 # Ollama
 curl http://localhost:11434/api/tags
@@ -795,8 +795,8 @@ open http://localhost
 | Service | Port | URL | Description |
 |---------|------|-----|-------------|
 | Frontend | 80 | http://localhost | Web UI |
-| API | 8000 | http://localhost:8000 | REST API |
-| API Docs | 8000 | http://localhost:8000/docs | Swagger UI |
+| API | 8000 | localhost:8000 | REST API |
+| API Docs | 8000 | localhost:8000/docs | Swagger UI |
 | Grafana | 3000 | http://localhost:3000 | Monitoring |
 | Prometheus | 9090 | http://localhost:9090 | Metrics |
 | Kibana | 5601 | http://localhost:5601 | Logs |

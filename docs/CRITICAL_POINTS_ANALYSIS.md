@@ -561,7 +561,7 @@ CREATE TABLE c2_heartbeats (...);
 **Environment Variables**:
 ```bash
 # .env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=localhost:8000
 VITE_WS_URL=ws://localhost:8000
 ```
 

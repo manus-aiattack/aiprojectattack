@@ -110,7 +110,7 @@ This document provides a detailed reference for the RESTful API of the dLNk dLNk
     "workflow_path": "config/attack_full_auto_workflow.yaml",
     "target": {
       "name": "Example Corp",
-      "url": "http://example.com",
+      "url": "localhost:8000",
       "description": "Main web server of Example Corp."
     }
   }
@@ -137,7 +137,7 @@ This document provides a detailed reference for the RESTful API of the dLNk dLNk
     "agent_name": "XSS_Agent",
     "directive": "find_reflected_xss",
     "context": {
-      "target_url": "http://example.com/search?q=test"
+      "target_url": "localhost:8000/search?q=test"
     }
   }
   ```
@@ -153,7 +153,7 @@ This document provides a detailed reference for the RESTful API of the dLNk dLNk
     "summary": "Found a reflected XSS vulnerability.",
     "errors": [],
     "data": {
-      "vulnerable_url": "http://example.com/search?q=<script>alert(1)</script>",
+      "vulnerable_url": "localhost:8000/search?q=<script>alert(1)</script>",
       "payload": "<script>alert(1)</script>"
     }
   }

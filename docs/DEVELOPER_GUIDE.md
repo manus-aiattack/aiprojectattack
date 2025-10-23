@@ -143,6 +143,6 @@ phases:
 To execute this workflow:
 
 ```bash
-dlnk-dlnk run --workflow config/simple_workflow.yaml --target http://example.com
+dlnk-dlnk run --workflow config/simple_workflow.yaml --target localhost:8000
 ```
 

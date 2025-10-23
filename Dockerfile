@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y \
     sqlmap \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements-full.txt requirements.txt
+# Copy production requirements only
+COPY requirements-production.txt requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

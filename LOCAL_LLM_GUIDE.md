@@ -242,7 +242,7 @@ phases:
 ai = dLNkAISystem()
 
 result = ai.generate_attack_plan({
-    "target": "https://example.com",
+    "target": "https://localhost:8000",
     "type": "Web Application",
     "technology": "React + Node.js + MongoDB"
 })
@@ -269,7 +269,7 @@ result = ai.analyze_vulnerability({
 
 ```python
 result = ai.generate_report({
-    "target": "example.com",
+    "target": "localhost:8000",
     "vulnerabilities": [
         {"type": "SQL Injection", "severity": "Critical"},
         {"type": "XSS", "severity": "Medium"}

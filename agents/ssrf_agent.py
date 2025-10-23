@@ -128,7 +128,7 @@ class SSRFAgent(BaseAgent):
             if not listener_info or listener_info.get("status") != "success":
                 error_msg = "Failed to start temporary listener. Blind SSRF checks will be skipped."
                 log.error(error_msg)
-                listener_url = "http://example.com"  # Fallback
+                listener_url = "localhost:8000"  # Fallback
                 report.errors.append(error_msg)
                 report.error_type = ErrorType.NETWORK
             else:

@@ -93,7 +93,7 @@ docker-compose -f docker-compose.production.yml ps
 
 ```bash
 # API Health
-curl http://localhost:8000/health
+curl localhost:8000/health
 
 # Ollama Health
 curl http://localhost:11434/api/tags
@@ -111,8 +111,8 @@ curl http://localhost:9090/-/healthy
 | Service | URL | Description |
 |---------|-----|-------------|
 | Frontend | http://localhost | Web UI |
-| API | http://localhost:8000 | REST API |
-| API Docs | http://localhost:8000/docs | Swagger UI |
+| API | localhost:8000 | REST API |
+| API Docs | localhost:8000/docs | Swagger UI |
 | Grafana | http://localhost:3000 | Monitoring |
 | Prometheus | http://localhost:9090 | Metrics |
 | Kibana | http://localhost:5601 | Logs |
@@ -121,7 +121,7 @@ curl http://localhost:9090/-/healthy
 
 ```bash
 # ทดสอบผ่าน API
-curl -X POST http://localhost:8000/api/ai/chat \
+curl -X POST localhost:8000/api/ai/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "วิเคราะห์ช่องโหว่ SQL Injection"
@@ -132,10 +132,10 @@ curl -X POST http://localhost:8000/api/ai/chat \
 
 ```bash
 # ส่ง attack request
-curl -X POST http://localhost:8000/api/attack \
+curl -X POST localhost:8000/api/attack \
   -H "Content-Type: application/json" \
   -d '{
-    "target": "http://testphp.vulnweb.com",
+    "target": "localhost:8000",
     "attack_type": "web_application"
   }'
 ```
@@ -209,7 +209,7 @@ from core.ai_integration import AIOrchestrator
 orchestrator = AIOrchestrator()
 
 # Analyze target
-result = await orchestrator.analyze_target("https://example.com")
+result = await orchestrator.analyze_target("https://localhost:8000")
 print(result)
 ```
 
@@ -223,7 +223,7 @@ generator = ExploitGenerator()
 # Generate exploit
 exploit = await generator.generate_exploit(
     vulnerability_type="SQL Injection",
-    target_info={"url": "https://example.com/login"}
+    target_info={"url": "https://localhost:8000/login"}
 )
 ```
 
@@ -238,7 +238,7 @@ orchestrator = RLAttackOrchestrator()
 await orchestrator.train(episodes=100)
 
 # Attack with RL
-result = await orchestrator.attack_with_rl("https://example.com")
+result = await orchestrator.attack_with_rl("https://localhost:8000")
 ```
 
 ---

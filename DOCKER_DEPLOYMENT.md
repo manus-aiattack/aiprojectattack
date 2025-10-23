@@ -131,9 +131,9 @@ docker exec -it manus-db psql -U postgres -d manus_db -c "SELECT username, api_k
 
 หลังจาก start services สำเร็จ คุณสามารถเข้าถึงได้ที่:
 
-- **API Server**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+- **API Server**: localhost:8000
+- **API Documentation**: localhost:8000/docs
+- **Health Check**: localhost:8000/health
 - **PostgreSQL**: localhost:5432
 - **Redis**: localhost:6379
 - **Ollama**: http://localhost:11434
@@ -145,18 +145,18 @@ docker exec -it manus-db psql -U postgres -d manus_db -c "SELECT username, api_k
 ### 1. ทดสอบ Health Check
 
 ```bash
-curl http://localhost:8000/health
+curl localhost:8000/health
 ```
 
 ### 2. เริ่มการโจมตี
 
 ```bash
 # แทนที่ YOUR_API_KEY ด้วย API key ที่ได้จากขั้นตอนที่ 7
-curl -X POST http://localhost:8000/api/attack/start \
+curl -X POST localhost:8000/api/attack/start \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "target_url": "http://testphp.vulnweb.com",
+    "target_url": "localhost:8000",
     "attack_type": "scan"
   }'
 ```
@@ -164,7 +164,7 @@ curl -X POST http://localhost:8000/api/attack/start \
 ### 3. ตรวจสอบสถานะการโจมตี
 
 ```bash
-curl http://localhost:8000/api/attack/{attack_id}/status \
+curl localhost:8000/api/attack/{attack_id}/status \
   -H "X-API-Key: YOUR_API_KEY"
 ```
 

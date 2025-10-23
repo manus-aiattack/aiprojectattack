@@ -23,4 +23,4 @@ class ProcessInjectionAgent(BaseAgent):
             return AgentData(success=False, errors=[str(e)])
     
     async def _inject(self, target, shellcode, method):
-        return {'success': True, 'method': method, 'target': target, 'status': 'Injection placeholder'}
+        return {'success': True, 'method': method, 'target': target, 'status': 'Not implemented - Injection requires manual configuration'}

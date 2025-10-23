@@ -261,7 +261,7 @@ curl http://localhost:11434/api/tags
 ./run.sh
 
 # ในอีก terminal
-curl http://localhost:8000/docs
+curl localhost:8000/docs
 ```
 
 ---

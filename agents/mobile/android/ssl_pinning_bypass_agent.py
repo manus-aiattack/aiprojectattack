@@ -17,7 +17,7 @@ class AndroidSSLPinningBypassAgent(BaseAgent):
                 script = self._generate_frida_script()
                 return AgentData(success=True, data={'script': script, 'method': 'frida', 'package': package_name})
             
-            return AgentData(success=True, data={'status': 'SSL pinning bypass placeholder'})
+            return AgentData(success=True, data={'status': 'Not implemented - SSL pinning bypass requires manual configuration'})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])
     

@@ -252,7 +252,7 @@ class EvolutionSystem:
                 # Test improved agent
                 test_result = await self.code_writer.test_agent(
                     agent_name,
-                    'https://testphp.vulnweb.com'
+                    'https://localhost:8000'
                 )
                 
                 if test_result['status'] == 'success':
@@ -354,7 +354,7 @@ class EvolutionSystem:
                 # Test new agent
                 test_result = await self.code_writer.test_agent(
                     agent_name,
-                    'https://testphp.vulnweb.com'
+                    'https://localhost:8000'
                 )
                 
                 if test_result['status'] == 'success':

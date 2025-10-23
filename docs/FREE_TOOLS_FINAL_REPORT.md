@@ -255,7 +255,7 @@ docker-compose -f docker-compose.production.yml up -d
 ### Step 5: ตรวจสอบ
 ```bash
 # API
-curl http://localhost:8000/health
+curl localhost:8000/health
 
 # Ollama
 curl http://localhost:11434/api/tags
@@ -526,7 +526,7 @@ docker-compose -f docker-compose.production.yml up -d
 
 3. **ทดสอบ**:
 ```bash
-curl http://localhost:8000/health
+curl localhost:8000/health
 curl http://localhost:11434/api/tags
 ```
 

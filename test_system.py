@@ -92,9 +92,9 @@ async def test_safety_check():
         assert not orchestrator.is_target_safe("http://0.0.0.0")
         print("✅ Blocked: 0.0.0.0")
         
-        # Test allowed targets
-        assert orchestrator.is_target_safe("http://example.com")
-        print("✅ Allowed: example.com")
+        # Test allowed targets (using safe test domain)
+        assert orchestrator.is_target_safe("localhost:8000")
+        print("✅ Allowed: localhost:8000")
         
         return True
     

@@ -245,7 +245,7 @@ source venv/bin/activate
 python api/main.py
 ```
 
-Backend API จะรันที่ `http://localhost:8000`
+Backend API จะรันที่ `localhost:8000`
 
 #### Terminal 2: รัน Web Dashboard
 
@@ -349,7 +349,7 @@ Admin สามารถสร้าง API Key ให้ผู้ใช้ไ�
 **ผ่าน API:**
 
 ```bash
-curl -X POST http://localhost:8000/api/admin/keys/create \
+curl -X POST localhost:8000/api/admin/keys/create \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_ADMIN_KEY" \
   -d '{

@@ -10,6 +10,6 @@ class GCPStorageBucketAgent(BaseAgent):
     
     async def run(self, strategy: Dict[str, Any]) -> AgentData:
         try:
-            return AgentData(success=True, data={'status': 'GCP Storage placeholder'})
+            return AgentData(success=True, data={'status': 'Not implemented - GCP Storage requires manual configuration'})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])

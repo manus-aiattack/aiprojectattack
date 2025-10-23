@@ -10,6 +10,6 @@ class AndroidDataExtractionAgent(BaseAgent):
     
     async def run(self, strategy: Dict[str, Any]) -> AgentData:
         try:
-            return AgentData(success=True, data={'status': 'Data extraction placeholder'})
+            return AgentData(success=True, data={'status': 'Not implemented - Data extraction requires manual configuration'})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])

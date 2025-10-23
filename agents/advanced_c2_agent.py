@@ -162,10 +162,11 @@ class AdvancedC2Agent(BaseAgent):
             log.info("[AdvancedC2Agent] Setting up DNS tunneling C2")
             
             # DNS tunnel configuration
+            c2_domain = os.getenv('C2_DOMAIN', 'localhost:8000')
             c2_config = {
                 "type": "dns_tunnel",
                 "dns_server": "8.8.8.8",
-                "domain": "c2.example.com",
+                "domain": c2_domain,
                 "subdomain_prefix": self._generate_subdomain_prefix(),
                 "query_type": "TXT",
                 "beacon_interval": 120,

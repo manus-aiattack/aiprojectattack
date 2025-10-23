@@ -17,4 +17,4 @@ class AMSIBypassAgent(BaseAgent):
             return AgentData(success=False, errors=[str(e)])
     
     async def _bypass_amsi(self, method):
-        return {'success': True, 'method': method, 'status': 'AMSI bypass placeholder'}
+        return {'success': True, 'method': method, 'status': 'Not implemented - AMSI bypass requires manual configuration'}

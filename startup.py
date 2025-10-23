@@ -223,9 +223,9 @@ def print_summary():
     console.print("  1. Start API server:")
     console.print("     [yellow]python api/main.py[/yellow]")
     console.print("\n  2. Access API at:")
-    console.print("     [yellow]http://localhost:8000[/yellow]")
+    console.print("     [yellow]localhost:8000[/yellow]")
     console.print("\n  3. View API docs at:")
-    console.print("     [yellow]http://localhost:8000/docs[/yellow]")
+    console.print("     [yellow]localhost:8000/docs[/yellow]")
     console.print("\n  4. Use Admin Key from:")
     console.print("     [yellow]ADMIN_KEY.txt[/yellow]")
     

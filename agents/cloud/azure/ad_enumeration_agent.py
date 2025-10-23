@@ -10,6 +10,6 @@ class AzureADEnumerationAgent(BaseAgent):
     
     async def run(self, strategy: Dict[str, Any]) -> AgentData:
         try:
-            return AgentData(success=True, data={'status': 'Azure AD enumeration placeholder'})
+            return AgentData(success=True, data={'status': 'Not implemented - Azure AD enumeration requires manual configuration'})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])

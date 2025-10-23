@@ -66,9 +66,9 @@ async def startup_event():
     print("   ✅ License service ready")
     
     print("✅ dLNk HACK API Server started successfully!")
-    print(f"   📍 API Documentation: http://localhost:8000/api/docs")
-    print(f"   📍 Dashboard: http://localhost:8000/dashboard")
-    print(f"   📍 Admin Panel: http://localhost:8000/admin")
+    print(f"   📍 API Documentation: localhost:8000/api/docs")
+    print(f"   📍 Dashboard: localhost:8000/dashboard")
+    print(f"   📍 Admin Panel: localhost:8000/admin")
 
 
 @app.on_event("shutdown")

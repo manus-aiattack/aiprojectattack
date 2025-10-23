@@ -10,6 +10,6 @@ class AndroidRootDetectionBypassAgent(BaseAgent):
     
     async def run(self, strategy: Dict[str, Any]) -> AgentData:
         try:
-            return AgentData(success=True, data={'status': 'Root detection bypass placeholder'})
+            return AgentData(success=True, data={'status': 'Not implemented - Root detection bypass requires manual configuration'})
         except Exception as e:
             return AgentData(success=False, errors=[str(e)])

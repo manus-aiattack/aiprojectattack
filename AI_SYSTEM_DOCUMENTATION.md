@@ -120,7 +120,7 @@ task = AITask(
     task_id="recon_001",
     task_type="recon",
     input_data={
-        "target": "https://example.com",
+        "target": "https://localhost:8000",
         "type": "Web Application",
         "technology": "PHP + MySQL"
     }
@@ -143,7 +143,7 @@ else:
 ```python
 # Plan complete attack workflow
 target = {
-    "target": "https://example.com",
+    "target": "https://localhost:8000",
     "type": "Web Application",
     "technology": "PHP + MySQL"
 }
@@ -241,7 +241,7 @@ task = AITask(
     task_id="recon_001",
     task_type="recon",
     input_data={
-        "target": "https://shop.example.com",
+        "target": "https://shop.localhost:8000",
         "type": "E-commerce Website",
         "technology": "PHP + MySQL"
     }
@@ -311,7 +311,7 @@ if result.success:
 ```python
 # Plan complete attack
 target = {
-    "target": "https://api.example.com",
+    "target": "https://api.localhost:8000",
     "type": "REST API",
     "technology": "Node.js + MongoDB"
 }

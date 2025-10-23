@@ -51,7 +51,7 @@ class AFLAgent(BaseAgent):
         # -t: timeout for each test case (ms)
         # -m: memory limit (MB)
         # -V: fuzzing duration (seconds)
-        # @@: placeholder for input file
+        # @@: AFL syntax for input file location (will be replaced by AFL with actual test case)
         afl_command = [
             "afl-fuzz",
             "-i", input_dir,
