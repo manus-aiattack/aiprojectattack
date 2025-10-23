@@ -1,8 +1,8 @@
 # dLNk Attack Platform v2.0
 
-**AI-Powered Automated Penetration Testing System**
+**AI-Powered Automated Attack Platform**
 
-A sophisticated, fully automated penetration testing framework powered by AI (Mixtral LLM) that can discover vulnerabilities, plan attacks, generate exploits, and exfiltrate data autonomously.
+A sophisticated, fully automated offensive security platform powered by AI (Mixtral LLM) that can scan networks, discover vulnerabilities, plan and execute attacks, exploit systems, and exfiltrate data autonomously. Complete with API, user management, admin panel, and web interface.
 
 ---
 
@@ -270,15 +270,15 @@ Services:
 
 ## ⚠️ Legal Disclaimer
 
-**THIS TOOL IS FOR AUTHORIZED SECURITY TESTING ONLY**
+**THIS IS AN OFFENSIVE SECURITY ATTACK PLATFORM**
 
-- ✅ **Authorized Use:** Bug bounty programs, penetration testing with written permission, your own systems
-- ❌ **Unauthorized Use:** Attacking systems without permission is **ILLEGAL**
+- ✅ **Authorized Use:** Bug bounty programs, authorized security assessments with written permission, your own systems and networks
+- ❌ **Unauthorized Use:** Attacking systems without explicit authorization is **ILLEGAL** and punishable by law
 
 **You are responsible for:**
-- Obtaining proper authorization before testing
-- Complying with all applicable laws
-- Any damage caused by misuse of this tool
+- Obtaining explicit written authorization before any attack operations
+- Complying with all applicable laws and regulations
+- Any damage, legal consequences, or liabilities caused by use or misuse of this platform
 
 **The developers assume NO LIABILITY for misuse of this software.**
 
@@ -351,7 +351,7 @@ This is a private research project. Contact the repository owner for collaborati
 
 ## 📝 License
 
-This project is for educational and authorized security testing purposes only.
+This project is an offensive security attack platform. Use only with explicit authorization. Educational use must be in controlled, isolated environments.
 
 ---
 
