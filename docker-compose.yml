@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dlnk-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - dlnk-network
+    restart: unless-stopped
+
+  # Main dLNk dLNk API
+  api:
+    build: .
+    container_name: dlnk-api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/dlnk_dlnk
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=http://ollama:11434
+      - SIMULATION_MODE=${SIMULATION_MODE:-False}
+      - MAX_CONCURRENT_ATTACKS=${MAX_CONCURRENT_ATTACKS:-5}
+      - WORKSPACE_DIR=/app/workspace
+      - LOOT_DIR=/app/workspace/loot
+      - NOTIFICATION_CHANNELS=${NOTIFICATION_CHANNELS:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - EMAIL_TO=${EMAIL_TO:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+    volumes:
+      - ./workspace:/app/workspace
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./config:/app/config
+    depends_on:
+      - db
+      - redis
+      - ollama
+    networks:
+      - dlnk-network
+    restart: unless-stopped
+    command: python api/main.py
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: dlnk-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=dlnk_dlnk
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dlnk-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dlnk-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dlnk-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Metasploit Framework
+  metasploit:
+    image: metasploitframework/metasploit-framework:latest
+    container_name: dlnk-metasploit
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - metasploit_data:/root/.msf4
+    networks:
+      - dlnk-network
+    profiles:
+      - optional
+
+volumes:
+  postgres_data:
+  redis_data:
+  metasploit_data:
+  ollama_data:
+
+networks:
+  dlnk-network:
+    driver: bridge
+
