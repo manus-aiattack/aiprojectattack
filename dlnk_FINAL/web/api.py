@@ -90,7 +90,6 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global orchestrator
     if orchestrator:
         await orchestrator.cleanup()
         log.info("API shutdown complete")

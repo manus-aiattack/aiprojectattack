@@ -1,7 +1,9 @@
 
 import httpx
 import asyncio
+import time
 from config import settings
+from core.logger import log
 
 
 class NVDClient:
