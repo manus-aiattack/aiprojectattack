@@ -8,10 +8,19 @@ import os
 import sys
 from pathlib import Path
 import asyncio
+from dotenv import load_dotenv
 
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
+
+# Load environment variables from .env file
+env_file = project_root / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+    print(f"✓ Loaded environment from {env_file}")
+else:
+    print(f"⚠️  Warning: .env file not found at {env_file}")
 
 from api.services.tool_verifier import get_tool_verifier
 from api.services.agent_registry import init_agent_registry
