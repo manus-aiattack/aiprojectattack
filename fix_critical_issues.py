@@ -18,13 +18,13 @@ def fix_hardcoded_paths():
             (r"'/home/ubuntu/ai_test_report\.md'", "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_report.md')"),
         ]),
         ("agents/deserialization_exploiter.py", [
-            (r'"/home/ubuntu/ysoserial\.jar"', 'os.getenv("YSOSERIAL_PATH", "/usr/share/ysoserial/ysoserial.jar")'),
+            (r'"/home/ubuntu/ysoserial\.jar"', 'os.getenv("YSOSERIAL_PATH", os.path.join(os.path.expanduser("~"), "ysoserial.jar"))'),
         ]),
         ("agents/evasion/anti_debug.py", [
             (r"'/home/malware'", "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'malware')"),
         ]),
         ("data_exfiltration/exfiltrator.py", [
-            (r'"/home/"', 'os.path.expanduser("~")'),
+            (r'"/home/"', 'os.path.expanduser("~") + "/"'),
         ]),
         # dlnk_FINAL directory
         ("dlnk_FINAL/ai_testing_system.py", [

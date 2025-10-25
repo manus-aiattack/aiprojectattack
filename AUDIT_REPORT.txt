@@ -4,11 +4,11 @@ dLNk Attack Platform - System Audit Report
 
 📊 สถิติ
 --------------------------------------------------------------------------------
-ไฟล์ทั้งหมด: 637
-ปัญหาทั้งหมด: 1380
-  🔴 Critical: 18
-  🟡 Warning: 323
-  🔵 Info: 1039
+ไฟล์ทั้งหมด: 655
+ปัญหาทั้งหมด: 1396
+  🔴 Critical: 0
+  🟡 Warning: 331
+  🔵 Info: 1065
 
 📁 ASYNC
 --------------------------------------------------------------------------------
@@ -16,52 +16,11 @@ dLNk Attack Platform - System Audit Report
 📁 CONFIG
 --------------------------------------------------------------------------------
 
-🔴 Critical Issues: 18
-  📄 ai_testing_system.py:485
-     พบ hardcoded path: with open('/home/ubuntu/ai_test_results.json', 'w', encoding='utf-8') as f:
-     💡 ใช้ environment variable แทน
+🟡 Warning Issues: 28
+  📄 ai_testing_system.py:583
+     os.getenv() ไม่มี default value
 
-  📄 ai_testing_system.py:489
-     พบ hardcoded path: with open('/home/ubuntu/ai_test_summary.json', 'w', encoding='utf-8') as f:
-     💡 ใช้ environment variable แทน
-
-  📄 ai_testing_system.py:574
-     พบ hardcoded path: with open('/home/ubuntu/ai_test_report.md', 'w', encoding='utf-8') as f:
-     💡 ใช้ environment variable แทน
-
-  📄 agents/advanced_data_exfiltration_agent.py:119
-     พบ hardcoded path: "/home/*/Documents/",
-     💡 ใช้ environment variable แทน
-
-  📄 agents/deserialization_exploiter.py:39
-     พบ hardcoded path: "/home/ubuntu/ysoserial.jar",
-     💡 ใช้ environment variable แทน
-
-  📄 agents/credential_harvesting/credential_harvester.py:182
-     พบ hardcoded path: if key_path and '/home/' in key_path:
-     💡 ใช้ environment variable แทน
-
-  📄 agents/evasion/anti_debug.py:409
-     พบ hardcoded path: '/home/malware',
-     💡 ใช้ environment variable แทน
-
-  📄 data_exfiltration/exfiltrator.py:409
-     พบ hardcoded path: "/home/",
-     💡 ใช้ environment variable แทน
-
-  📄 dlnk_FINAL/ai_testing_system.py:485
-     พบ hardcoded path: with open('/home/ubuntu/ai_test_results.json', 'w', encoding='utf-8') as f:
-     💡 ใช้ environment variable แทน
-
-  📄 dlnk_FINAL/ai_testing_system.py:489
-     พบ hardcoded path: with open('/home/ubuntu/ai_test_summary.json', 'w', encoding='utf-8') as f:
-     💡 ใช้ environment variable แทน
-
-  ... และอีก 8 issues
-
-
-🟡 Warning Issues: 18
-  📄 ai_testing_system.py:582
+  📄 llm_config.py:16
      os.getenv() ไม่มี default value
 
   📄 test_config.py:51
@@ -73,63 +32,57 @@ dLNk Attack Platform - System Audit Report
   📄 test_config.py:53
      os.getenv() ไม่มี default value
 
-  📄 test_config.py:54
-     os.getenv() ไม่มี default value
-
-  ... และอีก 13 issues
+  ... และอีก 23 issues
 
 
 📁 DATABASE
 --------------------------------------------------------------------------------
 
-🟡 Warning Issues: 42
-  📄 api/database/db_service.py:60
+🟡 Warning Issues: 43
+  📄 api/database/db_service.py:68
      ใช้ self.pool โดยไม่ตรวจสอบ None
 
-  📄 api/database/db_service.py:82
+  📄 api/database/db_service.py:91
      ใช้ self.pool โดยไม่ตรวจสอบ None
 
-  📄 api/database/db_service.py:106
+  📄 api/database/db_service.py:116
      ใช้ self.pool โดยไม่ตรวจสอบ None
 
-  📄 api/database/db_service.py:142
+  📄 api/database/db_service.py:154
      ใช้ self.pool โดยไม่ตรวจสอบ None
 
-  📄 api/database/db_service.py:165
+  📄 api/database/db_service.py:178
      ใช้ self.pool โดยไม่ตรวจสอบ None
 
-  ... และอีก 37 issues
+  ... และอีก 38 issues
 
 
 📁 ERROR_HANDLING
 --------------------------------------------------------------------------------
 
-🟡 Warning Issues: 200
+🟡 Warning Issues: 199
   📄 system_audit.py:71
      except block ว่างเปล่า (pass only)
 
   📄 system_audit.py:108
      except block ว่างเปล่า (pass only)
 
-  📄 system_audit.py:142
+  📄 system_audit.py:145
      except block ว่างเปล่า (pass only)
 
-  📄 system_audit.py:187
+  📄 system_audit.py:190
      except block ว่างเปล่า (pass only)
 
-  📄 system_audit.py:221
+  📄 system_audit.py:224
      except block ว่างเปล่า (pass only)
 
-  ... และอีก 195 issues
+  ... และอีก 194 issues
 
 
 📁 FILE_OPERATIONS
 --------------------------------------------------------------------------------
 
-🟡 Warning Issues: 2
-  📄 core/payload_manager.py:15
-     os.makedirs() ไม่มี exist_ok=True
-
+🟡 Warning Issues: 1
   📄 dlnk_FINAL/core/payload_manager.py:15
      os.makedirs() ไม่มี exist_ok=True
 
@@ -159,7 +112,7 @@ dLNk Attack Platform - System Audit Report
 📁 LLM
 --------------------------------------------------------------------------------
 
-🟡 Warning Issues: 24
+🟡 Warning Issues: 23
   📄 ai_testing_system.py:211
      LLM call ไม่มี timeout
 
@@ -175,13 +128,12 @@ dLNk Attack Platform - System Audit Report
   📄 apex_ai_system.py:233
      LLM call ไม่มี timeout
 
-  ... และอีก 19 issues
+  ... และอีก 18 issues
 
 
 ================================================================================
 📋 สรุป
 ================================================================================
-⚠️  พบปัญหา Critical 18 จุด ต้องแก้ไขก่อนใช้งาน
-⚠️  พบปัญหา Warning 323 จุด ควรแก้ไขเพื่อความมั่นคง
+⚠️  พบปัญหา Warning 331 จุด ควรแก้ไขเพื่อความมั่นคง
 
 ================================================================================

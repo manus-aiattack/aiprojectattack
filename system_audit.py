@@ -117,6 +117,9 @@ class SystemAuditor:
             for i, line in enumerate(lines, 1):
                 # ตรวจสอบ hardcoded paths
                 if re.search(r'["\']/(home|mnt|Users|C:)/', line) and 'WORKSPACE_DIR' not in line:
+                    # ข้าม fix_critical_issues.py และบรรทัดที่เป็น regex pattern
+                    if 'fix_critical_issues.py' in str(file_path) or '(r\'' in line or '(r"' in line:
+                        continue
                     if not line.strip().startswith('#'):
                         self.add_issue(
                             "critical",
