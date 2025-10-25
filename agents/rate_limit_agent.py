@@ -18,7 +18,7 @@ class RateLimitAgent(BaseAgent):
         # Test 1: Burst Test
         log.info(
             f"Testing rate limiting on: {url} with a burst of 20 requests...")
-        command = f"curl -s -o /dev/null -w '%{http_code}' {url}"
+        command = f"curl -s -o /dev/null -w '%{{http_code}}' {url}"
         tasks = [self.orchestrator.run_shell_command(
             command, f"Rate limit burst test request {i+1}/20 to {url}", use_proxy=True) for i in range(20)]
         results = await asyncio.gather(*tasks, return_exceptions=True)

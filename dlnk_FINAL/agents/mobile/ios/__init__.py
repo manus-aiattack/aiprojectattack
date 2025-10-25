@@ -1,2 +1,0 @@
-"""Mobile iOS Agents"""
-

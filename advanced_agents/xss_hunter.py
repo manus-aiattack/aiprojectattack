@@ -1,8 +1,8 @@
 """
-from core.logger import log
 XSS Hunter Agent
 Advanced Cross-Site Scripting vulnerability detection and exploitation
 """
+from core.logger import log
 
 import asyncio
 import aiohttp

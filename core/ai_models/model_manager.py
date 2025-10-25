@@ -1,7 +1,7 @@
 """
-from typing import List
 Model Manager for ML models
 """
+from typing import List
 
 import asyncio
 import pickle

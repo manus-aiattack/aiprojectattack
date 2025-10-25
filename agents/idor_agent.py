@@ -1,9 +1,9 @@
 """
-import logging
-import logging
 IDOR (Insecure Direct Object Reference) Agent
 โจมตีช่องโหว่ IDOR เพื่อเข้าถึงข้อมูลของผู้ใช้อื่นโดยไม่ได้รับอนุญาต
 """
+import logging
+import logging
 
 import asyncio
 import re

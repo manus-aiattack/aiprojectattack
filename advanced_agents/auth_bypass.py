@@ -1,9 +1,9 @@
 """
-from core.logger import log
 Authentication Bypass Agent
 Advanced techniques to bypass authentication mechanisms
 """
 
+from core.logger import log
 import asyncio
 import aiohttp
 from typing import List, Dict, Any, Optional
