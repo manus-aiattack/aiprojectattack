@@ -114,7 +114,6 @@ fake_ip = random.choice(self.fake_ips)
 
 ### Phase 6: Remove All Mocks & Enable Live Attacks
 
-**Timeline:** 4 hours
 
 #### 6.1 ปิด SIMULATION_MODE
 
@@ -470,7 +469,6 @@ class ProxyPool:
 
 ### Phase 7: Advanced Attack Capabilities
 
-**Timeline:** 8 hours
 
 #### 7.1 Deep Protocol Analysis
 
@@ -1016,7 +1014,6 @@ class CoverTracks:
 
 ### Phase 8: Zero-Day Hunting System
 
-**Timeline:** 12 hours
 
 #### 8.1 Fuzzing Engine
 
@@ -1310,7 +1307,6 @@ Provide in JSON format with executable code.
 
 ## 🎨 Phase 9: DarkWeb-Style UI/Dashboard
 
-**Timeline:** 16 hours
 
 ### 9.1 Backend API Enhancements
 

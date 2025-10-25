@@ -317,7 +317,6 @@ os.makedirs(path, exist_ok=True)
 1. Error Handling (~50 จุดสำคัญ) - 2-3 วัน
 2. LLM Wrapper (23 จุด) - 1 วัน
 
-**Timeline:** 3-4 วัน สำหรับระบบที่พร้อมใช้งาน
 
 ---
 
@@ -331,7 +330,6 @@ os.makedirs(path, exist_ok=True)
 3. Env Vars (28 จุด) - 1 วัน
 4. Code Quality (75 จุด) - 1-2 วัน
 
-**Timeline:** 5-7 วัน สำหรับระบบที่สมบูรณ์ 100%
 
 ---
 
