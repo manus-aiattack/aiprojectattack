@@ -28,12 +28,12 @@ class WebSocketService {
       console.log('[WebSocket] Disconnected');
     });
 
-    this.socket.on('error', (error) => {
+    this.socket.on('error', (error: any) => {
       console.error('[WebSocket] Error:', error);
     });
 
     // Setup event forwarding
-    this.socket.onAny((event, ...args) => {
+    this.socket.onAny((event: string, ...args: any[]) => {
       this.emit(event, ...args);
     });
   }
