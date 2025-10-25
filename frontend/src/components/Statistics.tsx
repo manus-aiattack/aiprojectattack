@@ -1,33 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Target, Zap, Clock, CheckCircle } from 'lucide-react';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+// Chart.js temporarily disabled - install react-chartjs-2 and chart.js to enable
+// import { Line, Bar, Doughnut } from 'react-chartjs-2';
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   BarElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   Filler
+// } from 'chart.js';
 import { api } from '../services/api';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+// ChartJS.register(
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   BarElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   Filler
+// );
 
 interface StatisticsData {
   totalAttacks: number;
@@ -224,8 +225,8 @@ export const Statistics: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Attacks Over Time
           </h3>
-          <div className="h-64">
-            <Line data={attacksOverTimeData} options={chartOptions} />
+          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded">
+            <p className="text-gray-400">Chart placeholder - Install react-chartjs-2 to enable</p>
           </div>
         </div>
 
@@ -234,8 +235,8 @@ export const Statistics: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Attacks by Type
           </h3>
-          <div className="h-64">
-            <Bar data={attacksByTypeData} options={chartOptions} />
+          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded">
+            <p className="text-gray-400">Chart placeholder - Install react-chartjs-2 to enable</p>
           </div>
         </div>
 
@@ -244,10 +245,8 @@ export const Statistics: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Success vs Failed
           </h3>
-          <div className="h-64 flex items-center justify-center">
-            <div className="w-64">
-              <Doughnut data={successRateData} options={{ ...chartOptions, scales: undefined }} />
-            </div>
+          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded">
+            <p className="text-gray-400">Chart placeholder - Install react-chartjs-2 to enable</p>
           </div>
         </div>
 
