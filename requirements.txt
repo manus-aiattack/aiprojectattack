@@ -37,3 +37,6 @@ passlib[bcrypt]>=1.7.4
 
 # LLM
 openai>=1.0.0
+
+# Testing
+asynctest>=0.13.0

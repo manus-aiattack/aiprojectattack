@@ -5,10 +5,12 @@ Attack Workflow Orchestrator
 
 import asyncio
 import os
+import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from loguru import logger
 from core.error_handlers import handle_errors
+from core import attack_logger
 
 
 class AttackWorkflow:
@@ -24,32 +26,42 @@ class AttackWorkflow:
     6. Covering Tracks - Clean up evidence
     """
     
-    def __init__(self, attack_id: str, target: str):
+    def __init__(self, attack_id: uuid.UUID, target: str):
         self.attack_id = attack_id
         self.target = target
         self.workspace_dir = os.getenv('WORKSPACE_DIR', 'workspace')
-        self.attack_dir = os.path.join(self.workspace_dir, 'attacks', attack_id)
+        self.attack_dir = os.path.join(self.workspace_dir, 'attacks', str(attack_id))
         os.makedirs(self.attack_dir, exist_ok=True)
         
-        self.workflow_state = {
-            "attack_id": attack_id,
-            "target": target,
-            "started_at": datetime.now().isoformat(),
-            "current_phase": "reconnaissance",
-            "phases": {
-                "reconnaissance": {"status": "pending", "results": {}},
-                "vulnerability_scanning": {"status": "pending", "results": {}},
-                "exploitation": {"status": "pending", "results": {}},
-                "post_exploitation": {"status": "pending", "results": {}},
-                "data_exfiltration": {"status": "pending", "results": {}},
-                "covering_tracks": {"status": "pending", "results": {}}
-            },
-            "vulnerabilities": [],
-            "exploited": [],
-            "exfiltrated": [],
-            "errors": []
-        }
-    
+        self.workflow_state = {}
+
+    async def initialize_state(self):
+        """Load existing state or create a new one."""
+        state = await attack_logger.load_workflow_state(self.attack_id)
+        if state:
+            self.workflow_state = state
+            logger.info(f"[Workflow] Loaded existing state for attack {self.attack_id}")
+        else:
+            self.workflow_state = {
+                "attack_id": str(self.attack_id),
+                "target": self.target,
+                "started_at": datetime.now().isoformat(),
+                "current_phase": "reconnaissance",
+                "phases": {
+                    "reconnaissance": {"status": "pending", "results": {}},
+                    "vulnerability_scanning": {"status": "pending", "results": {}},
+                    "exploitation": {"status": "pending", "results": {}},
+                    "post_exploitation": {"status": "pending", "results": {}},
+                    "data_exfiltration": {"status": "pending", "results": {}},
+                    "covering_tracks": {"status": "pending", "results": {}}
+                },
+                "vulnerabilities": [],
+                "exploited": [],
+                "exfiltrated": [],
+                "errors": []
+            }
+            logger.info(f"[Workflow] Created new state for attack {self.attack_id}")
+
     @handle_errors(default_return={})
     async def execute_full_workflow(self, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -61,7 +73,9 @@ class AttackWorkflow:
         Returns:
             Complete workflow results
         """
+        await self.initialize_state()
         logger.info(f"[Workflow] Starting full attack workflow for {self.target}")
+        await attack_logger.log_attack_start(self.attack_id, self.target)
         
         context = context or {}
         
@@ -72,6 +86,7 @@ class AttackWorkflow:
                 "status": "completed" if recon_results.get("success") else "failed",
                 "results": recon_results
             }
+            await attack_logger.log_phase_complete(self.attack_id, self.target, "reconnaissance", recon_results)
             
             # Phase 2: Vulnerability Scanning
             vuln_results = await self.phase_vulnerability_scanning(context, recon_results)
@@ -79,14 +94,16 @@ class AttackWorkflow:
                 "status": "completed" if vuln_results.get("success") else "failed",
                 "results": vuln_results
             }
-            
+            await attack_logger.log_phase_complete(self.attack_id, self.target, "vulnerability_scanning", vuln_results)
+
             # Phase 3: Exploitation
             exploit_results = await self.phase_exploitation(context, vuln_results)
             self.workflow_state["phases"]["exploitation"] = {
                 "status": "completed" if exploit_results.get("success") else "failed",
                 "results": exploit_results
             }
-            
+            await attack_logger.log_phase_complete(self.attack_id, self.target, "exploitation", exploit_results)
+
             # Phase 4: Post-Exploitation (only if exploitation succeeded)
             if exploit_results.get("success"):
                 post_exploit_results = await self.phase_post_exploitation(context, exploit_results)
@@ -94,29 +111,32 @@ class AttackWorkflow:
                     "status": "completed" if post_exploit_results.get("success") else "failed",
                     "results": post_exploit_results
                 }
-                
+                await attack_logger.log_phase_complete(self.attack_id, self.target, "post_exploitation", post_exploit_results)
+
                 # Phase 5: Data Exfiltration
                 exfil_results = await self.phase_data_exfiltration(context, post_exploit_results)
                 self.workflow_state["phases"]["data_exfiltration"] = {
                     "status": "completed" if exfil_results.get("success") else "failed",
                     "results": exfil_results
                 }
-                
+                await attack_logger.log_phase_complete(self.attack_id, self.target, "data_exfiltration", exfil_results)
+
                 # Phase 6: Covering Tracks
                 cleanup_results = await self.phase_covering_tracks(context)
                 self.workflow_state["phases"]["covering_tracks"] = {
                     "status": "completed" if cleanup_results.get("success") else "failed",
                     "results": cleanup_results
                 }
-            
-            # Save workflow state
-            self.save_workflow_state()
+                await attack_logger.log_phase_complete(self.attack_id, self.target, "covering_tracks", cleanup_results)
+
+            await attack_logger.save_workflow_state(self.attack_id, self.workflow_state)
+            await attack_logger.log_attack_complete(self.attack_id, self.target)
             
             logger.success(f"[Workflow] Attack workflow completed for {self.target}")
             
             return {
                 "success": True,
-                "attack_id": self.attack_id,
+                "attack_id": str(self.attack_id),
                 "target": self.target,
                 "workflow_state": self.workflow_state
             }
@@ -124,7 +144,8 @@ class AttackWorkflow:
         except Exception as e:
             logger.error(f"[Workflow] Attack workflow failed: {e}")
             self.workflow_state["errors"].append(str(e))
-            self.save_workflow_state()
+            await attack_logger.log_attack_failure(self.attack_id, self.target, self.workflow_state['current_phase'], {"error": str(e)})
+            await attack_logger.save_workflow_state(self.attack_id, self.workflow_state)
             
             return {
                 "success": False,
@@ -144,6 +165,7 @@ class AttackWorkflow:
         - Directory bruteforcing (Gobuster)
         - Subdomain enumeration
         """
+        self.workflow_state['current_phase'] = 'reconnaissance'
         logger.info(f"[Workflow] Phase 1: Reconnaissance on {self.target}")
         
         results = {
@@ -210,6 +232,7 @@ class AttackWorkflow:
         - SQL injection testing
         - XSS testing
         """
+        self.workflow_state['current_phase'] = 'vulnerability_scanning'
         logger.info(f"[Workflow] Phase 2: Vulnerability Scanning on {self.target}")
         
         results = {
@@ -277,6 +300,7 @@ class AttackWorkflow:
         - Exploit RCE
         - Gain shell access
         """
+        self.workflow_state['current_phase'] = 'exploitation'
         logger.info(f"[Workflow] Phase 3: Exploitation on {self.target}")
         
         results = {
@@ -323,6 +347,7 @@ class AttackWorkflow:
         - Lateral movement
         - Credential harvesting
         """
+        self.workflow_state['current_phase'] = 'post_exploitation'
         logger.info(f"[Workflow] Phase 4: Post-Exploitation on {self.target}")
         
         results = {
@@ -380,6 +405,7 @@ class AttackWorkflow:
         - Credential extraction
         - Configuration file collection
         """
+        self.workflow_state['current_phase'] = 'data_exfiltration'
         logger.info(f"[Workflow] Phase 5: Data Exfiltration from {self.target}")
         
         results = {
@@ -433,6 +459,7 @@ class AttackWorkflow:
         - Clean command history
         - Remove backdoors (optional)
         """
+        self.workflow_state['current_phase'] = 'covering_tracks'
         logger.info(f"[Workflow] Phase 6: Covering Tracks on {self.target}")
         
         results = {
@@ -462,35 +489,3 @@ class AttackWorkflow:
             results["error"] = str(e)
         
         return results
-    
-    def save_workflow_state(self):
-        """Save workflow state to file"""
-        import json
-        
-        state_file = os.path.join(self.attack_dir, "workflow_state.json")
-        
-        try:
-            with open(state_file, 'w') as f:
-                json.dump(self.workflow_state, f, indent=2)
-            
-            logger.debug(f"[Workflow] State saved to {state_file}")
-        except Exception as e:
-            logger.error(f"[Workflow] Failed to save state: {e}")
-    
-    def load_workflow_state(self) -> Dict[str, Any]:
-        """Load workflow state from file"""
-        import json
-        
-        state_file = os.path.join(self.attack_dir, "workflow_state.json")
-        
-        try:
-            if os.path.exists(state_file):
-                with open(state_file, 'r') as f:
-                    self.workflow_state = json.load(f)
-                
-                logger.debug(f"[Workflow] State loaded from {state_file}")
-        except Exception as e:
-            logger.error(f"[Workflow] Failed to load state: {e}")
-        
-        return self.workflow_state
-
