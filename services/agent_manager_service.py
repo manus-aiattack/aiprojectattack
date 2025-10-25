@@ -52,7 +52,7 @@ class AgentManagerService:
             try:
                 config.load_incluster_config()
                 log.info("Loaded in-cluster Kubernetes config")
-            except:
+            except Exception as e:
                 config.load_kube_config()
                 log.info("Loaded local Kubernetes config")
             

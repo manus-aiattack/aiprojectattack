@@ -283,7 +283,7 @@ class XSSHunter:
                 }
         
         except Exception as e:
-            pass
+            print(f"Error: {e}")
         
         return None
     
@@ -316,7 +316,7 @@ class XSSHunter:
                 }
         
         except Exception as e:
-            pass
+            print(f"Error: {e}")
         
         return None
     
@@ -351,8 +351,8 @@ class XSSHunter:
                 start = max(0, index - context_size)
                 end = min(len(html), index + len(payload) + context_size)
                 return html[start:end]
-        except:
-            pass
+        except Exception as e:
+            print("Error occurred")
         return ""
     
     async def _test_dom_xss(self) -> List[Dict[str, Any]]:

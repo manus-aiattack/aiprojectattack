@@ -119,8 +119,8 @@ class ToolManager:
                     for line in f:
                         try:
                             results.append(json.loads(line))
-                        except:
-                            pass
+                        except Exception as e:
+                            print("Error occurred")
             
             logger.success(f"[Nuclei] Found {len(results)} vulnerabilities")
             

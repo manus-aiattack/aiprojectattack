@@ -520,7 +520,7 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
                         # Expected - C2 server logged the query
                         success_count += 1
                     except Exception:
-                        pass
+                        print("Error occurred")
                     
                     await asyncio.sleep(0.1)  # Rate limiting
                 

@@ -6,25 +6,25 @@ AWS Cloud Attack Agents
 try:
     from .iam_privesc_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .lambda_exploit_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .rds_exploit_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .s3_enumeration_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .secrets_manager_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 

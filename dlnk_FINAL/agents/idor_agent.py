@@ -293,7 +293,7 @@ class IDORAgent(BaseAgent):
                 log.success(f"✅ พบช่องโหว่ IDOR Enumeration: {len(accessible_ids)} IDs")
         
         except ValueError:
-            pass
+            logging.error("Error occurred")
         
         return vulnerabilities
     

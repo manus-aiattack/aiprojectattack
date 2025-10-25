@@ -27,7 +27,7 @@ class AWSS3EnumerationAgent(BaseAgent):
                     acl = s3.get_bucket_acl(Bucket=bucket_name)
                     public = any(g['Grantee'].get('URI') == 'http://acs.amazonaws.com/groups/global/AllUsers' for g in acl['Grants'])
                     results.append({'bucket': bucket_name, 'public': public, 'acl': acl})
-                except:
+                except Exception as e:
                     results.append({'bucket': bucket_name, 'error': 'Access denied'})
             
             return AgentData(success=True, data={'buckets': results, 'count': len(results)})

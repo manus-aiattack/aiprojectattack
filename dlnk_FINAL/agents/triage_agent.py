@@ -128,7 +128,7 @@ class TriageAgent(BaseAgent):
                     port = finding.finding.split(":")[1].split("/")[0]
                     recommendations.append(f"Run a vulnerability scan on port {port}.")
                 except IndexError:
-                    pass
+                    print("Error occurred")
             elif "server found:" in finding.finding:
                 recommendations.append(f"Fingerprint the web server.")
             elif finding.finding.startswith("Found") and "resolvable subdomains" in finding.finding:

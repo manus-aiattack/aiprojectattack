@@ -293,8 +293,8 @@ class TargetAcquisitionAgent:
                         score += 15
                     elif days_old < 90:
                         score += 10
-                except:
-                    pass
+                except Exception as e:
+                    logging.error("Error occurred")
             
             target['score'] = score
             target['priority'] = 'high' if score >= 90 else 'medium' if score >= 70 else 'low'

@@ -18,7 +18,7 @@ class AWSSecretsManagerAgent(BaseAgent):
                 try:
                     value = secrets_client.get_secret_value(SecretId=secret['Name'])
                     extracted.append({'name': secret['Name'], 'value': value.get('SecretString', value.get('SecretBinary'))})
-                except:
+                except Exception as e:
                     extracted.append({'name': secret['Name'], 'error': 'Access denied'})
             
             return AgentData(success=True, data={'secrets': extracted, 'count': len(extracted)})

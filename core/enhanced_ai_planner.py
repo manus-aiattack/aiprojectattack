@@ -717,8 +717,8 @@ Format as JSON with phases array containing: phase, agents, duration, descriptio
                     risk_level=data.get('risk_level', 'medium'),
                     agents_required=data.get('agents_required', [])
                 )
-        except:
-            pass
+        except Exception as e:
+            logging.error("Error occurred")
         
         # Fallback to empty plan
         return AttackPlan(

@@ -303,8 +303,8 @@ class IDORAgent(BaseAgent):
                         test_ints = [int(decoded) - 1, int(decoded) + 1]
                         for test_int in test_ints:
                             test_values.append(base64.b64encode(str(test_int).encode()).decode())
-                except:
-                    pass
+                except Exception as e:
+                    print("Error occurred")
             
             # Hex encoded
             elif all(c in '0123456789abcdefABCDEF' for c in original_value):
@@ -314,8 +314,8 @@ class IDORAgent(BaseAgent):
                         hex(decoded_int - 1)[2:],
                         hex(decoded_int + 1)[2:]
                     ])
-                except:
-                    pass
+                except Exception as e:
+                    print("Error occurred")
         
         except Exception as e:
             log.debug(f"[IDORAgent] Error generating test values: {e}")

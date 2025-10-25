@@ -256,6 +256,6 @@ class KerberoastingAgent(BaseAgent):
             )
             await process.communicate()
             return process.returncode == 0
-        except:
+        except Exception as e:
             return False
 

@@ -452,8 +452,8 @@ def handle_client(client_socket):
                     if not data:
                         break
                     dst.sendall(data)
-            except:
-                pass
+            except Exception as e:
+                logging.error("Error occurred")
         
         t1 = threading.Thread(target=forward, args=(client_socket, remote_socket))
         t2 = threading.Thread(target=forward, args=(remote_socket, client_socket))
@@ -470,8 +470,8 @@ def handle_client(client_socket):
         client_socket.close()
         try:
             remote_socket.close()
-        except:
-            pass
+        except Exception as e:
+            logging.error("Error occurred")
 
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 1080
@@ -508,8 +508,8 @@ def forward(src, dst):
             if not data:
                 break
             dst.sendall(data)
-    except:
-        pass
+    except Exception as e:
+        logging.error("Error occurred")
     finally:
         src.close()
         dst.close()
@@ -571,8 +571,8 @@ def scan_host(ip):
                 open_ports.append(port)
             
             sock.close()
-        except:
-            pass
+        except Exception as e:
+            logging.error("Error occurred")
     
     if open_ports:
         print(f"Host: {{ip}} Ports: {{','.join(map(str, open_ports))}}")

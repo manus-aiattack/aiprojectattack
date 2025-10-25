@@ -269,7 +269,7 @@ class BOLAAgent(BaseAgent):
                         try:
                             data = await response.json()
                             return data
-                        except:
+                        except Exception as e:
                             text = await response.text()
                             return {"text": text[:500]}
             

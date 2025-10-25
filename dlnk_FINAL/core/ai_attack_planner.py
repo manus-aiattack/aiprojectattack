@@ -47,7 +47,7 @@ class AIAttackPlanner:
         try:
             # Parse AI response
             analysis = json.loads(response)
-        except:
+        except Exception as e:
             # Fallback to simple analysis
             analysis = {
                 "analysis": response,
@@ -96,7 +96,7 @@ class AIAttackPlanner:
         try:
             # Parse AI response
             attack_plan = json.loads(response)
-        except:
+        except Exception as e:
             # Fallback to default plan
             attack_plan = self._create_default_plan(vulnerabilities, attack_mode)
         

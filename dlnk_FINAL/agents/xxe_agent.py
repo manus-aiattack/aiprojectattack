@@ -316,7 +316,7 @@ class XXEAgent(BaseAgent):
                                 log.info(f"[XXEAgent] Possible XXE-SSRF (timeout): {url}")
                         
                         except Exception as e:
-                            pass
+                            print(f"Error: {e}")
                         
                         await asyncio.sleep(0.3)
                 
@@ -345,8 +345,8 @@ class XXEAgent(BaseAgent):
                                     }
                                     found_vulns.append(vuln)
                                     log.success(f"[XXEAgent] ✓ XXE VIA SVG: {url}")
-                        except:
-                            pass
+                        except Exception as e:
+                            print("Error occurred")
                         
                         await asyncio.sleep(0.3)
                 

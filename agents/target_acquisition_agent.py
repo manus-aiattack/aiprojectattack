@@ -203,13 +203,13 @@ class TargetAcquisitionAgent:
                                         })
                                         logger.info(f"Found active domain: {domain}")
                                 except Exception:
-                                    pass
+                                    logging.error("Error occurred")
                         
                         except dns.resolver.NXDOMAIN:
                             # Domain doesn't exist
                             pass
                         except Exception:
-                            pass
+                            logging.error("Error occurred")
                     
                     except Exception as e:
                         logger.debug(f"Domain check failed for {domain}: {e}")
@@ -371,8 +371,8 @@ class TargetAcquisitionAgent:
                         score += 15
                     elif days_old < 90:
                         score += 10
-                except:
-                    pass
+                except Exception as e:
+                    logging.error("Error occurred")
             
             target['score'] = score
             target['priority'] = 'high' if score >= 90 else 'medium' if score >= 70 else 'low'

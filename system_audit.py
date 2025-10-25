@@ -68,7 +68,7 @@ class SystemAuditor:
                         "ระบุชื่อ function/class ที่ต้องการ import"
                     )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def check_database_usage(self, file_path: Path):
         """ตรวจสอบการใช้งาน Database"""
@@ -105,7 +105,7 @@ class SystemAuditor:
                             "เพิ่ม None check ก่อนใช้งาน"
                         )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def check_environment_variables(self, file_path: Path):
         """ตรวจสอบการใช้ environment variables"""
@@ -142,7 +142,7 @@ class SystemAuditor:
                             "เพิ่ม default value เพื่อป้องกัน None"
                         )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def check_error_handling(self, file_path: Path):
         """ตรวจสอบ error handling"""
@@ -187,7 +187,7 @@ class SystemAuditor:
                             "เพิ่ม logging หรือ error handling"
                         )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def check_async_await(self, file_path: Path):
         """ตรวจสอบการใช้ async/await"""
@@ -221,7 +221,7 @@ class SystemAuditor:
                             "ตรวจสอบว่าควรเป็น async หรือไม่"
                         )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def check_llm_integration(self, file_path: Path):
         """ตรวจสอบ LLM integration"""
@@ -256,7 +256,7 @@ class SystemAuditor:
                                 "เพิ่ม timeout parameter"
                             )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def check_file_operations(self, file_path: Path):
         """ตรวจสอบการทำงานกับไฟล์"""
@@ -289,7 +289,7 @@ class SystemAuditor:
                             "เพิ่ม exist_ok=True เพื่อป้องกัน error"
                         )
         except Exception as e:
-            pass
+            print(f"Error: {e}")
     
     def audit_file(self, file_path: Path):
         """ตรวจสอบไฟล์เดียว"""

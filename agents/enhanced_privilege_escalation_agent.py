@@ -160,7 +160,7 @@ class EnhancedPrivilegeEscalationAgent(BaseAgent):
             
             return False
             
-        except:
+        except Exception as e:
             return False
     
     async def _enumerate_privesc_vectors(self, shell_access: Dict, os_type: str) -> List[Dict]:

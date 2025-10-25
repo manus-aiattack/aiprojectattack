@@ -260,7 +260,7 @@ class LFIAgent(BaseAgent):
                                         break
                                 
                         except Exception as e:
-                            pass
+                            print(f"Error: {e}")
                         
                         await asyncio.sleep(0.2)
                     
@@ -295,8 +295,8 @@ class LFIAgent(BaseAgent):
                                         self.extracted_files.append(extracted)
                                         log.success(f"[LFIAgent] ✓ Extracted: {target_file}")
                                         break
-                            except:
-                                pass
+                            except Exception as e:
+                                print("Error occurred")
                             
                             await asyncio.sleep(0.2)
                 
@@ -331,8 +331,8 @@ class LFIAgent(BaseAgent):
                                             }
                                             found_vulns.append(vuln)
                                             log.success(f"[LFIAgent] ✓ PHP WRAPPER: {payload[:50]}")
-                                    except:
-                                        pass
+                                    except Exception as e:
+                                        print("Error occurred")
                                 
                                 # Check for code execution via data:// or expect://
                                 elif any(w in payload for w in ['data://', 'expect://']):
@@ -348,8 +348,8 @@ class LFIAgent(BaseAgent):
                                         }
                                         found_vulns.append(vuln)
                                         log.success(f"[LFIAgent] ✓ LFI TO RCE: {payload[:50]}")
-                        except:
-                            pass
+                        except Exception as e:
+                            print("Error occurred")
                         
                         await asyncio.sleep(0.2)
                 

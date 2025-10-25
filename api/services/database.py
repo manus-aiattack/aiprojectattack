@@ -55,7 +55,7 @@ class Database:
             async with self.pool.acquire() as conn:
                 await conn.fetchval("SELECT 1")
             return True
-        except:
+        except Exception as e:
             return False
     
     async def _init_schema(self):

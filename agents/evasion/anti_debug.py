@@ -192,8 +192,8 @@ def check_ptrace():
             if libc.ptrace(0, 0, 0, 0) == -1:
                 # Already being traced
                 sys.exit(1)
-    except:
-        pass
+    except Exception as e:
+        print("Error occurred")
 
 # 5. Check environment variables
 def check_environment():
@@ -218,8 +218,8 @@ def check_vm():
                 content = f.read().lower()
                 if any(vm in content for vm in vm_strings):
                     sys.exit(1)
-        except:
-            pass
+        except Exception as e:
+            print("Error occurred")
 
 # Run all checks
 check_debugger()

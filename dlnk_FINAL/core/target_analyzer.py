@@ -169,8 +169,8 @@ class TargetAnalyzer:
                                         "path": endpoint,
                                         "status": ep_response.status
                                     })
-                        except:
-                            pass
+                        except Exception as e:
+                            print("Error occurred")
         
         except Exception as e:
             logger.warning(f"HTTP analysis failed: {e}")
@@ -193,8 +193,8 @@ class TargetAnalyzer:
                 if result == 0:
                     open_ports.append(port)
                 sock.close()
-            except:
-                pass
+            except Exception as e:
+                print("Error occurred")
         
         return open_ports
     
@@ -277,8 +277,8 @@ class TargetAnalyzer:
                 async with session.head(target_url + "/user/login") as response:
                     if response.status < 400:
                         return "Drupal"
-        except:
-            pass
+        except Exception as e:
+            print("Error occurred")
         
         return None
     

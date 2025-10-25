@@ -152,8 +152,8 @@ async def websocket_attack(websocket: WebSocket, attack_id: str):
         log.error(f"[WebSocket] Connection error: {e}")
         try:
             await websocket.close()
-        except:
-            pass
+        except Exception as e:
+            print("Error occurred")
         ws_manager.disconnect(websocket, attack_id)
 
 
@@ -192,8 +192,8 @@ async def websocket_system(websocket: WebSocket):
         log.error(f"[WebSocket] System connection error: {e}")
         try:
             await websocket.close()
-        except:
-            pass
+        except Exception as e:
+            print("Error occurred")
         ws_manager.disconnect_system(websocket)
 
 

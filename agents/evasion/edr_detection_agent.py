@@ -27,8 +27,8 @@ class EDRDetectionAgent(BaseAgent):
                         subkey_name = winreg.EnumKey(key, i)
                         if any(drv in subkey_name.lower() for drv in self.edr_drivers):
                             detected_drivers.append(subkey_name)
-                except:
-                    pass
+                except Exception as e:
+                    print("Error occurred")
             
             edr_detected = len(detected_processes) > 0 or len(detected_drivers) > 0
             

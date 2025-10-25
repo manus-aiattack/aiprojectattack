@@ -357,8 +357,8 @@ class RCEAgent(BaseAgent):
                                     'severity': 'critical'
                                 }
                                 found_vulns.append(vuln)
-                            except:
-                                pass
+                            except Exception as e:
+                                print("Error occurred")
                             
                             await asyncio.sleep(0.5)
                     
@@ -400,7 +400,7 @@ class RCEAgent(BaseAgent):
                                             break
                                     
                             except Exception as e:
-                                pass
+                                print(f"Error: {e}")
                             
                             await asyncio.sleep(0.3)
                 
@@ -455,7 +455,7 @@ class RCEAgent(BaseAgent):
                                         break
                                 
                         except Exception as e:
-                            pass
+                            print(f"Error: {e}")
                         
                         await asyncio.sleep(0.3)
                 
@@ -497,8 +497,8 @@ class RCEAgent(BaseAgent):
                                 detected_engine = engine
                                 log.success(f"[RCEAgent] ✓ SSTI DETECTED: {engine} template engine")
                                 break
-                    except:
-                        pass
+                    except Exception as e:
+                        print("Error occurred")
                     
                     await asyncio.sleep(0.3)
                 
@@ -528,8 +528,8 @@ class RCEAgent(BaseAgent):
                                         found_vulns.append(vuln)
                                         log.success(f"[RCEAgent] ✓ SSTI RCE: {detected_engine}")
                                         break
-                            except:
-                                pass
+                            except Exception as e:
+                                print("Error occurred")
                             
                             await asyncio.sleep(0.3)
                 

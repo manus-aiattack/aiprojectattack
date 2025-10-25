@@ -4,24 +4,24 @@
 try:
     from .ad_enumeration_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .ad_privesc_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .blob_storage_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .keyvault_agent import *
 except ImportError:
-    pass
+    print("Error occurred")
 
 try:
     from .vm_exploit_agent import *
 except ImportError:
-    pass
+    print("Error occurred")

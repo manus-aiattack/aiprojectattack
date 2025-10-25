@@ -4,10 +4,10 @@ dLNk Attack Platform - System Audit Report
 
 📊 สถิติ
 --------------------------------------------------------------------------------
-ไฟล์ทั้งหมด: 655
-ปัญหาทั้งหมด: 1396
+ไฟล์ทั้งหมด: 658
+ปัญหาทั้งหมด: 1197
   🔴 Critical: 0
-  🟡 Warning: 331
+  🟡 Warning: 132
   🔵 Info: 1065
 
 📁 ASYNC
@@ -55,28 +55,6 @@ dLNk Attack Platform - System Audit Report
      ใช้ self.pool โดยไม่ตรวจสอบ None
 
   ... และอีก 38 issues
-
-
-📁 ERROR_HANDLING
---------------------------------------------------------------------------------
-
-🟡 Warning Issues: 199
-  📄 system_audit.py:71
-     except block ว่างเปล่า (pass only)
-
-  📄 system_audit.py:108
-     except block ว่างเปล่า (pass only)
-
-  📄 system_audit.py:145
-     except block ว่างเปล่า (pass only)
-
-  📄 system_audit.py:190
-     except block ว่างเปล่า (pass only)
-
-  📄 system_audit.py:224
-     except block ว่างเปล่า (pass only)
-
-  ... และอีก 194 issues
 
 
 📁 FILE_OPERATIONS
@@ -134,6 +112,6 @@ dLNk Attack Platform - System Audit Report
 ================================================================================
 📋 สรุป
 ================================================================================
-⚠️  พบปัญหา Warning 331 จุด ควรแก้ไขเพื่อความมั่นคง
+⚠️  พบปัญหา Warning 132 จุด ควรแก้ไขเพื่อความมั่นคง
 
 ================================================================================

@@ -129,8 +129,8 @@ class AuthBypassAgent:
                         async with session.get(url, timeout=5) as response:
                             if response.status == 200:
                                 endpoints.append(url)
-                    except:
-                        pass
+                    except Exception as e:
+                        print("Error occurred")
         except Exception as e:
             print(f"[AuthBypass] Error finding endpoints: {e}")
         
@@ -267,7 +267,7 @@ class AuthBypassAgent:
                         return True
         
         except Exception as e:
-            pass
+            print(f"Error: {e}")
         
         return False
     
@@ -326,7 +326,7 @@ class AuthBypassAgent:
                         return True
         
         except Exception as e:
-            pass
+            print(f"Error: {e}")
         
         return False
     
@@ -344,11 +344,11 @@ class AuthBypassAgent:
                 try:
                     decoded = jwt.decode(token, secret, algorithms=["HS256"])
                     return True  # สามารถถอดรหัสได้ = weak secret
-                except:
+                except Exception as e:
                     continue
         
         except Exception as e:
-            pass
+            print(f"Error: {e}")
         
         return False
     

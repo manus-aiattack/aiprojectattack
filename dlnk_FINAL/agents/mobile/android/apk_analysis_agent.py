@@ -29,7 +29,7 @@ class APKAnalysisAgent(BaseAgent):
                 if 'AndroidManifest.xml' in apk.namelist():
                     manifest = apk.read('AndroidManifest.xml')
                     analysis['has_manifest'] = True
-        except:
-            pass
+        except Exception as e:
+            print("Error occurred")
         
         return analysis
