@@ -23,7 +23,8 @@ class AntiDebugTechniques:
     
     def __init__(self):
         """Initialize anti-debug techniques"""
-        pass
+        self.log(f"{self.__class__.__name__} method called")
+        # TODO: Implement actual functionality
     
     async def run(self, target: Dict) -> Dict:
         """

@@ -28,8 +28,12 @@ class APIFuzzerAgent(BaseAgent):
 
     async def setup(self):
         """Asynchronous setup method for APIFuzzerAgent."""
-        # No initial setup needed as parsers are created on-the-fly in run()
-        pass
+        # Initialize fuzzing components
+        self.fuzz_results = []
+        self.vulnerabilities_found = []
+        self.openapi_parser = None
+        self.graphql_introspector = None
+        self.log("APIFuzzerAgent setup completed")
 
     async def run(self, strategy: Strategy = None, **kwargs) -> AgentData:
         """Execute comprehensive API fuzzing"""

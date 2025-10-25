@@ -228,7 +228,8 @@ def connect_c2():
             
             elif PROTOCOL == "dns":
                 # DNS tunneling implementation
-                pass
+                self.log(f"{self.__class__.__name__} method called")
+                # TODO: Implement actual functionality
             
             time.sleep(60)  # Sleep 1 minute between beacons
         
@@ -410,7 +411,8 @@ WantedBy=multi-user.target
         # Hide file
         if self.os_type == "linux":
             # File starts with . (hidden)
-            pass
+            self.log(f"{self.__class__.__name__} method called")
+            # TODO: Implement actual functionality
         
         elif self.os_type == "windows":
             # Set hidden attribute

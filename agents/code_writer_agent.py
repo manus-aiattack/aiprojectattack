@@ -266,11 +266,13 @@ class {agent_name}:
     
     async def scan(self, target_url: str) -> List[Dict]:
         \"\"\"Scan for vulnerabilities.\"\"\"
-        pass
+        self.log(f"{self.__class__.__name__} method called")
+        # TODO: Implement actual functionality
     
     async def exploit(self, target_url: str, vulnerability: Dict) -> Dict:
         \"\"\"Exploit discovered vulnerability.\"\"\"
-        pass
+        self.log(f"{self.__class__.__name__} method called")
+        # TODO: Implement actual functionality
 ```
 """
         
