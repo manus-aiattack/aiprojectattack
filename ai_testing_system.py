@@ -482,11 +482,11 @@ class AITestingSystem:
         
         # Save detailed results
         results_data = [asdict(r) for r in results]
-        with open('/home/ubuntu/ai_test_results.json', 'w', encoding='utf-8') as f:
+        with open(os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_results.json'), 'w', encoding='utf-8') as f:
             json.dump(results_data, f, ensure_ascii=False, indent=2)
         
         # Save summary
-        with open('/home/ubuntu/ai_test_summary.json', 'w', encoding='utf-8') as f:
+        with open(os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_summary.json'), 'w', encoding='utf-8') as f:
             json.dump(summary, f, ensure_ascii=False, indent=2)
         
         # Save markdown report
@@ -571,7 +571,7 @@ class AITestingSystem:
             
             report += "---\n\n"
         
-        with open('/home/ubuntu/ai_test_report.md', 'w', encoding='utf-8') as f:
+        with open(os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_report.md'), 'w', encoding='utf-8') as f:
             f.write(report)
 
 

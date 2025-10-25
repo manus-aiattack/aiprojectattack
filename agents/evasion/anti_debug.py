@@ -406,7 +406,7 @@ import sys
 # 1. Check for common sandbox paths
 sandbox_paths = [
     '/tmp/analysis',
-    '/home/malware',
+    os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'malware'),
     '/root/sample',
     'C:\\\\analysis',
     'C:\\\\sandbox'

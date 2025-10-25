@@ -12,7 +12,7 @@ class PayloadManager:
     def __init__(self, payload_depot_path: str = "payload_depot"):
         self.payload_depot_path = payload_depot_path
         if not os.path.exists(self.payload_depot_path):
-            os.makedirs(self.payload_depot_path)
+            os.makedirs(self.payload_depot_path, exist_ok=True, exist_ok=True)
 
     def get_payload(self, name: str, obfuscate: bool = False) -> Dict[str, Any] | None:
         """
