@@ -5,11 +5,11 @@ API endpoints for launching and managing attacks
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 import uuid
 
-from api.middleware.auth import validate_api_key, APIKeyInfo
+from api.middleware.auth import require_api_key
 from api.database.db_service import db
 from core.attack_orchestrator import orchestrator
 
@@ -68,7 +68,7 @@ class VulnerabilityResponse(BaseModel):
 async def launch_attack(
     request: AttackRequest,
     background_tasks: BackgroundTasks,
-    api_key: APIKeyInfo = Depends(validate_api_key)
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     🎯 Launch automated attack
@@ -100,7 +100,7 @@ async def launch_attack(
     # Create attack record
     await db.create_attack(
         attack_id=attack_id,
-        api_key_id=api_key.key_id,
+        api_key_id=api_key['id'],
         target_url=str(request.target_url),
         attack_mode=request.attack_mode,
         status="queued"
@@ -125,7 +125,7 @@ async def launch_attack(
 @router.get("/{attack_id}/status", response_model=AttackStatusResponse)
 async def get_attack_status(
     attack_id: str,
-    api_key: APIKeyInfo = Depends(validate_api_key)
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     📊 Get attack status
@@ -155,7 +155,7 @@ async def get_attack_status(
         raise HTTPException(status_code=404, detail="Attack not found")
     
     # Check ownership
-    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+    if attack["api_key_id"] != api_key['id'] and api_key['key_type'] != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
     
     return AttackStatusResponse(
@@ -174,7 +174,7 @@ async def get_attack_status(
 @router.get("/{attack_id}/vulnerabilities", response_model=List[VulnerabilityResponse])
 async def get_attack_vulnerabilities(
     attack_id: str,
-    api_key: APIKeyInfo = Depends(validate_api_key)
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     🔍 Get discovered vulnerabilities
@@ -188,7 +188,7 @@ async def get_attack_vulnerabilities(
         raise HTTPException(status_code=404, detail="Attack not found")
     
     # Check ownership
-    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+    if attack["api_key_id"] != api_key['id'] and api_key['key_type'] != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
     
     vulnerabilities = await db.list_vulnerabilities(attack_id)
@@ -213,7 +213,7 @@ async def get_attack_vulnerabilities(
 @router.post("/{attack_id}/stop")
 async def stop_attack(
     attack_id: str,
-    api_key: APIKeyInfo = Depends(validate_api_key)
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     🛑 Stop running attack
@@ -227,7 +227,7 @@ async def stop_attack(
         raise HTTPException(status_code=404, detail="Attack not found")
     
     # Check ownership
-    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+    if attack["api_key_id"] != api_key['id'] and api_key['key_type'] != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
     
     if attack["status"] in ["completed", "failed", "stopped"]:
@@ -244,7 +244,7 @@ async def stop_attack(
 @router.get("/history", response_model=List[AttackStatusResponse])
 async def get_attack_history(
     limit: int = 10,
-    api_key: APIKeyInfo = Depends(validate_api_key)
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     📜 Get attack history
@@ -253,12 +253,12 @@ async def get_attack_history(
     Admin keys can see all attacks.
     """
     
-    if api_key.key_type == "admin":
+    if api_key['key_type'] == "admin":
         # Admin sees all attacks
         attacks = await db.list_attacks(limit=limit)
     else:
         # User sees only their attacks
-        attacks = await db.list_attacks(api_key_id=api_key.key_id, limit=limit)
+        attacks = await db.list_attacks(api_key_id=api_key['id'], limit=limit)
     
     return [
         AttackStatusResponse(
@@ -279,7 +279,7 @@ async def get_attack_history(
 @router.delete("/{attack_id}")
 async def delete_attack(
     attack_id: str,
-    api_key: APIKeyInfo = Depends(validate_api_key)
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     🗑️ Delete attack record
@@ -294,7 +294,7 @@ async def delete_attack(
         raise HTTPException(status_code=404, detail="Attack not found")
     
     # Check ownership
-    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+    if attack["api_key_id"] != api_key['id'] and api_key['key_type'] != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Delete attack
