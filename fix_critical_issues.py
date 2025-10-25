@@ -26,6 +26,19 @@ def fix_hardcoded_paths():
         ("data_exfiltration/exfiltrator.py", [
             (r'"/home/"', 'os.path.expanduser("~")'),
         ]),
+        # dlnk_FINAL directory
+        ("dlnk_FINAL/ai_testing_system.py", [
+            (r"'/home/ubuntu/ai_test_results\.json'", "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_results.json')"),
+            (r"'/home/ubuntu/ai_test_summary\.json'", "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_summary.json')"),
+            (r"'/home/ubuntu/ai_test_report\.md'", "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'ai_test_report.md')"),
+        ]),
+        ("dlnk_FINAL/agents/deserialization_exploiter.py", [
+            (r'"workspace/loot/deserialization"', "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'loot', 'deserialization')"),
+        ]),
+        ("dlnk_FINAL/agents/lfi_agent.py", [
+            (r'"workspace/loot/lfi"', "os.path.join(os.getenv('WORKSPACE_DIR', 'workspace'), 'loot', 'lfi')"),
+            (r"'/var/www/html/' \+ filepath\.lstrip\('/'", "os.path.join(os.getenv('TARGET_WEB_ROOT', '/var/www/html'), filepath.lstrip('/'))"),
+        ]),
     ]
     
     for filename, replacements in files_to_fix:

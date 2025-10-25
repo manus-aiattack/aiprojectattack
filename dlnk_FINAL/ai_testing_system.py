@@ -482,20 +482,21 @@ class AITestingSystem:
         
         # Save detailed results
         results_data = [asdict(r) for r in results]
-        with open('/home/ubuntu/ai_test_results.json', 'w', encoding='utf-8') as f:
+        workspace_dir = os.getenv('WORKSPACE_DIR', 'workspace')
+        with open(os.path.join(workspace_dir, 'ai_test_results.json'), 'w', encoding='utf-8') as f:
             json.dump(results_data, f, ensure_ascii=False, indent=2)
         
         # Save summary
-        with open('/home/ubuntu/ai_test_summary.json', 'w', encoding='utf-8') as f:
+        with open(os.path.join(workspace_dir, 'ai_test_summary.json'), 'w', encoding='utf-8') as f:
             json.dump(summary, f, ensure_ascii=False, indent=2)
         
         # Save markdown report
         self.generate_markdown_report(results, summary)
         
         print(f"\n✅ Results saved to:")
-        print(f"  - /home/ubuntu/ai_test_results.json")
-        print(f"  - /home/ubuntu/ai_test_summary.json")
-        print(f"  - /home/ubuntu/ai_test_report.md")
+        print(f"  - {os.path.join(workspace_dir, 'ai_test_results.json')}")
+        print(f"  - {os.path.join(workspace_dir, 'ai_test_summary.json')}")
+        print(f"  - {os.path.join(workspace_dir, 'ai_test_report.md')}")
     
     def generate_markdown_report(self, results: List[TestResult], summary: Dict[str, Any]):
         """Generate markdown report"""
@@ -571,7 +572,8 @@ class AITestingSystem:
             
             report += "---\n\n"
         
-        with open('/home/ubuntu/ai_test_report.md', 'w', encoding='utf-8') as f:
+        workspace_dir = os.getenv('WORKSPACE_DIR', 'workspace')
+        with open(os.path.join(workspace_dir, 'ai_test_report.md'), 'w', encoding='utf-8') as f:
             f.write(report)
 
 

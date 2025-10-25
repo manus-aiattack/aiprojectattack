@@ -36,7 +36,8 @@ class LFIAgent(BaseAgent):
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
-        self.results_dir = "workspace/loot/lfi"
+        workspace_dir = os.getenv('WORKSPACE_DIR', 'workspace')
+        self.results_dir = os.path.join(workspace_dir, 'loot', 'lfi')
         os.makedirs(self.results_dir, exist_ok=True)
         
         self.max_depth = kwargs.get('depth', 10)
@@ -142,7 +143,7 @@ class LFIAgent(BaseAgent):
             filepath.replace('/', ''),
             filepath.replace('../', ''),
             filepath.replace('..', ''),
-            '/var/www/html/' + filepath.lstrip('/'),
+            os.path.join(os.getenv('TARGET_WEB_ROOT', '/var/www/html'), filepath.lstrip('/')),
         ])
         
         return payloads
