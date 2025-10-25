@@ -28,13 +28,8 @@ class WebSocketService {
       console.log('[WebSocket] Disconnected');
     });
 
-    this.socket.on('error', (error: any) => {
+    this.socket.on('error', (error) => {
       console.error('[WebSocket] Error:', error);
-    });
-
-    // Setup event forwarding
-    this.socket.onAny((event: string, ...args: any[]) => {
-      this.emit(event, ...args);
     });
   }
 
@@ -43,6 +38,7 @@ class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.listeners.clear();
   }
 
   on(event: string, callback: Function) {
@@ -50,32 +46,34 @@ class WebSocketService {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)!.add(callback);
-  }
 
-  off(event: string, callback: Function) {
-    const listeners = this.listeners.get(event);
-    if (listeners) {
-      listeners.delete(callback);
+    if (this.socket) {
+      this.socket.on(event, (...args) => {
+        callback(...args);
+      });
     }
   }
 
-  emit(event: string, ...args: any[]) {
-    const listeners = this.listeners.get(event);
-    if (listeners) {
-      listeners.forEach((callback) => callback(...args));
-    }
-  }
-
-  send(event: string, data: any) {
-    if (this.socket?.connected) {
-      this.socket.emit(event, data);
+  off(event: string, callback?: Function) {
+    if (callback) {
+      this.listeners.get(event)?.delete(callback);
+      if (this.socket) {
+        this.socket.off(event, callback as any);
+      }
     } else {
-      console.warn('[WebSocket] Not connected, cannot send:', event);
+      this.listeners.delete(event);
+      if (this.socket) {
+        this.socket.off(event);
+      }
+    }
+  }
+
+  emit(event: string, data?: any) {
+    if (this.socket) {
+      this.socket.emit(event, data);
     }
   }
 }
 
 export const wsService = new WebSocketService();
-
-export default wsService;
 
