@@ -15,7 +15,7 @@ import json
 
 from core.base_agent import BaseAgent
 from core.data_models import AttackPhase
-from core.target import Target
+# from core.target import Target
 
 
 class DirsearchAgent(BaseAgent):
