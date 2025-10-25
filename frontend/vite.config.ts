@@ -1,12 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+// import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
+    // PWA plugin temporarily disabled - uncomment and install vite-plugin-pwa to enable
+    /* VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
@@ -54,7 +55,7 @@ export default defineConfig({
           }
         ]
       }
-    })
+    }) */
   ],
   resolve: {
     alias: {
@@ -81,9 +82,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'chart-vendor': ['chart.js', 'react-chartjs-2'],
+          // 'chart-vendor': ['chart.js', 'react-chartjs-2'],
           'icons': ['lucide-react'],
-          'socket': ['socket.io-client'],
+          // 'socket': ['socket.io-client'],
         },
       },
     },
@@ -97,7 +98,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'axios', 'chart.js'],
+    include: ['react', 'react-dom', 'react-router-dom', 'axios'],
   },
 })
 
