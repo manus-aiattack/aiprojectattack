@@ -11,10 +11,15 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pathlib import Path
 from core.logger import log
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
 
 
-class NmapAgent:
+class NmapAgent(BaseAgent):
     """
+    
+    supported_phases = [AttackPhase.RECONNAISSANCE]
+    required_tools = ["nmap"]
     Nmap Agent สำหรับ network scanning
     
     Scan Modes:
@@ -53,7 +58,70 @@ class NmapAgent:
             log.error(f"[{self.name}] Nmap not found: {e}")
         return False
     
-    async def quick_scan(
+    async def run(self, directive: str, context: Dict) -> AgentData:
+        """
+        Main execution method
+        
+        Args:
+            directive: "quick", "full", "stealth", "service", "os", "aggressive", "udp", "script"
+            context: {
+                "target": IP or hostname,
+                "ports": port range (optional),
+                "scripts": NSE scripts (for script scan)
+            }
+        
+        Returns:
+            AgentData with scan results
+        """
+        log.info(f"[NmapAgent] Starting {directive} scan")
+        
+        target = context.get("target")
+        if not target:
+            return AgentData(
+                agent_name="NmapAgent",
+                success=False,
+                data={"error": "No target provided"}
+            )
+        
+        ports = context.get("ports", "1-1000")
+        scripts = context.get("scripts", "default")
+        
+        try:
+            if directive == "quick":
+                result = await self.quick_scan(target, ports)
+            elif directive == "full":
+                result = await self.full_scan(target, ports)
+            elif directive == "stealth":
+                result = await self.stealth_scan(target, ports)
+            elif directive == "service":
+                result = await self.service_detection(target, ports)
+            elif directive == "os":
+                result = await self.os_detection(target)
+            elif directive == "aggressive":
+                result = await self.aggressive_scan(target)
+            elif directive == "udp":
+                result = await self.udp_scan(target, ports)
+            elif directive == "script":
+                result = await self.script_scan(target, scripts, ports)
+            else:
+                result = await self.quick_scan(target, ports)
+            
+            return AgentData(
+                agent_name="NmapAgent",
+                success=result.get("success", False),
+                data=result
+            )
+        
+        except Exception as e:
+            log.error(f"[NmapAgent] Error: {e}")
+            return AgentData(
+                agent_name="NmapAgent",
+                success=False,
+                data={"error": str(e)}
+            )
+
+    
+    async def quick_scanuick_scan(
         self,
         target: str,
         ports: str = "1-1000"

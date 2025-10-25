@@ -22,10 +22,13 @@ from datetime import datetime, timedelta
 import logging
 from urllib.parse import urlparse, quote
 
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
+
 logger = logging.getLogger(__name__)
 
 
-class TargetAcquisitionAgent:
+class TargetAcquisitionAgent(BaseAgent):
     """
     Agent for autonomous target discovery and acquisition.
     
@@ -33,7 +36,10 @@ class TargetAcquisitionAgent:
     and scores them based on relevance and attack surface.
     """
     
-    def __init__(self, keywords: List[str] = None):
+    supported_phases = [AttackPhase.RECONNAISSANCE]
+    required_tools = []
+    
+    def __init__(self, context_manager=None, orchestrator=None, keywords: List[str] = None, **kwargs):
         """
         Initialize Target Acquisition Agent.
         
@@ -53,6 +59,56 @@ class TargetAcquisitionAgent:
         
         self.discovered_targets = []
         self.session = None
+    
+    async def run(self, directive: str, context: Dict) -> AgentData:
+        """
+        Main execution method
+        
+        Args:
+            directive: "discover", "search", "filter"
+            context: {
+                "keywords": list of keywords (optional),
+                "max_targets": maximum targets to return (optional)
+            }
+        
+        Returns:
+            AgentData with target acquisition results
+        """
+        logger.info(f"[TargetAcquisitionAgent] {directive}")
+        
+        try:
+            if directive == "discover":
+                max_targets = context.get("max_targets", 10)
+                keywords = context.get("keywords")
+                if keywords:
+                    self.keywords = keywords
+                
+                async with self:
+                    result = await self.discover_targets(max_targets)
+                
+                return AgentData(
+                    agent_name="TargetAcquisitionAgent",
+                    success=True,
+                    data={"targets": result, "count": len(result)}
+                )
+            else:
+                # Default to discover
+                async with self:
+                    result = await self.discover_targets(10)
+                
+                return AgentData(
+                    agent_name="TargetAcquisitionAgent",
+                    success=True,
+                    data={"targets": result, "count": len(result)}
+                )
+        
+        except Exception as e:
+            logger.error(f"[TargetAcquisitionAgent] Error: {e}")
+            return AgentData(
+                agent_name="TargetAcquisitionAgent",
+                success=False,
+                data={"error": str(e)}
+            )
         
     async def __aenter__(self):
         """Async context manager entry."""

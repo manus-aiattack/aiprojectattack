@@ -19,6 +19,8 @@ import importlib
 import sys
 from typing import Dict, List, Optional, Any
 from loguru import logger
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
 from datetime import datetime
 import json
 
@@ -30,7 +32,7 @@ except ImportError:
     logger.warning("LLM provider not available")
 
 
-class CodeWriterAgent:
+class CodeWriterAgent(BaseAgent):
     """
     Agent that can write and modify code.
     
@@ -38,16 +40,106 @@ class CodeWriterAgent:
     based on experience and feedback.
     """
     
-    def __init__(self, agents_dir: str = "agents"):
+    supported_phases = [AttackPhase.POST_EXPLOITATION]
+    required_tools = []
+    
+    def __init__(self, context_manager=None, orchestrator=None, agents_dir: str = "agents", **kwargs):
         """
         Initialize Code Writer Agent.
         
         Args:
+            context_manager: Context manager instance
+            orchestrator: Orchestrator instance
             agents_dir: Directory containing agent code
         """
+        super().__init__(context_manager, orchestrator, **kwargs)
         self.agents_dir = agents_dir
         self.modification_history = []
         self.model = "mixtral:latest"
+    
+    async def run(self, directive: str, context: Dict) -> AgentData:
+        """
+        Main execution method
+        
+        Args:
+            directive: "create" or "modify"
+            context: {
+                "agent_name": name of agent,
+                "purpose": purpose of agent (for create),
+                "target_vulnerability": vulnerability type (for create),
+                "modification_request": what to modify (for modify),
+                "failure_context": failure context (for modify)
+            }
+        
+        Returns:
+            AgentData with agent creation/modification results
+        """
+        logger.info(f"[CodeWriterAgent] {directive} agent")
+        
+        try:
+            if directive == "create":
+                agent_name = context.get("agent_name")
+                purpose = context.get("purpose")
+                target_vuln = context.get("target_vulnerability")
+                
+                if not all([agent_name, purpose, target_vuln]):
+                    return AgentData(
+                        agent_name="CodeWriterAgent",
+                        success=False,
+                        data={"error": "Missing required parameters"}
+                    )
+                
+                result = await self.create_new_agent(
+                    agent_name,
+                    purpose,
+                    target_vuln,
+                    context.get("example_exploits")
+                )
+            
+            elif directive == "modify":
+                agent_name = context.get("agent_name")
+                modification = context.get("modification_request")
+                
+                if not all([agent_name, modification]):
+                    return AgentData(
+                        agent_name="CodeWriterAgent",
+                        success=False,
+                        data={"error": "Missing required parameters"}
+                    )
+                
+                result = await self.modify_agent(
+                    agent_name,
+                    modification,
+                    context.get("failure_context")
+                )
+            
+            else:
+                return AgentData(
+                    agent_name="CodeWriterAgent",
+                    success=False,
+                    data={"error": f"Unknown directive: {directive}"}
+                )
+            
+            if result:
+                return AgentData(
+                    agent_name="CodeWriterAgent",
+                    success=True,
+                    data=result
+                )
+            else:
+                return AgentData(
+                    agent_name="CodeWriterAgent",
+                    success=False,
+                    data={"error": "Operation failed"}
+                )
+        
+        except Exception as e:
+            logger.error(f"[CodeWriterAgent] Error: {e}")
+            return AgentData(
+                agent_name="CodeWriterAgent",
+                success=False,
+                data={"error": str(e)}
+            )
         
     async def create_new_agent(
         self,
@@ -158,6 +250,8 @@ AGENT STRUCTURE:
 import asyncio
 from typing import Dict, List, Optional
 from loguru import logger
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
 
 class {agent_name}:
     \"\"\"

