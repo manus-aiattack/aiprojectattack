@@ -48,7 +48,6 @@ env/
 # Logs
 logs/
 *.log
-*.json
 
 # Workspace
 workspace/
@@ -78,3 +77,6 @@ results/
 targets/
 payloads/
 
+
+.gemini/
+gha-creds-*.json
