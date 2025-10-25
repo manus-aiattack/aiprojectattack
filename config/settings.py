@@ -28,6 +28,15 @@ JSON_LOG_FILE = os.path.join(LOGS_DIR, "dlnk.json")
 
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dlnk.db")
+
+# PostgreSQL individual settings (for legacy code compatibility)
+DATABASE_HOST = os.getenv("DB_HOST", "localhost")
+DATABASE_PORT = int(os.getenv("DB_PORT", 5432))
+DATABASE_USER = os.getenv("DB_USER", "dlnk_user")
+DATABASE_PASSWORD = os.getenv("DB_PASSWORD", "")
+DATABASE_NAME = os.getenv("DB_NAME", "dlnk")
+
+# Redis configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
