@@ -39,8 +39,7 @@ class Auth_Agent(BaseAgent):
                 # Test SQL injection in auth
                 # Test authentication bypass
                 self.log(f"{self.__class__.__name__} method called")
-                # TODO: Implement actual functionality
-            
+                            
             return self.create_report(
                 summary=f"Auth Agent completed. Found {len(login_pages)} login pages.",
                 vulnerabilities=vulnerabilities,

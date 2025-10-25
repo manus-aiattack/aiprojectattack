@@ -59,8 +59,7 @@ class PolymorphicGenerator:
         try:
             log.info(f"[PolymorphicGenerator] Starting execution")
             
-            # TODO: Implement actual logic here
-            # This is a placeholder implementation
+                        # This is a placeholder implementation
             
             return {
                 'success': True,

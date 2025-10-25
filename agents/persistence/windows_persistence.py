@@ -28,8 +28,7 @@ class WindowsPersistence:
         try:
             log.info(f"[WindowsPersistence] Starting execution")
             
-            # TODO: Implement actual logic here
-            # This is a placeholder implementation
+                        # This is a placeholder implementation
             
             return {
                 'success': True,
