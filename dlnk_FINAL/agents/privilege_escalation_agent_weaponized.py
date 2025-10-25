@@ -28,7 +28,7 @@ class PrivilegeEscalationAgent(BaseAgent):
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
         self.results_dir = "workspace/loot/privesc"
-        self.scripts_dir = "/mnt/c/projecattack/manus/workspace/scripts"
+        workspace_dir = os.getenv("WORKSPACE_DIR", "workspace"); self.scripts_dir = os.path.join(workspace_dir, "scripts")
         os.makedirs(self.results_dir, exist_ok=True)
         os.makedirs(self.scripts_dir, exist_ok=True)
 
