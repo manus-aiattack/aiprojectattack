@@ -9,6 +9,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from loguru import logger
 import json
+from .decorators import require_pool
 
 
 class DatabaseService:
@@ -16,10 +17,16 @@ class DatabaseService:
     
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
-        self.db_url = os.getenv(
-            "DATABASE_URL",
-            "postgresql://dlnk:dlnk@localhost:5432/dlnk_attack_platform"
-        )
+        # Build DATABASE_URL from individual components if not set
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            db_host = os.getenv("DB_HOST", "localhost")
+            db_port = os.getenv("DB_PORT", "5432")
+            db_user = os.getenv("DB_USER", "dlnk_user")
+            db_password = os.getenv("DB_PASSWORD", "")
+            db_name = os.getenv("DB_NAME", "dlnk")
+            db_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        self.db_url = db_url
     
     async def connect(self):
         """Connect to database"""
@@ -45,6 +52,7 @@ class DatabaseService:
             await self.pool.close()
             logger.info("Database disconnected")
     
+    @require_pool
     async def initialize_schema(self):
         """Initialize database schema"""
         try:
@@ -70,6 +78,7 @@ class DatabaseService:
     
     # ===== API Key Management =====
     
+    @require_pool
     async def create_api_key(
         self,
         key_type: str,
@@ -101,6 +110,7 @@ class DatabaseService:
             
             return dict(row)
     
+    @require_pool
     async def get_api_key(self, key_value: str) -> Optional[Dict[str, Any]]:
         """Get API key by value"""
         async with self.pool.acquire() as conn:
@@ -110,6 +120,7 @@ class DatabaseService:
             
             return dict(row) if row else None
     
+    @require_pool
     async def validate_api_key(self, key_value: str) -> tuple[bool, Optional[str]]:
         """
         Validate API key
@@ -133,6 +144,7 @@ class DatabaseService:
         
         return True, None
     
+    @require_pool
     async def list_api_keys(
         self,
         key_type: Optional[str] = None,
@@ -156,6 +168,7 @@ class DatabaseService:
             rows = await conn.fetch(query, *params)
             return [dict(row) for row in rows]
     
+    @require_pool
     async def update_api_key(
         self,
         key_id: str,
@@ -191,6 +204,7 @@ class DatabaseService:
         result = await self.update_api_key(key_id, is_active=False)
         return result is not None
     
+    @require_pool
     async def delete_api_key(self, key_id: str) -> bool:
         """Delete API key"""
         async with self.pool.acquire() as conn:
@@ -202,6 +216,7 @@ class DatabaseService:
     
     # ===== Key Usage Logging =====
     
+    @require_pool
     async def log_key_usage(
         self,
         key_id: str,
@@ -227,6 +242,7 @@ class DatabaseService:
     
     # ===== Attack Management =====
     
+    @require_pool
     async def create_attack(
         self,
         key_id: str,
@@ -245,6 +261,7 @@ class DatabaseService:
             
             return dict(row)
     
+    @require_pool
     async def get_attack(self, attack_id: str) -> Optional[Dict[str, Any]]:
         """Get attack by ID"""
         async with self.pool.acquire() as conn:
@@ -254,6 +271,7 @@ class DatabaseService:
             
             return dict(row) if row else None
     
+    @require_pool
     async def update_attack(
         self,
         attack_id: str,
@@ -283,6 +301,7 @@ class DatabaseService:
             
             return dict(row) if row else None
     
+    @require_pool
     async def list_attacks(
         self,
         key_id: Optional[str] = None,
@@ -310,6 +329,7 @@ class DatabaseService:
     
     # ===== Vulnerability Management =====
     
+    @require_pool
     async def create_vulnerability(
         self,
         attack_id: str,
@@ -347,6 +367,7 @@ class DatabaseService:
             
             return dict(row)
     
+    @require_pool
     async def list_vulnerabilities(
         self,
         attack_id: str
@@ -363,6 +384,7 @@ class DatabaseService:
     
     # ===== System Settings =====
     
+    @require_pool
     async def get_setting(self, key: str) -> Optional[str]:
         """Get system setting"""
         async with self.pool.acquire() as conn:
@@ -372,6 +394,7 @@ class DatabaseService:
             
             return value
     
+    @require_pool
     async def set_setting(self, key: str, value: str):
         """Set system setting"""
         async with self.pool.acquire() as conn:
@@ -386,6 +409,7 @@ class DatabaseService:
     
     # ===== Statistics =====
     
+    @require_pool
     async def get_attack_statistics(self) -> Dict[str, Any]:
         """Get attack statistics"""
         async with self.pool.acquire() as conn:
@@ -402,6 +426,7 @@ class DatabaseService:
             
             return dict(row)
     
+    @require_pool
     async def get_key_statistics(self) -> List[Dict[str, Any]]:
         """Get key statistics"""
         async with self.pool.acquire() as conn:

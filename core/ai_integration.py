@@ -9,6 +9,7 @@ import json
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from openai import OpenAI
+from loguru import logger
 
 
 @dataclass
@@ -75,7 +76,10 @@ class AIOrchestrator:
             # Build prompt based on task type
             prompt = self._build_prompt(task)
             
-            # Call LLM
+            # Call LLM with timeout
+            timeout = int(os.getenv("LLM_REQUEST_TIMEOUT", "120"))
+            logger.info(f"Executing AI task {task.task_id} with timeout={timeout}s")
+            
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -83,8 +87,11 @@ class AIOrchestrator:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=2500
+                max_tokens=2500,
+                timeout=timeout
             )
+            
+            logger.success(f"AI task {task.task_id} completed successfully")
             
             content = response.choices[0].message.content
             
@@ -103,14 +110,18 @@ class AIOrchestrator:
             )
             
         except Exception as e:
+            error_type = type(e).__name__
+            error_msg = str(e)
+            logger.error(f"AI task {task.task_id} failed: {error_type}: {error_msg}")
+            
             result = AIResult(
                 task_id=task.task_id,
                 success=False,
                 content="",
                 confidence=0.0,
                 recommendations=[],
-                warnings=[],
-                error=str(e)
+                warnings=[f"Task failed: {error_type}"],
+                error=f"{error_type}: {error_msg}"
             )
         
         # Store history

@@ -4,6 +4,7 @@ Integrates authentication, license management, and framework APIs
 """
 
 import asyncio
+import os
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -50,9 +51,11 @@ async def startup_event():
     
     # Initialize authentication service
     print("   Initializing authentication service...")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    secret_key = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
     auth_service = AuthService(
-        redis_url="redis://localhost:6379",
-        secret_key="your-secret-key-change-in-production"
+        redis_url=redis_url,
+        secret_key=secret_key
     )
     await auth_service.initialize()
     set_auth_service(auth_service)
@@ -60,7 +63,7 @@ async def startup_event():
     
     # Initialize license service
     print("   Initializing license service...")
-    license_service = LicenseService(redis_url="redis://localhost:6379")
+    license_service = LicenseService(redis_url=redis_url)
     await license_service.initialize()
     set_license_service(license_service)
     print("   ✅ License service ready")

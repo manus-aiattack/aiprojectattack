@@ -14,10 +14,16 @@ class Database:
     
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
-        self.dsn = os.getenv(
-            "DATABASE_URL",
-            "postgresql://dlnk:dlnk_password@localhost:5432/dlnk_db"
-        )
+        # Build DATABASE_URL from individual components if not set
+        dsn = os.getenv("DATABASE_URL")
+        if not dsn:
+            db_host = os.getenv("DB_HOST", "localhost")
+            db_port = os.getenv("DB_PORT", "5432")
+            db_user = os.getenv("DB_USER", "dlnk_user")
+            db_password = os.getenv("DB_PASSWORD", "")
+            db_name = os.getenv("DB_NAME", "dlnk")
+            dsn = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        self.dsn = dsn
     
     async def connect(self):
         """Connect to database"""
