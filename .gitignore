@@ -48,7 +48,9 @@ env/
 # Logs
 logs/
 *.log
-*.json
+# *.json  # Commented out to allow package.json and other config files
+# Ignore specific JSON files instead:
+tsconfig.tsbuildinfo
 
 # Workspace
 workspace/
