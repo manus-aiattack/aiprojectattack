@@ -19,6 +19,35 @@ class NetworkPivot:
         self.webshell = webshell_manager
         self.active_tunnels = []
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for NetworkPivot
+        
+        Args:
+            target: Dict containing target information and parameters
+        
+        Returns:
+            Dict with execution results
+        """
+        try:
+            result = await self.lateral_movement(target)
+            
+            if isinstance(result, dict):
+                return result
+            else:
+                return {
+                    'success': True,
+                    'result': result
+                }
+        
+        except Exception as e:
+            log.error(f"[NetworkPivot] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+
     async def create_socks_proxy(self, shell_url: str, shell_password: str, local_port: int = 1080) -> Dict:
         """
         Create SOCKS proxy through webshell

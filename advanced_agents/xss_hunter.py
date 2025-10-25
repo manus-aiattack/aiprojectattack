@@ -82,6 +82,35 @@ class XSSHunter:
             "<noscript><p title=\"</noscript><img src=x onerror=alert('XSS')\">",
         ]
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for XSSHunter
+        
+        Args:
+            target: Dict containing target information and parameters
+        
+        Returns:
+            Dict with execution results
+        """
+        try:
+            result = await self.scan(target)
+            
+            if isinstance(result, dict):
+                return result
+            else:
+                return {
+                    'success': True,
+                    'result': result
+                }
+        
+        except Exception as e:
+            log.error(f"[XSSHunter] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+
     async def scan(self) -> Dict[str, Any]:
         """เริ่มการสแกนหาช่องโหว่ XSS"""
         print(f"[XSSHunter] Starting XSS scan on {self.target_url}")

@@ -25,6 +25,48 @@ class AntiDebugTechniques:
         """Initialize anti-debug techniques"""
         pass
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for anti-debug payload generation
+        
+        Args:
+            target: Dict containing:
+                - payload: Base payload to protect
+                - language: Programming language (default: javascript)
+                - anti_debug: Include anti-debug checks (default: True)
+                - sandbox_detection: Include sandbox detection (default: True)
+        
+        Returns:
+            Dict with protected payload
+        """
+        payload = target.get('payload', '')
+        language = target.get('language', 'javascript')
+        anti_debug = target.get('anti_debug', True)
+        sandbox_detection = target.get('sandbox_detection', True)
+        
+        if not payload:
+            return {
+                'success': False,
+                'error': 'No payload provided'
+            }
+        
+        try:
+            result = await self.generate_evasion_payload(
+                base_payload=payload,
+                language=language,
+                include_anti_debug=anti_debug,
+                include_sandbox_detection=sandbox_detection
+            )
+            
+            return result
+        
+        except Exception as e:
+            log.error(f"[AntiDebug] Run failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
     def generate_anti_debug_checks(self, language: str = "javascript") -> str:
         """
         Generate anti-debugging checks

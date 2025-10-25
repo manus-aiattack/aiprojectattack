@@ -36,6 +36,35 @@ class SymbolicExecutor:
         if not ANGR_AVAILABLE:
             log.error("[SymbolicExecutor] angr is not installed. Install with: pip install angr")
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for SymbolicExecutor
+        
+        Args:
+            target: Dict containing target information and parameters
+        
+        Returns:
+            Dict with execution results
+        """
+        try:
+            result = await self.find_vulnerable_paths(target)
+            
+            if isinstance(result, dict):
+                return result
+            else:
+                return {
+                    'success': True,
+                    'result': result
+                }
+        
+        except Exception as e:
+            log.error(f"[SymbolicExecutor] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+
     async def analyze_crash(self, binary_path: str, crash_input: bytes, crash_address: int = None) -> Dict:
         """
         Use angr to find path to crash and generate exploit

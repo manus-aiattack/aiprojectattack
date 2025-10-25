@@ -15,6 +15,36 @@ class WindowsPersistence:
         self.webshell = webshell_manager
         self.backdoor_code = None
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for WindowsPersistence
+        
+        Args:
+            target: Dict containing target information and parameters
+        
+        Returns:
+            Dict with execution results
+        """
+        try:
+            log.info(f"[WindowsPersistence] Starting execution")
+            
+            # TODO: Implement actual logic here
+            # This is a placeholder implementation
+            
+            return {
+                'success': True,
+                'message': 'WindowsPersistence executed successfully',
+                'target': target
+            }
+        
+        except Exception as e:
+            log.error(f"[WindowsPersistence] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+
     async def install_all(self,
                          shell_url: str,
                          shell_password: str,

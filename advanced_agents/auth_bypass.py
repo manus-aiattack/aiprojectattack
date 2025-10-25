@@ -33,6 +33,35 @@ class AuthBypassAgent:
             "2fa_bypass"
         ]
     
+    async def run(self, target: Dict) -> Dict:
+        """
+        Main entry point for AuthBypassAgent
+        
+        Args:
+            target: Dict containing target information and parameters
+        
+        Returns:
+            Dict with execution results
+        """
+        try:
+            result = await self.scan(target)
+            
+            if isinstance(result, dict):
+                return result
+            else:
+                return {
+                    'success': True,
+                    'result': result
+                }
+        
+        except Exception as e:
+            log.error(f"[AuthBypassAgent] Error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+
     async def scan(self) -> Dict[str, Any]:
         """เริ่มการสแกนหาช่องโหว่ authentication"""
         print(f"[AuthBypass] Starting authentication bypass scan on {self.target_url}")
