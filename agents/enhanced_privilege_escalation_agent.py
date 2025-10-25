@@ -377,12 +377,14 @@ class EnhancedPrivilegeEscalationAgent(BaseAgent):
             ]
             
             # Filter exploits based on kernel version if available
+            kernel_version = self.context.get("kernel_version", "unknown")
             if kernel_version:
                 relevant_exploits = []
                 for exploit in known_exploits:
                     if "all" in exploit["kernel_versions"]:
                         relevant_exploits.append(exploit)
                     else:
+                        kernel_version = self.context.get("kernel_version", "unknown")
                         for kv in exploit["kernel_versions"]:
                             if kv in kernel_version:
                                 relevant_exploits.append(exploit)

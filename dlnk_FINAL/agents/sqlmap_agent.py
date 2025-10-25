@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from core.logger import log
 SQLMapAgent - AI-Powered SQL Injection Detection Agent
 Advanced SQL injection testing with AI-driven payload generation
 """

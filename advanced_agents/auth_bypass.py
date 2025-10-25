@@ -1,4 +1,5 @@
 """
+from core.logger import log
 Authentication Bypass Agent
 Advanced techniques to bypass authentication mechanisms
 """

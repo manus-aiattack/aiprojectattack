@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from core.logger import log
 from core.data_models import LateralMovementReport, Strategy, AttackPhase, ErrorType

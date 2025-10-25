@@ -1,4 +1,5 @@
 """
+from core.logger import log
 Windows Persistence Agent
 ฝังตัวในระบบ Windows แบบถาวร
 """

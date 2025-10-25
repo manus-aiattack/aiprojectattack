@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from datetime import datetime
 AI Integration for dLNk dLNk Framework
 Integrates LLM capabilities into the framework
 """

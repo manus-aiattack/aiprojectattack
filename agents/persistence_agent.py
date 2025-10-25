@@ -203,7 +203,7 @@ class PersistenceAgent(BaseAgent):
                 end_time=end_time,
                 shell_id=shell_id,
                 persistence_type=persistence_type,
-                errors=[f"Technique '{persistence_type}' requires root/admin privileges, but current level is '{post_ex_report.privilege_level}'."],
+                errors=[f"Technique '{persistence_type}' requires root/admin privileges."],
                 error_type=ErrorType.CONFIGURATION,
                 summary=f"Persistence failed: Insufficient privileges for technique '{persistence_type}'."
             )
