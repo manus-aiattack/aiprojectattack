@@ -84,7 +84,8 @@ class AIOrchestrator:
                 ],
                 temperature=0.7,
                 max_tokens=2500
-            )
+            ,
+                timeout=120)
             
             content = response.choices[0].message.content
             

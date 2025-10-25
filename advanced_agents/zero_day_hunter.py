@@ -155,6 +155,7 @@ Respond in JSON format with the following structure:
         try:
             # เรียกใช้ Local LLM
             response = ollama.generate(
+                timeout=120,
                 model=self.llm_model,
                 prompt=prompt,
                 format="json"
@@ -243,6 +244,7 @@ Respond with ONLY a JSON array of payload strings:
         
         try:
             response = ollama.generate(
+                timeout=120,
                 model="mistral:latest",  # Faster model for payload generation
                 prompt=prompt,
                 format="json"
@@ -331,6 +333,7 @@ Respond with ONLY the Python code, no explanations:
         
         try:
             response = ollama.generate(
+                timeout=120,
                 model="codellama:latest",  # Code generation model
                 prompt=prompt
             )

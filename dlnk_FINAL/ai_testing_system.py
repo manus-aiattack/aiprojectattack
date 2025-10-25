@@ -226,7 +226,8 @@ class AITestingSystem:
                 ],
                 temperature=0.7,
                 max_tokens=2000
-            )
+            ,
+                timeout=120)
             
             response_text = response.choices[0].message.content
             response_time = time.time() - start_time

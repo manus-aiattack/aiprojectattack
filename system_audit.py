@@ -246,7 +246,15 @@ class SystemAuditor:
                 # ตรวจสอบ timeout ใน LLM calls
                 if 'openai' in content.lower() or 'llm' in content.lower():
                     if re.search(r'\.create\(|\.generate\(|\.chat\(', line):
-                        if 'timeout' not in line and 'timeout=' not in content[max(0, content.find(line)-200):content.find(line)+200]:
+                        # ตรวจสอบ timeout ใน 10 บรรทัดถัดไป
+                        has_timeout = 'timeout' in line
+                        if not has_timeout:
+                            for j in range(i, min(i+10, len(lines))):
+                                if 'timeout=' in lines[j]:
+                                    has_timeout = True
+                                    break
+                        
+                        if not has_timeout:
                             self.add_issue(
                                 "warning",
                                 "llm",

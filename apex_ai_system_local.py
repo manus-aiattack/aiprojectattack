@@ -68,7 +68,8 @@ class dLNkAISystem:
                 ],
                 temperature=self.temperature,
                 max_tokens=self.max_tokens
-            )
+            ,
+                timeout=120)
             
             elapsed = time.time() - start_time
             content = response.choices[0].message.content
@@ -118,7 +119,8 @@ class dLNkAISystem:
                 ],
                 temperature=self.temperature,
                 max_tokens=self.max_tokens
-            )
+            ,
+                timeout=120)
             
             elapsed = time.time() - start_time
             content = response.choices[0].message.content
@@ -167,7 +169,8 @@ class dLNkAISystem:
                 ],
                 temperature=self.temperature,
                 max_tokens=self.max_tokens
-            )
+            ,
+                timeout=120)
             
             elapsed = time.time() - start_time
             content = response.choices[0].message.content

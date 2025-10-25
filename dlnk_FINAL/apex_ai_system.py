@@ -131,7 +131,8 @@ class dLNkAISystem:
             ],
             temperature=0.7,
             max_tokens=2000
-        )
+        ,
+                timeout=120)
         
         content = response.choices[0].message.content
         
@@ -165,7 +166,8 @@ class dLNkAISystem:
             ],
             temperature=0.7,
             max_tokens=2000
-        )
+        ,
+                timeout=120)
         
         content = response.choices[0].message.content
         
@@ -202,7 +204,8 @@ class dLNkAISystem:
             ],
             temperature=0.7,
             max_tokens=2500
-        )
+        ,
+                timeout=120)
         
         content = response.choices[0].message.content
         
@@ -238,7 +241,8 @@ class dLNkAISystem:
             ],
             temperature=0.7,
             max_tokens=2000
-        )
+        ,
+                timeout=120)
         
         content = response.choices[0].message.content
         
@@ -280,7 +284,8 @@ class dLNkAISystem:
             ],
             temperature=0.7,
             max_tokens=3000
-        )
+        ,
+                timeout=120)
         
         content = response.choices[0].message.content
         

@@ -92,7 +92,8 @@ def test_3_ai_system():
             ],
             max_tokens=200,
             temperature=0.7
-        )
+        ,
+                timeout=120)
         elapsed = time.time() - start
         
         content = response.choices[0].message.content
