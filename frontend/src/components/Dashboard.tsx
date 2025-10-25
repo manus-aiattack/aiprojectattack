@@ -2,33 +2,32 @@ import React, { useEffect, useState } from 'react';
 import { Activity, Target, Shield, AlertTriangle, TrendingUp, Cpu, Database } from 'lucide-react';
 import api from '../services/api';
 import { wsService } from '../services/websocket';
-// Chart.js temporarily disabled - install react-chartjs-2 and chart.js to enable
-// import { Line, Doughnut } from 'react-chartjs-2';
-// import {
-//   Chart as ChartJS,
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   ArcElement,
-//   Title,
-//   Tooltip,
-//   Legend,
-//   Filler
-// } from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
 
 // Register ChartJS components
-// ChartJS.register(
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   ArcElement,
-//   Title,
-//   Tooltip,
-//   Legend,
-//   Filler
-// );
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 interface DashboardStats {
   active_attacks: number;
@@ -269,14 +268,14 @@ const Dashboard: React.FC = () => {
             <TrendingUp className="w-5 h-5 text-cyan-400" />
             Attack Timeline
           </h2>
-          <div style={{ height: '300px' }} className="flex items-center justify-center border-2 border-dashed border-gray-600 rounded">
-            <p className="text-gray-400">Chart placeholder - Install react-chartjs-2 to enable</p>
+          <div style={{ height: '300px' }}>
+            <Line data={lineChartData} options={lineChartOptions} />
           </div>
         </div>
         <div className="bg-gray-800 rounded-lg shadow-xl p-6">
           <h2 className="text-xl font-semibold mb-4 text-white">Vulnerability Distribution</h2>
-          <div style={{ height: '300px' }} className="flex items-center justify-center border-2 border-dashed border-gray-600 rounded">
-            <p className="text-gray-400">Chart placeholder - Install react-chartjs-2 to enable</p>
+          <div style={{ height: '300px' }}>
+            <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
           </div>
         </div>
       </div>

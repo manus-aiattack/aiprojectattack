@@ -40,13 +40,13 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
-    minify: 'esbuild', // Changed from 'terser' - install terser package to use terser
-    // terserOptions: {
-    //   compress: {
-    //     drop_console: true,
-    //     drop_debugger: true,
-    //   },
-    // },
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'axios'],
