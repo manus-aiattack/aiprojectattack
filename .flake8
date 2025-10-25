@@ -1,0 +1,10 @@
+[flake8]
+# ไม่ต้องตรวจโฟลเดอร์ venv และโฟลเดอร์อื่นๆ ที่ไม่เกี่ยวกับโค้ดเรา
+exclude =
+    .git,
+    __pycache__,
+    .vscode,
+    apex_predator_FINAL/venv
+
+# เพิ่มความยาวบรรทัดสูงสุด (ปรับค่าได้ตามใจชอบ)
+max-line-length = 120
