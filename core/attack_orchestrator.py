@@ -28,7 +28,7 @@ class AttackOrchestrator:
         self.ai_planner = AIAttackPlanner()
         self.vuln_scanner = VulnerabilityScanner()
         self.exploit_executor = ExploitExecutor()
-        self.data_exfiltrator = DataExfiltrator()
+        self.data_exfiltrator = None  # Will be initialized when needed
         
         self.attack_phases = [
             "reconnaissance",

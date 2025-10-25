@@ -47,7 +47,7 @@ class ZeroDayHunterAgent(BaseAgent):
     - สร้าง exploit อัตโนมัติ
     """
     
-    supported_phases = [AttackPhase.VULNERABILITY_DISCOVERY, AttackPhase.EXPLOITATION]
+    supported_phases = [AttackPhase.RECONNAISSANCE, AttackPhase.EXPLOITATION]
     required_tools = []
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):

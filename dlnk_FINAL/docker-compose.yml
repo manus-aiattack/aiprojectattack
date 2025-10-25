@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dlnk-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - dlnk-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # Main dLNk dLNk API
+  api:
+    build: .
+    container_name: dlnk-api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATABASE_URL=postgresql://dlnk_user:${DB_PASSWORD:-CHANGE_THIS_PASSWORD}@db:5432/dlnk_production
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=http://ollama:11434
+      - SIMULATION_MODE=False
+      - MAX_CONCURRENT_AGENTS=3
+      - WORKSPACE_DIR=/app/workspace
+      - LOOT_DIR=/app/workspace/loot
+      - SECRET_KEY=${SECRET_KEY:-CHANGE_THIS_SECRET_KEY}
+      - NOTIFICATION_CHANNELS=${NOTIFICATION_CHANNELS:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_TO=${SMTP_TO:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+    volumes:
+      - ./workspace:/app/workspace
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./config:/app/config
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - dlnk-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/workspace/tmp
+    command: python api/main.py
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: dlnk-db
+    environment:
+      - POSTGRES_USER=dlnk_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-CHANGE_THIS_PASSWORD}
+      - POSTGRES_DB=dlnk_production
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - dlnk-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dlnk_user -d dlnk_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dlnk-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dlnk-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-CHANGE_THIS_REDIS_PASSWORD}
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  dlnk-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
