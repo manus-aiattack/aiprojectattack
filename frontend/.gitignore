@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json - Allow tracking lock file for reproducible builds
 
 # Build output
 dist/
