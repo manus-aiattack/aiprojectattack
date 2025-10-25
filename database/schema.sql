@@ -1,17 +1,12 @@
 -- Apex Predator AI: Database Schema
--- Version 1.0
-
--- ============================================================================
--- Enable extensions
--- ============================================================================
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Version 1.1
 
 -- ============================================================================
 -- Users Table
 -- Stores user accounts for the system.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -25,8 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Stores API keys for programmatic access.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS api_keys (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     key_hash VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE,
@@ -41,6 +36,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 CREATE TABLE IF NOT EXISTS attack_logs (
     id BIGSERIAL PRIMARY KEY,
     attack_id UUID NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     target_id VARCHAR(255),
     timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     phase VARCHAR(255) NOT NULL,
@@ -53,7 +49,7 @@ CREATE TABLE IF NOT EXISTS attack_logs (
 -- Persists the state of long-running attack workflows.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS workflow_states (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id SERIAL PRIMARY KEY,
     attack_id UUID UNIQUE NOT NULL,
     state_data JSONB NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -66,6 +62,7 @@ CREATE TABLE IF NOT EXISTS workflow_states (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_attack_logs_attack_id ON attack_logs(attack_id);
+CREATE INDEX IF NOT EXISTS idx_attack_logs_user_id ON attack_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_attack_logs_timestamp ON attack_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_workflow_states_attack_id ON workflow_states(attack_id);
 

@@ -29,17 +29,18 @@ class TestAttackLogger(asynctest.TestCase):
         mock_cache_status.return_value = asyncio.Future()
         mock_cache_status.return_value.set_result(None)
 
-        await attack_logger.log_attack_phase(self.attack_id, self.target_id, self.phase, "COMPLETED", self.details)
+        await attack_logger.log_attack_phase(self.attack_id, self.target_id, self.phase, "COMPLETED", self.details, user_id=1)
 
         # Check if DB execute was called correctly
         mock_conn.execute.assert_called_once()
         args, _ = mock_conn.execute.call_args
         self.assertIn("INSERT INTO attack_logs", args[0])
         self.assertEqual(args[1], self.attack_id)
-        self.assertEqual(args[2], self.target_id)
-        self.assertEqual(args[3], self.phase)
-        self.assertEqual(args[4], "COMPLETED")
-        self.assertEqual(args[5], json.dumps(self.details))
+        self.assertEqual(args[2], 1) # user_id
+        self.assertEqual(args[3], self.target_id)
+        self.assertEqual(args[4], self.phase)
+        self.assertEqual(args[5], "COMPLETED")
+        self.assertEqual(args[6], json.dumps(self.details))
 
         # Check if caching was called correctly
         mock_cache_status.assert_called_once()

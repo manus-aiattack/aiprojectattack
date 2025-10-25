@@ -14,7 +14,7 @@ async def get_db_connection():
     """Establishes and returns a database connection."""
     return await asyncpg.connect(DATABASE_URL)
 
-async def generate_api_key(user_id: str, expires_in_days: int = 30) -> str:
+async def generate_api_key(user_id: int, expires_in_days: int = 30) -> str:
     """Generates a new API key for a user, stores its hash, and returns the key."""
     api_key = secrets.token_urlsafe(32)
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
@@ -94,7 +94,7 @@ async def main():
     # In a real app, you would get this from your user management system.
     # For testing, let's assume a user_id. You may need to create one first.
     # Example: INSERT INTO users (id, username, password_hash, email) VALUES (uuid_generate_v4(), 'testuser', 'hash', 'test@test.com');
-    test_user_id = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" # Replace with a valid user UUID from your DB
+    test_user_id = 1 # Replace with a valid user ID from your DB
     
     print("Generating API key...")
     new_key = await generate_api_key(test_user_id)

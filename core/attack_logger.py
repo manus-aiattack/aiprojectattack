@@ -17,29 +17,29 @@ async def get_db_connection():
     """Establishes and returns a database connection."""
     return await asyncpg.connect(DATABASE_URL)
 
-async def log_attack_start(attack_id: uuid.UUID, target_id: str):
+async def log_attack_start(attack_id: uuid.UUID, target_id: str, user_id: int | None = None):
     """Logs the start of a new attack."""
-    await log_attack_phase(attack_id, target_id, "start", "STARTED", {"message": "Attack initiated"})
+    await log_attack_phase(attack_id, target_id, "start", "STARTED", {"message": "Attack initiated"}, user_id)
 
-async def log_phase_complete(attack_id: uuid.UUID, target_id: str, phase: str, details: dict):
+async def log_phase_complete(attack_id: uuid.UUID, target_id: str, phase: str, details: dict, user_id: int | None = None):
     """Logs the completion of a specific attack phase."""
-    await log_attack_phase(attack_id, target_id, phase, "COMPLETED", details)
+    await log_attack_phase(attack_id, target_id, phase, "COMPLETED", details, user_id)
 
-async def log_attack_failure(attack_id: uuid.UUID, target_id: str, phase: str, error_details: dict):
+async def log_attack_failure(attack_id: uuid.UUID, target_id: str, phase: str, error_details: dict, user_id: int | None = None):
     """Logs the failure of a specific attack phase."""
-    await log_attack_phase(attack_id, target_id, phase, "FAILED", error_details)
+    await log_attack_phase(attack_id, target_id, phase, "FAILED", error_details, user_id)
 
-async def log_attack_complete(attack_id: uuid.UUID, target_id: str):
+async def log_attack_complete(attack_id: uuid.UUID, target_id: str, user_id: int | None = None):
     """Logs the successful completion of the entire attack."""
-    await log_attack_phase(attack_id, target_id, "end", "COMPLETED", {"message": "Attack finished successfully"})
+    await log_attack_phase(attack_id, target_id, "end", "COMPLETED", {"message": "Attack finished successfully"}, user_id)
 
-async def log_attack_phase(attack_id: uuid.UUID, target_id: str, phase: str, status: str, details: dict):
+async def log_attack_phase(attack_id: uuid.UUID, target_id: str, phase: str, status: str, details: dict, user_id: int | None = None):
     """Generic function to log any attack phase or event."""
     conn = await get_db_connection()
     try:
         await conn.execute(
-            "INSERT INTO attack_logs (attack_id, target_id, phase, status, details) VALUES ($1, $2, $3, $4, $5)",
-            attack_id, target_id, phase, status, json.dumps(details)
+            "INSERT INTO attack_logs (attack_id, user_id, target_id, phase, status, details) VALUES ($1, $2, $3, $4, $5, $6)",
+            attack_id, user_id, target_id, phase, status, json.dumps(details)
         )
         # Cache the latest status
         await cache_attack_status(attack_id, {"phase": phase, "status": status, "timestamp": datetime.now(timezone.utc).isoformat()})

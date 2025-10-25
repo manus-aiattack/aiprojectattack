@@ -13,7 +13,7 @@ class TestLicenseManager(asynctest.TestCase):
 
     def setUp(self):
         """Set up for each test case."""
-        self.test_user_id = str(uuid.uuid4())
+        self.test_user_id = 1
         self.api_key = "test_api_key_123"
         self.key_hash = license_manager.hashlib.sha256(self.api_key.encode()).hexdigest()
 

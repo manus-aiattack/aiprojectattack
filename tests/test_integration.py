@@ -13,7 +13,7 @@ class TestSystemIntegration(asynctest.TestCase):
     """Integration tests for different components of the system."""
 
     def setUp(self):
-        self.user_id = str(uuid.uuid4())
+        self.user_id = 1
         self.attack_id = uuid.uuid4()
         self.target_id = "integration-test.com"
 
@@ -64,10 +64,10 @@ class TestSystemIntegration(asynctest.TestCase):
             with patch('core.attack_logger.cache_attack_status') as mock_cache_status:
                 mock_cache_status.return_value = asyncio.Future()
                 mock_cache_status.return_value.set_result(None)
-                await attack_logger.log_attack_start(self.attack_id, self.target_id)
+                await attack_logger.log_attack_start(self.attack_id, self.target_id, self.user_id)
                 mock_pg_conn.execute.assert_any_call(
-                    "INSERT INTO attack_logs (attack_id, target_id, phase, status, details) VALUES ($1, $2, $3, $4, $5)",
-                    self.attack_id, self.target_id, "start", "STARTED", '{"message": "Attack initiated"}'
+                    "INSERT INTO attack_logs (attack_id, user_id, target_id, phase, status, details) VALUES ($1, $2, $3, $4, $5, $6)",
+                    self.attack_id, self.user_id, self.target_id, "start", "STARTED", '{"message": "Attack initiated"}'
                 )
 
             # --- 3. Save Workflow State ---

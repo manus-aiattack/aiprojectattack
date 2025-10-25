@@ -26,9 +26,10 @@ class AttackWorkflow:
     6. Covering Tracks - Clean up evidence
     """
     
-    def __init__(self, attack_id: uuid.UUID, target: str):
+    def __init__(self, attack_id: uuid.UUID, target: str, user_id: int | None = None):
         self.attack_id = attack_id
         self.target = target
+        self.user_id = user_id
         self.workspace_dir = os.getenv('WORKSPACE_DIR', 'workspace')
         self.attack_dir = os.path.join(self.workspace_dir, 'attacks', str(attack_id))
         os.makedirs(self.attack_dir, exist_ok=True)
@@ -75,7 +76,7 @@ class AttackWorkflow:
         """
         await self.initialize_state()
         logger.info(f"[Workflow] Starting full attack workflow for {self.target}")
-        await attack_logger.log_attack_start(self.attack_id, self.target)
+        await attack_logger.log_attack_start(self.attack_id, self.target, self.user_id)
         
         context = context or {}
         
@@ -86,7 +87,7 @@ class AttackWorkflow:
                 "status": "completed" if recon_results.get("success") else "failed",
                 "results": recon_results
             }
-            await attack_logger.log_phase_complete(self.attack_id, self.target, "reconnaissance", recon_results)
+            await attack_logger.log_phase_complete(self.attack_id, self.target, "reconnaissance", recon_results, self.user_id)
             
             # Phase 2: Vulnerability Scanning
             vuln_results = await self.phase_vulnerability_scanning(context, recon_results)
@@ -94,7 +95,7 @@ class AttackWorkflow:
                 "status": "completed" if vuln_results.get("success") else "failed",
                 "results": vuln_results
             }
-            await attack_logger.log_phase_complete(self.attack_id, self.target, "vulnerability_scanning", vuln_results)
+            await attack_logger.log_phase_complete(self.attack_id, self.target, "vulnerability_scanning", vuln_results, self.user_id)
 
             # Phase 3: Exploitation
             exploit_results = await self.phase_exploitation(context, vuln_results)
@@ -102,7 +103,7 @@ class AttackWorkflow:
                 "status": "completed" if exploit_results.get("success") else "failed",
                 "results": exploit_results
             }
-            await attack_logger.log_phase_complete(self.attack_id, self.target, "exploitation", exploit_results)
+            await attack_logger.log_phase_complete(self.attack_id, self.target, "exploitation", exploit_results, self.user_id)
 
             # Phase 4: Post-Exploitation (only if exploitation succeeded)
             if exploit_results.get("success"):
@@ -111,7 +112,7 @@ class AttackWorkflow:
                     "status": "completed" if post_exploit_results.get("success") else "failed",
                     "results": post_exploit_results
                 }
-                await attack_logger.log_phase_complete(self.attack_id, self.target, "post_exploitation", post_exploit_results)
+                await attack_logger.log_phase_complete(self.attack_id, self.target, "post_exploitation", post_exploit_results, self.user_id)
 
                 # Phase 5: Data Exfiltration
                 exfil_results = await self.phase_data_exfiltration(context, post_exploit_results)
@@ -119,7 +120,7 @@ class AttackWorkflow:
                     "status": "completed" if exfil_results.get("success") else "failed",
                     "results": exfil_results
                 }
-                await attack_logger.log_phase_complete(self.attack_id, self.target, "data_exfiltration", exfil_results)
+                await attack_logger.log_phase_complete(self.attack_id, self.target, "data_exfiltration", exfil_results, self.user_id)
 
                 # Phase 6: Covering Tracks
                 cleanup_results = await self.phase_covering_tracks(context)
@@ -127,10 +128,10 @@ class AttackWorkflow:
                     "status": "completed" if cleanup_results.get("success") else "failed",
                     "results": cleanup_results
                 }
-                await attack_logger.log_phase_complete(self.attack_id, self.target, "covering_tracks", cleanup_results)
+                await attack_logger.log_phase_complete(self.attack_id, self.target, "covering_tracks", cleanup_results, self.user_id)
 
             await attack_logger.save_workflow_state(self.attack_id, self.workflow_state)
-            await attack_logger.log_attack_complete(self.attack_id, self.target)
+            await attack_logger.log_attack_complete(self.attack_id, self.target, self.user_id)
             
             logger.success(f"[Workflow] Attack workflow completed for {self.target}")
             
@@ -144,7 +145,7 @@ class AttackWorkflow:
         except Exception as e:
             logger.error(f"[Workflow] Attack workflow failed: {e}")
             self.workflow_state["errors"].append(str(e))
-            await attack_logger.log_attack_failure(self.attack_id, self.target, self.workflow_state['current_phase'], {"error": str(e)})
+            await attack_logger.log_attack_failure(self.attack_id, self.target, self.workflow_state['current_phase'], {"error": str(e)}, self.user_id)
             await attack_logger.save_workflow_state(self.attack_id, self.workflow_state)
             
             return {
