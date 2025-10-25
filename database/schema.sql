@@ -2,6 +2,17 @@
 -- Version 1.1
 
 -- ============================================================================
+-- Drop existing tables to ensure a clean slate on re-initialization
+-- ============================================================================
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_workflow_states_updated_at ON workflow_states;
+DROP FUNCTION IF EXISTS update_updated_at_column();
+DROP TABLE IF EXISTS workflow_states CASCADE;
+DROP TABLE IF EXISTS attack_logs CASCADE;
+DROP TABLE IF EXISTS api_keys CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- ============================================================================
 -- Users Table
 -- Stores user accounts for the system.
 -- ============================================================================
