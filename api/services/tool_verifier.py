@@ -21,15 +21,16 @@ class ToolVerifier:
             "git": {"command": "git --version", "type": "system"},
         }
         
-        self.required_python_packages = [
-            "requests",
-            "aiohttp",
-            "beautifulsoup4",
-            "pyyaml",
-            "asyncpg",
-            "fastapi",
-            "uvicorn",
-        ]
+        # Package name mapping: display_name -> import_name
+        self.required_python_packages = {
+            "requests": "requests",
+            "aiohttp": "aiohttp",
+            "beautifulsoup4": "bs4",
+            "pyyaml": "yaml",
+            "asyncpg": "asyncpg",
+            "fastapi": "fastapi",
+            "uvicorn": "uvicorn",
+        }
     
     def verify_all(self) -> Dict[str, any]:
         """ตรวจสอบทุกอย่าง"""
@@ -56,15 +57,15 @@ class ToolVerifier:
                 results["overall_status"] = "degraded"
         
         # Check Python packages
-        for package in self.required_python_packages:
-            status, version = self._check_python_package(package)
-            results["python_packages"][package] = {
+        for display_name, import_name in self.required_python_packages.items():
+            status, version = self._check_python_package(import_name)
+            results["python_packages"][display_name] = {
                 "status": status,
                 "version": version if status else None
             }
             
             if not status:
-                results["issues"].append(f"Python package '{package}' not installed")
+                results["issues"].append(f"Python package '{display_name}' not installed")
                 results["overall_status"] = "degraded"
         
         # Check Ollama
