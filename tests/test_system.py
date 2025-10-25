@@ -112,7 +112,7 @@ async def test_cli_commands():
         # Test loot summary
         result = subprocess.run(
             ['python3', 'main.py', 'loot', 'summary'],
-            cwd='/home/ubuntu/manus',
+            cwd=os.getenv('PROJECT_DIR', os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
             capture_output=True,
             text=True,
             timeout=10
