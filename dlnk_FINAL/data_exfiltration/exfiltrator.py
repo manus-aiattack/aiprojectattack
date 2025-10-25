@@ -33,7 +33,7 @@ class DataExfiltrator:
     def __init__(self, attack_id: str, user_key: str):
         self.attack_id = attack_id
         self.user_key = user_key
-        self.base_dir = f"/home/ubuntu/dlnk/workspace/loot/exfiltrated/{attack_id}"
+        self.base_dir = f"/mnt/c/projecattack/manus/workspace/loot/exfiltrated/{attack_id}"
         self.manifest = {
             "attack_id": attack_id,
             "user_key": user_key,

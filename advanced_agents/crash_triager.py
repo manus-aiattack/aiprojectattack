@@ -23,7 +23,7 @@ class CrashTriager:
     - Prioritize crashes by severity
     """
     
-    def __init__(self, workspace_dir: str = "/home/ubuntu/dlnk/workspace/loot/crashes"):
+    def __init__(self, workspace_dir: str = "/mnt/c/projecattack/manus/workspace/loot/crashes"):
         self.workspace_dir = workspace_dir
         os.makedirs(workspace_dir, exist_ok=True)
     

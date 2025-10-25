@@ -29,7 +29,7 @@ class SymbolicExecutor:
     - Identify exploitable conditions
     """
     
-    def __init__(self, workspace_dir: str = "/home/ubuntu/dlnk/workspace/loot/symbolic"):
+    def __init__(self, workspace_dir: str = "/mnt/c/projecattack/manus/workspace/loot/symbolic"):
         self.workspace_dir = workspace_dir
         os.makedirs(workspace_dir, exist_ok=True)
         

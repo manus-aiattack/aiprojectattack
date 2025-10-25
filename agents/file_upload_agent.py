@@ -28,9 +28,9 @@ class FileUploadAgent(BaseAgent):
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
-        self.results_dir = "/home/ubuntu/dlnk/workspace/loot/uploads"
+        self.results_dir = "/mnt/c/projecattack/manus/workspace/loot/uploads"
         os.makedirs(self.results_dir, exist_ok=True)
-        self.exfiltrator = DataExfiltrator(workspace_dir="/home/ubuntu/dlnk/workspace")
+        self.exfiltrator = DataExfiltrator(workspace_dir="/mnt/c/projecattack/manus/workspace")
         self.webshells = self._load_webshells()
 
     def _load_webshells(self) -> Dict[str, Dict[str, str]]:

@@ -158,7 +158,7 @@ class Database:
                 log.success(f"[Database] Default admin created with API Key: {admin_key}")
                 
                 # Save to file
-                with open("/home/ubuntu/dlnk/ADMIN_KEY.txt", "w") as f:
+                with open("/mnt/c/projecattack/manus/ADMIN_KEY.txt", "w") as f:
                     f.write(f"Admin API Key: {admin_key}\n")
                     f.write(f"Created at: {datetime.now().isoformat()}\n")
     
