@@ -146,10 +146,12 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       
       - name: Build and push backend image
+        if: github.event_name != 'pull_request' && secrets.DOCKER_USERNAME != ''
+        continue-on-error: true
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./docker/backend/Dockerfile
+          file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/dlnk-backend:latest
@@ -158,10 +160,12 @@ jobs:
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/dlnk-backend:buildcache,mode=max
       
       - name: Build and push frontend image
+        if: github.event_name != 'pull_request' && secrets.DOCKER_USERNAME != ''
+        continue-on-error: true
         uses: docker/build-push-action@v4
         with:
           context: ./frontend
-          file: ./docker/frontend/Dockerfile
+          file: ./frontend/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/dlnk-frontend:latest
