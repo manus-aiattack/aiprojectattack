@@ -289,11 +289,17 @@ class WAFBypassAgent(BaseAgent):
 
     def _bypass_parameter_pollution(self, payload: str) -> str:
         """HTTP parameter pollution bypass"""
-        # Split payload across multiple parameters
+        # Split payload across multiple parameters to evade WAF
+        # Technique: Distribute malicious payload across multiple params
         parts = payload.split()
         if len(parts) > 1:
-            return f"{parts[0]}&dummy=x&test={' '.join(parts[1:])}"
-        return payload
+            # Create pollution with decoy parameters
+            polluted = f"{parts[0]}&_decoy=benign&_filler={' '.join(parts[1:])}"
+            # Add more pollution variants
+            polluted += f"&{parts[0]}=&cmd={' '.join(parts[1:])}"
+            return polluted
+        # For single-part payloads, add parameter pollution
+        return f"{payload}&{payload}=&cmd={payload}"
 
     def _bypass_http_verb_tampering(self, payload: str) -> str:
         """HTTP verb tampering bypass"""

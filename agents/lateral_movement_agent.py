@@ -31,8 +31,17 @@ class LateralMovementAgent(BaseAgent):
                     directive=f"Perform internal network reconnaissance and lateral movement from shell {shell_id}",
                     context={"shell_id": shell_id}
                 )
-                # Similar to PostExAgent, this is a placeholder for dynamic strategy injection.
-                log.warning(f"LateralMovementAgent: New strategy for lateral movement from shell {shell_id} generated. Orchestrator needs to pick this up.")
+                # Inject new strategy into orchestrator for dynamic execution
+                if self.orchestrator and hasattr(self.orchestrator, 'inject_strategy'):
+                    await self.orchestrator.inject_strategy(new_strategy)
+                    log.info(f"LateralMovementAgent: New strategy for lateral movement from shell {shell_id} injected into orchestrator.")
+                else:
+                    # Fallback: Store in context for manual pickup
+                    if self.context_manager:
+                        strategies = self.context_manager.get('pending_strategies', [])
+                        strategies.append(new_strategy)
+                        self.context_manager.set('pending_strategies', strategies)
+                    log.warning(f"LateralMovementAgent: New strategy for lateral movement from shell {shell_id} stored in context. Orchestrator needs to pick this up.")
             else:
                 log.warning("LateralMovementAgent: EXPLOIT_SUCCESS event received but no shell_id found.")
 

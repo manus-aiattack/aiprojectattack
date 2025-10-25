@@ -323,10 +323,37 @@ class ShellUpgraderAgent(BaseAgent):
 
     async def _execute_command(self, shell_id: str, command: str) -> str:
         """Execute command on shell"""
-        # This should integrate with shell manager
-        # For now, return empty string
-        # TODO: Implement shell command execution
-        return ""
+        try:
+            # Integrate with shell manager if available
+            if self.orchestrator and hasattr(self.orchestrator, 'shell_manager'):
+                shell_manager = self.orchestrator.shell_manager
+                result = await shell_manager.execute_command(shell_id, command)
+                return result.get('output', '')
+            
+            # Fallback: Use context manager to execute
+            if self.context_manager:
+                shell_context = self.context_manager.get(f"shell_{shell_id}")
+                if shell_context and 'connection' in shell_context:
+                    # Execute via connection object
+                    conn = shell_context['connection']
+                    if hasattr(conn, 'exec_command'):
+                        stdin, stdout, stderr = conn.exec_command(command)
+                        output = stdout.read().decode('utf-8', errors='ignore')
+                        error = stderr.read().decode('utf-8', errors='ignore')
+                        return output + error
+                    elif hasattr(conn, 'send'):
+                        # For raw socket connections
+                        conn.send(command.encode() + b'\n')
+                        import time
+                        time.sleep(1)
+                        if hasattr(conn, 'recv'):
+                            return conn.recv(4096).decode('utf-8', errors='ignore')
+            
+            log.warning(f"[ShellUpgraderAgent] No shell manager available for shell_id: {shell_id}")
+            return ""
+        except Exception as e:
+            log.error(f"[ShellUpgraderAgent] Command execution error: {e}")
+            return ""
 
     def _generate_instructions(self, technique: Dict, attacker_ip: str, port: str) -> List[str]:
         """สร้างคำแนะนำการใช้งาน"""

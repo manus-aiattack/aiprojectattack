@@ -337,14 +337,59 @@ class EnhancedPrivilegeEscalationAgent(BaseAgent):
             
             await asyncio.sleep(0.1)
             
-            # Return mock exploits
-            return [
+            # Return known kernel exploits database
+            known_exploits = [
                 {
                     "cve": "CVE-2021-3493",
                     "name": "OverlayFS Local Privilege Escalation",
-                    "exploit_available": True
+                    "kernel_versions": ["3.x", "4.x", "5.x"],
+                    "exploit_available": True,
+                    "url": "https://github.com/briskets/CVE-2021-3493"
+                },
+                {
+                    "cve": "CVE-2021-4034",
+                    "name": "PwnKit - Polkit Privilege Escalation",
+                    "kernel_versions": ["all"],
+                    "exploit_available": True,
+                    "url": "https://github.com/arthepsy/CVE-2021-4034"
+                },
+                {
+                    "cve": "CVE-2022-0847",
+                    "name": "Dirty Pipe",
+                    "kernel_versions": ["5.8+"],
+                    "exploit_available": True,
+                    "url": "https://github.com/AlexisAhmed/CVE-2022-0847-DirtyPipe-Exploits"
+                },
+                {
+                    "cve": "CVE-2016-5195",
+                    "name": "Dirty COW",
+                    "kernel_versions": ["2.6.22", "3.x", "4.x"],
+                    "exploit_available": True,
+                    "url": "https://github.com/dirtycow/dirtycow.github.io"
+                },
+                {
+                    "cve": "CVE-2017-16995",
+                    "name": "eBPF Privilege Escalation",
+                    "kernel_versions": ["4.4", "4.14"],
+                    "exploit_available": True,
+                    "url": "https://github.com/Frichetten/CVE-2017-16995"
                 }
             ]
+            
+            # Filter exploits based on kernel version if available
+            if kernel_version:
+                relevant_exploits = []
+                for exploit in known_exploits:
+                    if "all" in exploit["kernel_versions"]:
+                        relevant_exploits.append(exploit)
+                    else:
+                        for kv in exploit["kernel_versions"]:
+                            if kv in kernel_version:
+                                relevant_exploits.append(exploit)
+                                break
+                return relevant_exploits if relevant_exploits else known_exploits
+            
+            return known_exploits
             
         except Exception as e:
             log.error(f"[{self.name}] Failed to query kernel exploits: {e}")
