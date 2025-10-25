@@ -14,7 +14,7 @@ from pathlib import Path
 import json
 
 from core.base_agent import BaseAgent
-from core.attack_phase import AttackPhase
+from core.data_models import AttackPhase
 from core.target import Target
 
 
