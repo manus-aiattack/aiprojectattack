@@ -39,7 +39,7 @@ class IDORAgent(BaseAgent):
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
-        self.results_dir = "/mnt/c/projecattack/manus/workspace/loot/idor"
+        workspace_dir = os.getenv("WORKSPACE_DIR", "workspace"); self.results_dir = os.path.join(workspace_dir, "loot", "idor")
         os.makedirs(self.results_dir, exist_ok=True)
         
         # IDOR parameters

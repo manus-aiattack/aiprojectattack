@@ -28,9 +28,10 @@ class SqlmapAgent(BaseAgent):
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
         self.sqlmap_path = self._find_sqlmap()
-        self.results_dir = "/mnt/c/projecattack/manus/workspace/loot/sqlmap"
+        workspace_dir = os.getenv("WORKSPACE_DIR", "workspace"); self.results_dir = os.path.join(workspace_dir, "loot", "sqlmap")
         os.makedirs(self.results_dir, exist_ok=True)
-        self.exfiltrator = DataExfiltrator(workspace_dir="/mnt/c/projecattack/manus/workspace")
+        workspace_dir = os.getenv("WORKSPACE_DIR", "workspace")
+        self.exfiltrator = DataExfiltrator(workspace_dir=workspace_dir)
 
     def _find_sqlmap(self) -> str:
         """หา sqlmap binary"""
