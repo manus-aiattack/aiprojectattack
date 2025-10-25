@@ -14,7 +14,10 @@ from pathlib import Path
 # Add project root to sys.path for module imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from config import settings
+try:
+    from config import settings
+except ImportError:
+    settings = None  # Fallback if config not available
 import redis.asyncio as aioredis
 import asyncio # Added missing import
 from typing import Optional # Added missing import
@@ -102,8 +105,9 @@ class JsonFormatter(logging.Formatter):
 
 def get_logger(name="dLNk", redis_client: Optional[aioredis.Redis] = None):
     """Configures and returns a logger with a modern, compact RichHandler."""
-    log_file = os.path.abspath(settings.LOG_FILE)
-    json_log_file = os.path.abspath(settings.JSON_LOG_FILE)
+    # Fallback values if settings is None
+    log_file = os.path.abspath(settings.LOG_FILE) if settings else "logs/dlnk.log"
+    json_log_file = os.path.abspath(settings.JSON_LOG_FILE) if settings else "logs/dlnk.json"
     log_dir = os.path.dirname(log_file)
     os.makedirs(log_dir, exist_ok=True)
 
@@ -111,7 +115,7 @@ def get_logger(name="dLNk", redis_client: Optional[aioredis.Redis] = None):
     if logger.hasHandlers():
         logger.handlers.clear()
 
-    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO) if settings else logging.INFO
     logger.setLevel(log_level)
 
     # 1. Rich Console Handler (Hacker Theme)

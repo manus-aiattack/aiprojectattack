@@ -319,3 +319,282 @@ if __name__ == "__main__":
     print(f"  Success rate: {stats['successful']}/{stats['total_tasks']}")
     print(f"  Avg confidence: {stats['avg_confidence']:.2%}")
 
+
+
+
+class AIIntegration:
+    """
+    AI Integration Class - ครอบคลุมการใช้ AI ทั้งหมด
+    
+    Features:
+    - Attack planning
+    - Vulnerability analysis
+    - Exploit generation
+    - Report generation
+    - Learning from results
+    """
+    
+    def __init__(self, model: str = "gpt-4.1-mini", api_key: Optional[str] = None):
+        """Initialize AI Integration"""
+        self.orchestrator = AIOrchestrator(model, api_key)
+        self.attack_history = []
+        self.learning_data = []
+        
+    async def analyze_target(self, target: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        วิเคราะห์ target ด้วย AI
+        
+        Args:
+            target: target URL/IP
+            context: ข้อมูลเพิ่มเติม
+        """
+        logger.info(f"[AIIntegration] Analyzing target: {target}")
+        
+        task = AITask(
+            task_id=f"analyze_{len(self.attack_history)}",
+            task_type="recon",
+            input_data={
+                "target": target,
+                "type": context.get("type", "Unknown") if context else "Unknown",
+                "technology": context.get("technology", "Unknown") if context else "Unknown"
+            },
+            context=context
+        )
+        
+        result = self.orchestrator.execute_task(task)
+        
+        return {
+            "success": result.success,
+            "analysis": result.content,
+            "confidence": result.confidence,
+            "recommendations": result.recommendations,
+            "warnings": result.warnings
+        }
+    
+    async def suggest_attack_vector(
+        self,
+        vulnerabilities: List[Dict[str, Any]],
+        target_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        แนะนำ attack vector ที่เหมาะสม
+        
+        Args:
+            vulnerabilities: รายการช่องโหว่ที่พบ
+            target_info: ข้อมูล target
+        """
+        logger.info(f"[AIIntegration] Suggesting attack vectors for {len(vulnerabilities)} vulnerabilities")
+        
+        vuln_list = [v.get("type", "Unknown") for v in vulnerabilities]
+        
+        task = AITask(
+            task_id=f"attack_vector_{len(self.attack_history)}",
+            task_type="exploit",
+            input_data={
+                "target": target_info.get("target", "Unknown"),
+                "vulnerabilities": vuln_list,
+                "goal": target_info.get("goal", "Full compromise")
+            }
+        )
+        
+        result = self.orchestrator.execute_task(task)
+        
+        return {
+            "success": result.success,
+            "attack_plan": result.content,
+            "confidence": result.confidence,
+            "recommendations": result.recommendations,
+            "warnings": result.warnings
+        }
+    
+    async def generate_exploit_code(
+        self,
+        vulnerability: Dict[str, Any],
+        target: str
+    ) -> Dict[str, Any]:
+        """
+        สร้าง exploit code ด้วย AI
+        
+        Args:
+            vulnerability: ข้อมูลช่องโหว่
+            target: target URL/IP
+        """
+        logger.info(f"[AIIntegration] Generating exploit for {vulnerability.get('type', 'Unknown')}")
+        
+        task = AITask(
+            task_id=f"exploit_gen_{len(self.attack_history)}",
+            task_type="exploit",
+            input_data={
+                "target": target,
+                "vuln_type": vulnerability.get("type", "Unknown"),
+                "location": vulnerability.get("location", "Unknown"),
+                "details": vulnerability.get("details", "N/A")
+            }
+        )
+        
+        result = self.orchestrator.execute_task(task)
+        
+        return {
+            "success": result.success,
+            "exploit_code": result.content,
+            "confidence": result.confidence,
+            "recommendations": result.recommendations,
+            "warnings": result.warnings
+        }
+    
+    async def analyze_response(
+        self,
+        response: str,
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        วิเคราะห์ response จาก target
+        
+        Args:
+            response: HTTP response หรือ output
+            context: ข้อมูลบริบท
+        """
+        logger.info(f"[AIIntegration] Analyzing response")
+        
+        task = AITask(
+            task_id=f"response_analysis_{len(self.attack_history)}",
+            task_type="vuln_analysis",
+            input_data={
+                "response": response[:1000],  # Limit size
+                "context": context
+            }
+        )
+        
+        result = self.orchestrator.execute_task(task)
+        
+        return {
+            "success": result.success,
+            "analysis": result.content,
+            "confidence": result.confidence,
+            "findings": result.recommendations,
+            "warnings": result.warnings
+        }
+    
+    async def generate_report(
+        self,
+        findings: List[Dict[str, Any]],
+        target_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        สร้างรายงานด้วย AI
+        
+        Args:
+            findings: รายการช่องโหว่ที่พบ
+            target_info: ข้อมูล target
+        """
+        logger.info(f"[AIIntegration] Generating report for {len(findings)} findings")
+        
+        findings_text = [
+            f"{f.get('type', 'Unknown')} at {f.get('location', 'Unknown')}"
+            for f in findings
+        ]
+        
+        task = AITask(
+            task_id=f"report_{len(self.attack_history)}",
+            task_type="report",
+            input_data={
+                "target": target_info.get("target", "Unknown"),
+                "findings": findings_text,
+                "severity": target_info.get("severity", "Medium")
+            }
+        )
+        
+        result = self.orchestrator.execute_task(task)
+        
+        return {
+            "success": result.success,
+            "report": result.content,
+            "confidence": result.confidence,
+            "recommendations": result.recommendations
+        }
+    
+    async def learn_from_attack(
+        self,
+        attack_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        เรียนรู้จากผลการโจมตี
+        
+        Args:
+            attack_data: ข้อมูลการโจมตี
+        """
+        logger.info(f"[AIIntegration] Learning from attack")
+        
+        # บันทึกข้อมูล
+        self.learning_data.append({
+            "timestamp": datetime.now().isoformat(),
+            "attack_type": attack_data.get("type", "Unknown"),
+            "success": attack_data.get("success", False),
+            "target": attack_data.get("target", "Unknown"),
+            "techniques": attack_data.get("techniques", []),
+            "results": attack_data.get("results", {})
+        })
+        
+        # วิเคราะห์ pattern
+        successful_attacks = [a for a in self.learning_data if a["success"]]
+        
+        return {
+            "total_attacks": len(self.learning_data),
+            "successful_attacks": len(successful_attacks),
+            "success_rate": len(successful_attacks) / len(self.learning_data) if self.learning_data else 0,
+            "learned_patterns": len(set([a["attack_type"] for a in successful_attacks]))
+        }
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """ดึงสถิติการใช้งาน AI"""
+        orchestrator_stats = self.orchestrator.get_statistics()
+        
+        return {
+            **orchestrator_stats,
+            "attack_history": len(self.attack_history),
+            "learning_data": len(self.learning_data)
+        }
+    
+    def export_learning_data(self, filepath: str):
+        """Export learning data ออกเป็นไฟล์"""
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(self.learning_data, f, indent=2, ensure_ascii=False)
+            logger.success(f"[AIIntegration] Learning data exported to {filepath}")
+        except Exception as e:
+            logger.error(f"[AIIntegration] Export failed: {e}")
+
+
+# Singleton instance
+ai_integration = AIIntegration()
+
+
+# Helper functions
+async def analyze_target(target: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+    """Analyze target wrapper"""
+    return await ai_integration.analyze_target(target, context)
+
+
+async def suggest_attack_vector(
+    vulnerabilities: List[Dict[str, Any]],
+    target_info: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Suggest attack vector wrapper"""
+    return await ai_integration.suggest_attack_vector(vulnerabilities, target_info)
+
+
+async def generate_exploit_code(
+    vulnerability: Dict[str, Any],
+    target: str
+) -> Dict[str, Any]:
+    """Generate exploit code wrapper"""
+    return await ai_integration.generate_exploit_code(vulnerability, target)
+
+
+async def generate_report(
+    findings: List[Dict[str, Any]],
+    target_info: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Generate report wrapper"""
+    return await ai_integration.generate_report(findings, target_info)
+
