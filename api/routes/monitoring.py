@@ -13,9 +13,15 @@ import asyncio
 
 router = APIRouter()
 
-# Dependency injection
-db = Database()
-auth_service = AuthService(db)
+# Dependency injection - will be set by main.py
+db: Database = None
+auth_service: AuthService = None
+
+def set_dependencies(database: Database, auth_svc: AuthService):
+    """Set dependencies from main.py"""
+    global db, auth_service
+    db = database
+    auth_service = auth_svc
 
 
 @router.get("/metrics/system")

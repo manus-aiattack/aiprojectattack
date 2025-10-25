@@ -11,7 +11,7 @@ from api.services.auth import AuthService
 router = APIRouter()
 
 # Dependency injection
-db = Database()
+# db = Database()  # Fixed: Use shared instance from main.py
 auth_service = AuthService(db)
 
 

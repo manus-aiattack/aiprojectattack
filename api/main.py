@@ -204,7 +204,10 @@ async def get_system_status() -> Dict:
 
 
 # Set dependencies for routers
+auth.set_dependencies(db, auth_service)
 admin.set_dependencies(db, auth_service)
+attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
+files.set_dependencies(db, auth_service)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

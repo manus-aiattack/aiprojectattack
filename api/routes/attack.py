@@ -12,11 +12,19 @@ from api.services.auth import AuthService
 
 router = APIRouter()
 
-# Dependency injection
-db = Database()
-ws_manager = WebSocketManager()
-attack_manager = AttackManager(db, ws_manager)
-auth_service = AuthService(db)
+# Dependency injection - will be set by main.py
+db: Database = None
+ws_manager: WebSocketManager = None
+attack_manager: AttackManager = None
+auth_service: AuthService = None
+
+def set_dependencies(database: Database, ws_mgr: WebSocketManager, atk_mgr: AttackManager, auth_svc: AuthService):
+    """Set dependencies from main.py"""
+    global db, ws_manager, attack_manager, auth_service
+    db = database
+    ws_manager = ws_mgr
+    attack_manager = atk_mgr
+    auth_service = auth_svc
 
 
 class StartAttackRequest(BaseModel):
