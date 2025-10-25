@@ -140,6 +140,13 @@ fi
 echo ""
 echo "กำลังอัปเดตไฟล์ .env..."
 
+# ตรวจสอบว่ามีบรรทัด C2_DOMAIN หรือไม่
+if ! grep -q "^C2_DOMAIN=" .env; then
+    echo "# C2 Configuration (REQUIRED)" >> .env
+    echo "C2_DOMAIN=" >> .env
+    echo "C2_PROTOCOL=http" >> .env
+fi
+
 # ใช้ sed เพื่ออัปเดตค่า (รองรับทั้ง Linux และ macOS)
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
