@@ -1,6 +1,7 @@
 """
 dLNk dLNk Attack Platform - Backend API
 FastAPI application with WebSocket support
+Merged version combining best features from both versions
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
@@ -10,10 +11,11 @@ from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
+import os
 from typing import List, Dict, Any
 from datetime import datetime
 
-from api.services.database import Database
+from api.services.database_simple import Database
 from api.services.auth import AuthService
 from api.services.attack_manager import AttackManager
 from api.services.websocket_manager import WebSocketManager
@@ -56,13 +58,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# CORS - Production Security Fix
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["http://localhost:3000", "http://localhost:8080"],  # Specific origins only
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["X-API-Key", "Content-Type", "Authorization"],
 )
 
 
@@ -130,14 +132,29 @@ async def health_check():
 @app.websocket("/ws/attack/{attack_id}")
 async def websocket_attack(websocket: WebSocket, attack_id: str):
     """WebSocket for real-time attack updates"""
-    await ws_manager.connect(websocket, attack_id)
     try:
+        await ws_manager.connect(websocket, attack_id)
         while True:
-            # Keep connection alive
-            data = await websocket.receive_text()
-            # Echo back (optional)
-            await websocket.send_json({"type": "pong", "timestamp": datetime.now().isoformat()})
+            # Keep connection alive and handle client messages
+            try:
+                data = await websocket.receive_text()
+                # Echo back with timestamp
+                await websocket.send_json({
+                    "type": "pong", 
+                    "timestamp": datetime.now().isoformat(),
+                    "attack_id": attack_id
+                })
+            except Exception as e:
+                log.error(f"[WebSocket] Error handling message: {e}")
+                break
     except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, attack_id)
+    except Exception as e:
+        log.error(f"[WebSocket] Connection error: {e}")
+        try:
+            await websocket.close()
+        except Exception:
+            pass
         ws_manager.disconnect(websocket, attack_id)
 
 
@@ -145,49 +162,60 @@ async def websocket_attack(websocket: WebSocket, attack_id: str):
 @app.websocket("/ws/system")
 async def websocket_system(websocket: WebSocket):
     """WebSocket for system monitoring (Admin only)"""
-    # Note: WebSocket doesn't support headers easily, so we'll accept connection
-    # and verify later through a message
-    await ws_manager.connect_system(websocket)
     try:
+        # Get API key from query parameters for WebSocket auth
+        api_key = websocket.query_params.get("api_key")
+        if not api_key:
+            await websocket.close(code=1008, reason="API key required")
+            return
+        
+        # Verify admin key
+        user = await auth_service.verify_key(api_key)
+        if not user or user.get("role") != "admin":
+            await websocket.close(code=1008, reason="Admin access required")
+            return
+        
+        await ws_manager.connect_system(websocket)
         while True:
-            data = await websocket.receive_text()
-            # Handle system monitoring requests
-            await websocket.send_json({"type": "system_status", "data": await get_system_status()})
+            try:
+                data = await websocket.receive_text()
+                # Handle system monitoring requests
+                await websocket.send_json({
+                    "type": "system_status", 
+                    "data": await get_system_status()
+                })
+            except Exception as e:
+                log.error(f"[WebSocket] System monitoring error: {e}")
+                break
     except WebSocketDisconnect:
+        ws_manager.disconnect_system(websocket)
+    except Exception as e:
+        log.error(f"[WebSocket] System connection error: {e}")
+        try:
+            await websocket.close()
+        except Exception:
+            pass
         ws_manager.disconnect_system(websocket)
 
 
 async def get_system_status() -> Dict:
     """Get system status"""
-    import psutil
-    import ollama
+    try:
+        import psutil
+    except ImportError:
+        psutil = None
+    
+    try:
+        import ollama
+    except ImportError:
+        ollama = None
     
     # CPU and Memory
-    cpu_percent = psutil.cpu_percent(interval=1)
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
-    # LLM Status
-    llm_status = {}
-    try:
-        models = ollama.list()
-        llm_status = {
-            "available": True,
-            "models": [model["name"] for model in models.get("models", [])],
-            "count": len(models.get("models", []))
-        }
-    except Exception as e:
-        llm_status = {
-            "available": False,
-            "error": str(e)
-        }
-    
-    # Active attacks
-    active_attacks = await db.get_active_attacks_count()
-    
-    return {
-        "timestamp": datetime.now().isoformat(),
-        "system": {
+    if psutil:
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        system_info = {
             "cpu_percent": cpu_percent,
             "memory_percent": memory.percent,
             "memory_used_gb": memory.used / (1024**3),
@@ -195,7 +223,50 @@ async def get_system_status() -> Dict:
             "disk_percent": disk.percent,
             "disk_used_gb": disk.used / (1024**3),
             "disk_total_gb": disk.total / (1024**3)
-        },
+        }
+    else:
+        system_info = {
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "memory_used_gb": 0,
+            "memory_total_gb": 0,
+            "disk_percent": 0,
+            "disk_used_gb": 0,
+            "disk_total_gb": 0,
+            "error": "psutil not available"
+        }
+    
+    # LLM Status
+    llm_status = {}
+    if ollama:
+        try:
+            models = ollama.list()
+            llm_status = {
+                "available": True,
+                "models": [model["name"] for model in models.get("models", [])],
+                "count": len(models.get("models", []))
+            }
+        except Exception as e:
+            llm_status = {
+                "available": False,
+                "error": str(e)
+            }
+    else:
+        llm_status = {
+            "available": False,
+            "error": "ollama not available"
+        }
+    
+    # Active attacks
+    try:
+        active_attacks = await db.get_active_attacks_count()
+    except Exception as e:
+        active_attacks = 0
+        log.error(f"Error getting active attacks count: {e}")
+    
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "system": system_info,
         "llm": llm_status,
         "attacks": {
             "active": active_attacks
@@ -203,7 +274,7 @@ async def get_system_status() -> Dict:
     }
 
 
-# Set dependencies for routers
+# Set dependencies for routers (from original root version)
 auth.set_dependencies(db, auth_service)
 admin.set_dependencies(db, auth_service)
 attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
@@ -217,11 +288,14 @@ app.include_router(files.router, prefix="/api/files", tags=["Files"], dependenci
 
 
 if __name__ == "__main__":
+    # Production-ready configuration
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+        host=os.getenv("API_HOST", "0.0.0.0"),
+        port=int(os.getenv("API_PORT", 8000)),
+        reload=os.getenv("API_DEBUG", "False").lower() == "true",
+        log_level=os.getenv("LOG_LEVEL", "info").lower(),
+        access_log=True,
+        workers=1 if os.getenv("API_DEBUG", "False").lower() == "true" else None
     )
 
