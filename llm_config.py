@@ -55,6 +55,11 @@ def get_llm_config():
     """Get LLM configuration based on selected provider"""
     
     if LLM_PROVIDER == "openai":
+        OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "")
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+        OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is required for OpenAI provider")
         return {
             "base_url": OPENAI_BASE_URL,
             "api_key": OPENAI_API_KEY,
@@ -75,6 +80,11 @@ def get_llm_config():
         }
     
     elif LLM_PROVIDER == "lmstudio":
+        LMSTUDIO_HOST = os.getenv("LMSTUDIO_HOST", "localhost")
+        LMSTUDIO_PORT = os.getenv("LMSTUDIO_PORT", "1234")
+        LMSTUDIO_BASE_URL = os.getenv("LMSTUDIO_BASE_URL", f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}/v1")
+        LMSTUDIO_MODEL = os.getenv("LMSTUDIO_MODEL", "local-model")
+        LMSTUDIO_API_KEY = "lm-studio"
         return {
             "base_url": LMSTUDIO_BASE_URL,
             "api_key": LMSTUDIO_API_KEY,
@@ -85,6 +95,11 @@ def get_llm_config():
         }
     
     elif LLM_PROVIDER == "localai":
+        LOCALAI_HOST = os.getenv("LOCALAI_HOST", "localhost")
+        LOCALAI_PORT = os.getenv("LOCALAI_PORT", "8080")
+        LOCALAI_BASE_URL = os.getenv("LOCALAI_BASE_URL", f"http://{LOCALAI_HOST}:{LOCALAI_PORT}/v1")
+        LOCALAI_MODEL = os.getenv("LOCALAI_MODEL", "gpt-3.5-turbo")
+        LOCALAI_API_KEY = "local"
         return {
             "base_url": LOCALAI_BASE_URL,
             "api_key": LOCALAI_API_KEY,

@@ -31,8 +31,6 @@ def test_header(name: str):
 
 def test_result(name: str, passed: bool, message: str = ""):
     """Record and print test result"""
-    global test_results
-    
     if passed:
         test_results['passed'] += 1
         status = "✅ PASS"
