@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 # and a notification service (e.g., email, Slack, webhook).
 
 # Get notification settings from environment variables
-NOTIFICATION_WEBHOOK = os.getenv("NOTIFICATION_WEBHOOK")
-NOTIFICATION_EMAIL = os.getenv("NOTIFICATION_EMAIL")
+NOTIFICATION_WEBHOOK = os.getenv("NOTIFICATION_WEBHOOK", "")
+NOTIFICATION_EMAIL = os.getenv("NOTIFICATION_EMAIL", "")
 NOTIFICATION_ENABLED = os.getenv("NOTIFICATION_ENABLED", "False").lower() in ('true', '1', 't')
 
 def _send_notification(title: str, message: str):

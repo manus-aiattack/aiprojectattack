@@ -220,7 +220,7 @@ class ToolManager:
         ]
         
         # Add API token if available
-        api_token = os.getenv("WPSCAN_API_TOKEN")
+        api_token = os.getenv("WPSCAN_API_TOKEN", "")
         if api_token:
             cmd.extend(["--api-token", api_token])
         

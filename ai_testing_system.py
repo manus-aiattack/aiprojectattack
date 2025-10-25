@@ -581,7 +581,7 @@ def main():
     """Main function"""
     
     # Check if API key is available
-    if not os.getenv('OPENAI_API_KEY'):
+    if not os.getenv('OPENAI_API_KEY', ""):
         print("❌ Error: OPENAI_API_KEY environment variable not set")
         return
     

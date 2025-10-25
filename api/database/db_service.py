@@ -18,7 +18,7 @@ class DatabaseService:
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
         # Build DATABASE_URL from individual components if not set
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("DATABASE_URL", "")
         if not db_url:
             db_host = os.getenv("DB_HOST", "localhost")
             db_port = os.getenv("DB_PORT", "5432")

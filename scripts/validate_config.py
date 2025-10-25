@@ -60,7 +60,7 @@ def display_config():
         ("Database", "DB_HOST", os.getenv('DB_HOST', 'localhost'), True),
         ("Database", "DB_PORT", os.getenv('DB_PORT', '5432'), True),
         ("Database", "DB_USER", os.getenv('DB_USER', 'dlnk'), True),
-        ("Database", "DB_PASSWORD", "***" if os.getenv('DB_PASSWORD') else "NOT SET", bool(os.getenv('DB_PASSWORD'))),
+        ("Database", "DB_PASSWORD", "***" if os.getenv('DB_PASSWORD', "") else "NOT SET", bool(os.getenv('DB_PASSWORD', ""))),
         ("Database", "DB_NAME", os.getenv('DB_NAME', 'dlnk_db'), True),
         
         # Redis
@@ -79,8 +79,8 @@ def display_config():
         ("C2", "C2_PROTOCOL", os.getenv('C2_PROTOCOL', 'http'), True),
         
         # Security
-        ("Security", "SECRET_KEY", "***" if os.getenv('SECRET_KEY') else "NOT SET", bool(os.getenv('SECRET_KEY'))),
-        ("Security", "WEBSHELL_PASSWORD", "***" if os.getenv('WEBSHELL_PASSWORD') else "changeme", os.getenv('WEBSHELL_PASSWORD') != 'changeme'),
+        ("Security", "SECRET_KEY", "***" if os.getenv('SECRET_KEY', "") else "NOT SET", bool(os.getenv('SECRET_KEY', ""))),
+        ("Security", "WEBSHELL_PASSWORD", "***" if os.getenv('WEBSHELL_PASSWORD', "") else "changeme", os.getenv('WEBSHELL_PASSWORD', "") != 'changeme'),
         
         # Feature Flags
         ("Features", "SIMULATION_MODE", os.getenv('SIMULATION_MODE', 'False'), True),
@@ -99,7 +99,7 @@ def check_security_issues():
     warnings = []
     
     # Check SECRET_KEY
-    secret_key = os.getenv('SECRET_KEY')
+    secret_key = os.getenv('SECRET_KEY', "")
     if not secret_key:
         issues.append("SECRET_KEY is not set")
     elif secret_key == 'dlnk-dlnk-secret-key-change-in-production':
@@ -113,7 +113,7 @@ def check_security_issues():
         warnings.append("WEBSHELL_PASSWORD is using default value - should be changed")
     
     # Check DB_PASSWORD
-    if not os.getenv('DB_PASSWORD'):
+    if not os.getenv('DB_PASSWORD', ""):
         warnings.append("DB_PASSWORD is not set - database connection may fail")
     
     # Check SIMULATION_MODE

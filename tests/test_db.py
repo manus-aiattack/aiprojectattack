@@ -3,7 +3,7 @@ import asyncpg
 import os
 
 async def test():
-    print(f"DATABASE_URL from env: {os.getenv('DATABASE_URL')}")
+    print(f"DATABASE_URL from env: {os.getenv('DATABASE_URL', "")}")
     print("\nTrying to connect...")
     try:
         conn = await asyncpg.connect(

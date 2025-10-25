@@ -268,13 +268,13 @@ class AlertManager:
                 await self._send_email_alert(alert)
             
             # Webhook notification
-            webhook_url = os.getenv("ALERT_WEBHOOK_URL")
+            webhook_url = os.getenv("ALERT_WEBHOOK_URL", "")
             if webhook_url:
                 await self._send_webhook_alert(alert, webhook_url)
             
             # Telegram notification
-            telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
-            telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+            telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+            telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
             if telegram_token and telegram_chat_id:
                 await self._send_telegram_alert(alert, telegram_token, telegram_chat_id)
         
@@ -388,7 +388,7 @@ class MonitoringService:
         """Initialize monitoring service"""
         try:
             # Connect to database
-            database_url = os.getenv("DATABASE_URL")
+            database_url = os.getenv("DATABASE_URL", "")
             if database_url:
                 self.db_connection = await asyncpg.connect(database_url)
                 log.success("[Monitoring] Connected to database")

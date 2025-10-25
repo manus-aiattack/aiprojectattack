@@ -15,7 +15,7 @@ class Database:
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
         # Build DATABASE_URL from individual components if not set
-        dsn = os.getenv("DATABASE_URL")
+        dsn = os.getenv("DATABASE_URL", "")
         if not dsn:
             db_host = os.getenv("DB_HOST", "localhost")
             db_port = os.getenv("DB_PORT", "5432")

@@ -11,7 +11,7 @@ from database.redis_config import set_cache, get_cache
 
 # Load environment variables
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 async def get_db_connection():
     """Establishes and returns a database connection."""

@@ -13,7 +13,7 @@ LLM_PROVIDER: Literal["openai", "ollama", "lmstudio", "localai"] = os.getenv("LL
 # OpenAI Configuration (ไม่ใช้ - เพื่อการพัฒนาแบบฟรี)
 # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 # OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-# OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
+# OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "")
 
 # Ollama Configuration (Local - ฟรี 100%)
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
