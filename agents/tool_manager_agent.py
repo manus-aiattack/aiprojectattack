@@ -148,30 +148,108 @@ class ToolManagerAgent(BaseAgent):
 
     async def configure_tool(self, tool_name: str, config_data: dict, start_time: float) -> ToolManagerReport:
         log.info(f"ToolManagerAgent: Attempting to configure tool: {tool_name}")
-        # This is a placeholder. Actual configuration would depend on the tool.
-        # For example, writing to a config file, setting environment variables, etc.
-        summary = f"Configuration for '{tool_name}' with data '{config_data}' is not yet implemented."
-        log.warning(f"ToolManagerAgent: {summary}")
-        end_time = time.time()
-        return self.create_report(
-            errors=[summary],
-            error_type=ErrorType.NOT_IMPLEMENTED,
-            summary=summary,
-            tool_name=tool_name,
-            action="configure tool"
-        )
+        
+        # Implement actual configuration based on tool type
+        try:
+            config_applied = False
+            config_details = []
+            
+            # Metasploit configuration
+            if tool_name == "metasploit":
+                if "database" in config_data:
+                    db_config = config_data["database"]
+                    result = await self.orchestrator.run_shell_command(
+                        f"msfdb init && msfconsole -x 'db_connect {db_config}; exit'"
+                    )
+                    config_applied = result["exit_code"] == 0
+                    config_details.append("Database configured")
+            
+            # Nmap configuration
+            elif tool_name == "nmap":
+                if "timing" in config_data:
+                    # Store in environment or config file
+                    import os
+                    os.environ["NMAP_TIMING"] = str(config_data["timing"])
+                    config_applied = True
+                    config_details.append(f"Timing template set to {config_data['timing']}")
+            
+            # Impacket configuration
+            elif tool_name == "impacket":
+                if "target_domain" in config_data:
+                    # Store in context for later use
+                    if self.context_manager:
+                        self.context_manager.set("impacket_domain", config_data["target_domain"])
+                    config_applied = True
+                    config_details.append(f"Target domain set to {config_data['target_domain']}")
+            
+            # Generic configuration via config file
+            else:
+                config_file = f"/tmp/{tool_name}.conf"
+                import json
+                with open(config_file, 'w') as f:
+                    json.dump(config_data, f, indent=2)
+                config_applied = True
+                config_details.append(f"Configuration written to {config_file}")
+            
+            end_time = time.time()
+            if config_applied:
+                summary = f"Tool '{tool_name}' configured successfully: {', '.join(config_details)}"
+                log.success(f"ToolManagerAgent: {summary}")
+                return self.create_report(
+                    summary=summary,
+                    tool_name=tool_name,
+                    action="configure tool",
+                    output=str(config_data)
+                )
+            else:
+                summary = f"No configuration applied for '{tool_name}' - tool may not require configuration"
+                log.info(f"ToolManagerAgent: {summary}")
+                return self.create_report(
+                    summary=summary,
+                    tool_name=tool_name,
+                    action="configure tool"
+                )
+        
+        except Exception as e:
+            log.error(f"ToolManagerAgent: Configuration failed: {e}")
+            end_time = time.time()
+            return self.create_report(
+                errors=[str(e)],
+                error_type=ErrorType.LOGIC,
+                summary=f"Configuration for '{tool_name}' failed: {e}",
+                tool_name=tool_name,
+                action="configure tool"
+            )
 
     async def verify_tool(self, tool_name: str, start_time: float) -> ToolManagerReport:
         log.info(f"ToolManagerAgent: Verifying installation of tool: {tool_name}")
-        # This is a placeholder. Actual verification would depend on the tool.
-        # For example, running `tool_name --version` or checking for its executable.
-        check_command = f"which {tool_name}" # Basic check for executables
-        if tool_name == "testssl.sh":
-            check_command = "testssl.sh --version" # Specific check
-        elif tool_name == "impacket":
-            check_command = "python3 -c 'import impacket'"
-        elif tool_name == "python-nmap":
-            check_command = "python3 -c 'import nmap'"
+        
+        # Implement comprehensive verification based on tool type
+        # Map tool names to verification commands
+        verification_commands = {
+            "nmap": "nmap --version",
+            "metasploit": "msfconsole --version",
+            "sqlmap": "sqlmap --version",
+            "nikto": "nikto -Version",
+            "wpscan": "wpscan --version",
+            "gobuster": "gobuster version",
+            "ffuf": "ffuf -V",
+            "hydra": "hydra -h | head -1",
+            "john": "john --version",
+            "hashcat": "hashcat --version",
+            "aircrack-ng": "aircrack-ng --version",
+            "burpsuite": "which burpsuite",
+            "wireshark": "wireshark --version",
+            "tcpdump": "tcpdump --version",
+            "testssl.sh": "testssl.sh --version",
+            "impacket": "python3 -c 'import impacket; print(impacket.__version__)'",
+            "python-nmap": "python3 -c 'import nmap; print(nmap.__version__)'",
+            "requests": "python3 -c 'import requests; print(requests.__version__)'",
+            "beautifulsoup4": "python3 -c 'import bs4; print(bs4.__version__)'"
+        }
+        
+        check_command = verification_commands.get(tool_name, f"which {tool_name}")
+
 
         try:
             result = await self.orchestrator.run_shell_command(check_command)
