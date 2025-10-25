@@ -137,18 +137,20 @@ class ToolVerifier:
     def _check_ollama(self) -> Dict:
         """ตรวจสอบ Ollama"""
         
-        ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        ollama_host = os.getenv("OLLAMA_HOST", "localhost")
+        ollama_port = os.getenv("OLLAMA_PORT", "11434")
+        ollama_base_url = f"http://{ollama_host}:{ollama_port}"
         
         result = {
             "available": False,
-            "host": ollama_host,
+            "host": ollama_base_url,
             "models": [],
             "error": None
         }
         
         try:
             # Check if Ollama is running
-            response = requests.get(f"{ollama_host}/api/tags", timeout=5)
+            response = requests.get(f"{ollama_base_url}/api/tags", timeout=5)
             
             if response.status_code == 200:
                 result["available"] = True
