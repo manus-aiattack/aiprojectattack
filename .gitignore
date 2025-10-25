@@ -68,7 +68,7 @@ reports/
 .coverage
 
 # Docker
-.dockerignore
+# .dockerignore - commented out to allow .dockerignore files
 
 # OS
 .DS_Store
