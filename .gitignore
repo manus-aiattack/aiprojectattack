@@ -1,6 +1,5 @@
 
 venv/
-=======
 # Python
 __pycache__/
 *.py[cod]
@@ -48,6 +47,9 @@ env/
 # Logs
 logs/
 *.log
+# *.json  # Commented out to allow package.json and other config files
+# Ignore specific JSON files instead:
+tsconfig.tsbuildinfo
 
 # Workspace
 workspace/
