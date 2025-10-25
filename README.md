@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # dLNk Attack Platform
 
 **เครื่องมือโจมตีทางไซเบอร์อัตโนมัติที่ขับเคลื่อนด้วย AI**
@@ -340,7 +339,6 @@ export DLNK_API_KEY="your_admin_key_here"
 
 # ทดสอบ
 dlnk --help
-=======
 # dLNk Attack Platform v2.0
 
 **AI-Powered Automated Attack Platform**
@@ -432,12 +430,10 @@ nano .env
 
 # Initialize system
 python3 startup.py
->>>>>>> 51ee436bc82130fea731e7fa1de298d5e47e2bc3
 ```
 
 ---
 
-<<<<<<< HEAD
 ## การใช้งาน
 
 ### 1. ผ่าน API
@@ -632,7 +628,6 @@ export DLNK_API_KEY="your_api_key_here"
 
 # API URL (optional, default: http://localhost:8000)
 export DLNK_API_URL="http://your-server:8000"
-=======
 ## 🔧 Configuration
 
 Edit `.env` file with your settings:
@@ -804,12 +799,10 @@ Services:
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
 │                      ... and 90+ more                       │
 └─────────────────────────────────────────────────────────────┘
->>>>>>> 51ee436bc82130fea731e7fa1de298d5e47e2bc3
 ```
 
 ---
 
-<<<<<<< HEAD
 ## การพัฒนา
 
 ### โครงสร้างโปรเจกต์
@@ -862,7 +855,6 @@ pytest tests/test_attack_orchestrator.py
 
 # Run with coverage
 pytest --cov=. tests/
-=======
 ## ⚠️ Legal Disclaimer
 
 **THIS IS AN OFFENSIVE SECURITY ATTACK PLATFORM**
@@ -934,12 +926,10 @@ class MyCustomAgent:
             "success": True,
             "vulnerabilities": vulnerabilities
         }
->>>>>>> 51ee436bc82130fea731e7fa1de298d5e47e2bc3
 ```
 
 ---
 
-<<<<<<< HEAD
 ## คำเตือน
 
 ### ⚠️ คำเตือนสำคัญ
@@ -996,7 +986,6 @@ class MyCustomAgent:
 ---
 
 **🎯 dLNk - Advanced Penetration Testing Platform**
-=======
 ## 🤝 Contributing
 
 This is a private research project. Contact the repository owner for collaboration opportunities.
@@ -1027,5 +1016,4 @@ For issues, questions, or feature requests, please open an issue on GitHub.
 
 **Version:** 2.0  
 **Last Updated:** October 2025
->>>>>>> 51ee436bc82130fea731e7fa1de298d5e47e2bc3
 

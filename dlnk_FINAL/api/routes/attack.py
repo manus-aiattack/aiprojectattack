@@ -1,354 +1,304 @@
 """
-Attack API Routes
+dLNk Attack Platform - Attack API Routes
+API endpoints for launching and managing attacks
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, validator
-from typing import Optional, Dict, Any
-import re
-from urllib.parse import urlparse
-from api.services.database import Database
-from api.services.attack_manager import AttackManager
-from api.services.websocket_manager import WebSocketManager
-from api.services.auth import AuthService
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from pydantic import BaseModel, HttpUrl
+from typing import Optional, List
+from datetime import datetime
+import uuid
 
-router = APIRouter()
+from api.middleware.auth_middleware import validate_api_key, APIKeyInfo
+from api.database.db_service import db
+from core.attack_orchestrator import orchestrator
 
-# Dependency injection
-db = Database()
-ws_manager = WebSocketManager()
-attack_manager = AttackManager(db, ws_manager)
-auth_service = AuthService(db)
+router = APIRouter(prefix="/api/attack", tags=["Attack"])
 
 
-class StartAttackRequest(BaseModel):
+# Request Models
+class AttackRequest(BaseModel):
+    target_url: HttpUrl
+    attack_mode: Optional[str] = 'auto'  # auto, stealth, aggressive
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "target_url": "https://example.com",
+                "attack_mode": "auto"
+            }
+        }
+
+
+class AttackResponse(BaseModel):
+    attack_id: str
     target_url: str
-    attack_type: str  # "full_auto", "sql_injection", "command_injection", "zero_day_hunt"
-    options: Optional[Dict[str, Any]] = {}
-    
-    @validator('target_url')
-    def validate_target_url(cls, v):
-        """Validate target URL"""
-        if not v:
-            raise ValueError('Target URL is required')
-        
-        # Parse URL
-        try:
-            parsed = urlparse(v)
-            if not parsed.scheme or not parsed.netloc:
-                raise ValueError('Invalid URL format')
-            
-            # Only allow HTTP/HTTPS
-            if parsed.scheme not in ['http', 'https']:
-                raise ValueError('Only HTTP and HTTPS protocols are allowed')
-            
-            # Block private IP ranges
-            hostname = parsed.hostname
-            if hostname:
-                # Check for private IP ranges
-                if re.match(r'^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)', hostname):
-                    raise ValueError('Private IP ranges are not allowed')
-                
-                # Check for localhost
-                if hostname in ['localhost', '::1']:
-                    raise ValueError('Localhost is not allowed')
-        
-        except Exception as e:
-            raise ValueError(f'Invalid URL: {str(e)}')
-        
-        return v
-    
-    @validator('attack_type')
-    def validate_attack_type(cls, v):
-        """Validate attack type"""
-        allowed_types = [
-            'full_auto', 'scan', 'exploit', 'post_exploit',
-            'sql_injection', 'xss', 'command_injection', 
-            'zero_day_hunt', 'auth_bypass', 'ssrf'
-        ]
-        
-        if v not in allowed_types:
-            raise ValueError(f'Invalid attack type. Allowed: {", ".join(allowed_types)}')
-        
-        return v
-    
-    @validator('options')
-    def validate_options(cls, v):
-        """Validate attack options"""
-        if v is None:
-            return {}
-        
-        # Limit options size
-        if len(str(v)) > 10000:  # 10KB limit
-            raise ValueError('Options payload too large')
-        
-        return v
+    status: str
+    message: str
 
 
-@router.post("/start")
-async def start_attack(request: StartAttackRequest, req: Request):
-    """เริ่มการโจมตี"""
-    try:
-        # Get user from request state (set by dependency)
-        user = req.state.user if hasattr(req.state, "user") else None
-        
-        if not user:
-            # Fallback: get from header
-            api_key = req.headers.get("X-API-Key")
-            if not api_key:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="API Key required"
-                )
-            
-            user = await auth_service.verify_key(api_key)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid API Key"
-                )
-        
-        # Check if user is active
-        if not user.get("is_active", True):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account is disabled"
-            )
-        
-        # Check quota
-        if not await auth_service.check_quota(user["id"]):
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Quota exceeded. Please try again later."
-            )
-        
-        # Start attack
-        result = await attack_manager.start_attack(
-            user_id=user["id"],
-            user_key=user["api_key"],
-            target_url=request.target_url,
-            attack_type=request.attack_type,
-            options=request.options
+class AttackStatusResponse(BaseModel):
+    attack_id: str
+    target_url: str
+    status: str
+    progress: int
+    started_at: datetime
+    completed_at: Optional[datetime]
+    vulnerabilities_found: int
+    exploits_successful: int
+    data_exfiltrated_bytes: int
+
+
+class VulnerabilityResponse(BaseModel):
+    id: str
+    attack_id: str
+    vuln_type: str
+    severity: str
+    title: str
+    description: Optional[str]
+    url: Optional[str]
+    parameter: Optional[str]
+    cvss_score: Optional[float]
+    discovered_at: datetime
+
+
+# Endpoints
+
+@router.post("/launch", response_model=AttackResponse)
+async def launch_attack(
+    request: AttackRequest,
+    background_tasks: BackgroundTasks,
+    api_key: APIKeyInfo = Depends(validate_api_key)
+):
+    """
+    🎯 Launch automated attack
+    
+    This endpoint starts a fully automated attack against the target URL.
+    The attack runs in the background and includes:
+    
+    1. **Reconnaissance** - Target analysis
+    2. **Scanning** - Vulnerability discovery
+    3. **AI Planning** - Attack strategy
+    4. **Exploitation** - Execute exploits
+    5. **Post-Exploitation** - Privilege escalation
+    6. **Data Exfiltration** - Extract sensitive data
+    7. **Cleanup** - Remove traces
+    
+    **Attack Modes:**
+    - `auto`: Balanced approach (recommended)
+    - `stealth`: Maximum stealth, slower
+    - `aggressive`: Maximum speed, less stealth
+    
+    **Returns:**
+    - `attack_id`: Use this to track attack progress
+    - `status`: Initial status (will be 'queued')
+    """
+    
+    # Generate attack ID
+    attack_id = str(uuid.uuid4())
+    
+    # Create attack record
+    await db.create_attack(
+        attack_id=attack_id,
+        api_key_id=api_key.key_id,
+        target_url=str(request.target_url),
+        attack_mode=request.attack_mode,
+        status="queued"
+    )
+    
+    # Start attack in background
+    background_tasks.add_task(
+        orchestrator.start_attack,
+        attack_id=attack_id,
+        target_url=str(request.target_url),
+        attack_mode=request.attack_mode
+    )
+    
+    return AttackResponse(
+        attack_id=attack_id,
+        target_url=str(request.target_url),
+        status="queued",
+        message="Attack launched successfully. Use /api/attack/{attack_id}/status to track progress."
+    )
+
+
+@router.get("/{attack_id}/status", response_model=AttackStatusResponse)
+async def get_attack_status(
+    attack_id: str,
+    api_key: APIKeyInfo = Depends(validate_api_key)
+):
+    """
+    📊 Get attack status
+    
+    Returns current status and progress of an attack.
+    
+    **Status Values:**
+    - `queued`: Attack is queued
+    - `reconnaissance`: Analyzing target
+    - `scanning`: Scanning for vulnerabilities
+    - `vulnerability_analysis`: AI analyzing vulnerabilities
+    - `attack_planning`: AI creating attack plan
+    - `exploitation`: Exploiting vulnerabilities
+    - `post_exploitation`: Post-exploitation activities
+    - `data_exfiltration`: Exfiltrating data
+    - `cleanup`: Cleaning up
+    - `completed`: Attack completed successfully
+    - `failed`: Attack failed
+    - `stopped`: Attack was stopped
+    
+    **Progress:** 0-100 percentage
+    """
+    
+    attack = await db.get_attack(attack_id)
+    
+    if not attack:
+        raise HTTPException(status_code=404, detail="Attack not found")
+    
+    # Check ownership
+    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return AttackStatusResponse(
+        attack_id=attack_id,
+        target_url=attack["target_url"],
+        status=attack["status"],
+        progress=attack["progress"],
+        started_at=attack["started_at"],
+        completed_at=attack["completed_at"],
+        vulnerabilities_found=attack["vulnerabilities_found"],
+        exploits_successful=attack["exploits_successful"],
+        data_exfiltrated_bytes=attack["data_exfiltrated_bytes"]
+    )
+
+
+@router.get("/{attack_id}/vulnerabilities", response_model=List[VulnerabilityResponse])
+async def get_attack_vulnerabilities(
+    attack_id: str,
+    api_key: APIKeyInfo = Depends(validate_api_key)
+):
+    """
+    🔍 Get discovered vulnerabilities
+    
+    Returns all vulnerabilities discovered during the attack.
+    """
+    
+    attack = await db.get_attack(attack_id)
+    
+    if not attack:
+        raise HTTPException(status_code=404, detail="Attack not found")
+    
+    # Check ownership
+    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    vulnerabilities = await db.list_vulnerabilities(attack_id)
+    
+    return [
+        VulnerabilityResponse(
+            id=str(vuln["id"]),
+            attack_id=attack_id,
+            vuln_type=vuln["vuln_type"],
+            severity=vuln["severity"],
+            title=vuln["title"],
+            description=vuln["description"],
+            url=vuln["url"],
+            parameter=vuln["parameter"],
+            cvss_score=vuln["cvss_score"],
+            discovered_at=vuln["discovered_at"]
         )
-        
-        # Consume quota
-        await auth_service.consume_quota(user["id"])
-        
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
+        for vuln in vulnerabilities
+    ]
 
 
 @router.post("/{attack_id}/stop")
-async def stop_attack(attack_id: str, req: Request):
-    """หยุดการโจมตี"""
-    try:
-        # Validate attack_id format
-        if not attack_id or len(attack_id) > 100:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid attack ID"
-            )
-        
-        # Get user
-        api_key = req.headers.get("X-API-Key")
-        if not api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API Key required"
-            )
-        
-        user = await auth_service.verify_key(api_key)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API Key"
-            )
-        
-        # Get attack to check ownership
-        attack = await db.get_attack(attack_id)
-        if not attack:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Attack not found"
-            )
-        
-        # Check permission (users can only stop their own attacks, admins can stop all)
-        if user["role"] != "admin" and attack["user_id"] != user["id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        result = await attack_manager.stop_attack(attack_id)
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+async def stop_attack(
+    attack_id: str,
+    api_key: APIKeyInfo = Depends(validate_api_key)
+):
+    """
+    🛑 Stop running attack
+    
+    Stops an attack that is currently running.
+    """
+    
+    attack = await db.get_attack(attack_id)
+    
+    if not attack:
+        raise HTTPException(status_code=404, detail="Attack not found")
+    
+    # Check ownership
+    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if attack["status"] in ["completed", "failed", "stopped"]:
+        raise HTTPException(status_code=400, detail="Attack is not running")
+    
+    success = await orchestrator.stop_attack(attack_id)
+    
+    if success:
+        return {"message": "Attack stopped successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to stop attack")
+
+
+@router.get("/history", response_model=List[AttackStatusResponse])
+async def get_attack_history(
+    limit: int = 10,
+    api_key: APIKeyInfo = Depends(validate_api_key)
+):
+    """
+    📜 Get attack history
+    
+    Returns list of past attacks for the current user.
+    Admin keys can see all attacks.
+    """
+    
+    if api_key.key_type == "admin":
+        # Admin sees all attacks
+        attacks = await db.list_attacks(limit=limit)
+    else:
+        # User sees only their attacks
+        attacks = await db.list_attacks(api_key_id=api_key.key_id, limit=limit)
+    
+    return [
+        AttackStatusResponse(
+            attack_id=str(attack["id"]),
+            target_url=attack["target_url"],
+            status=attack["status"],
+            progress=attack["progress"],
+            started_at=attack["started_at"],
+            completed_at=attack["completed_at"],
+            vulnerabilities_found=attack["vulnerabilities_found"],
+            exploits_successful=attack["exploits_successful"],
+            data_exfiltrated_bytes=attack["data_exfiltrated_bytes"]
         )
+        for attack in attacks
+    ]
 
 
-@router.get("/{attack_id}/status")
-async def get_attack_status(attack_id: str, req: Request):
-    """ดูสถานะการโจมตี"""
-    try:
-        # Validate attack_id format
-        if not attack_id or len(attack_id) > 100:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid attack ID"
-            )
-        
-        # Get user
-        api_key = req.headers.get("X-API-Key")
-        if not api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API Key required"
-            )
-        
-        user = await auth_service.verify_key(api_key)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API Key"
-            )
-        
-        # Get attack
-        attack = await db.get_attack(attack_id)
-        if not attack:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Attack not found"
-            )
-        
-        # Check permission (users can only see their own attacks, admins can see all)
-        if user["role"] != "admin" and attack["user_id"] != user["id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Get full status
-        result = await attack_manager.get_attack_status(attack_id)
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
-
-
-@router.get("/{attack_id}/results")
-async def get_attack_results(attack_id: str, req: Request):
-    """ดูผลการโจมตี"""
-    try:
-        # Validate attack_id format
-        if not attack_id or len(attack_id) > 100:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid attack ID"
-            )
-        
-        # Get user
-        api_key = req.headers.get("X-API-Key")
-        if not api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API Key required"
-            )
-        
-        user = await auth_service.verify_key(api_key)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API Key"
-            )
-        
-        # Get attack
-        attack = await db.get_attack(attack_id)
-        if not attack:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Attack not found"
-            )
-        
-        # Check permission
-        if user["role"] != "admin" and attack["user_id"] != user["id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        return {
-            "attack_id": attack_id,
-            "status": attack["status"],
-            "results": attack["results"],
-            "started_at": attack["started_at"],
-            "completed_at": attack["completed_at"]
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
-
-
-@router.get("/history")
-async def get_attack_history(req: Request, limit: int = 50):
-    """ดูประวัติการโจมตี"""
-    try:
-        # Validate limit parameter
-        if limit < 1 or limit > 1000:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Limit must be between 1 and 1000"
-            )
-        
-        # Get user
-        api_key = req.headers.get("X-API-Key")
-        if not api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API Key required"
-            )
-        
-        user = await auth_service.verify_key(api_key)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API Key"
-            )
-        
-        # Get attacks
-        if user["role"] == "admin":
-            attacks = await db.get_all_attacks(limit)
-        else:
-            attacks = await db.get_user_attacks(user["id"], limit)
-        
-        return {"attacks": attacks}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
-        )
+@router.delete("/{attack_id}")
+async def delete_attack(
+    attack_id: str,
+    api_key: APIKeyInfo = Depends(validate_api_key)
+):
+    """
+    🗑️ Delete attack record
+    
+    Deletes an attack and all associated data.
+    Only admins or attack owners can delete.
+    """
+    
+    attack = await db.get_attack(attack_id)
+    
+    if not attack:
+        raise HTTPException(status_code=404, detail="Attack not found")
+    
+    # Check ownership
+    if attack["api_key_id"] != api_key.key_id and api_key.key_type != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Delete attack
+    await db.delete_attack(attack_id)
+    
+    return {"message": "Attack deleted successfully"}
 
