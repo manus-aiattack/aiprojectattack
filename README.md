@@ -932,41 +932,7 @@ class MyCustomAgent:
 
 ## คำเตือน
 
-### ⚠️ คำเตือนสำคัญ
 
-**ระบบนี้อยู่ใน LIVE ATTACK MODE (SIMULATION_MODE=False)**
-
-**ห้ามใช้กับเป้าหมายที่ไม่ได้รับอนุญาต!**
-
-การใช้งานที่ถูกต้อง:
-- ✅ Penetration Testing ที่ได้รับอนุญาต
-- ✅ Bug Bounty Programs
-- ✅ ระบบที่คุณเป็นเจ้าของ
-- ✅ Lab Environment
-
-การใช้งานที่ผิดกฎหมาย:
-- ❌ โจมตีระบบที่ไม่ได้รับอนุญาต
-- ❌ ทดสอบเว็บไซต์ที่ไม่ใช่ของคุณ
-- ❌ ใช้เพื่อวัตถุประสงค์ที่ผิดกฎหมาย
-
-**การใช้งานโดยไม่ได้รับอนุญาตเป็นการกระทำผิดกฎหมาย**
-
-### กฎหมายที่เกี่ยวข้อง
-
-- พ.ร.บ. คอมพิวเตอร์ พ.ศ. 2550
-- พ.ร.บ. ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์
-- Computer Fraud and Abuse Act (CFAA)
-- Computer Misuse Act
-
----
-
-## ติดต่อ
-
-- **LINE:** [ติดต่อ Admin ผ่าน LINE](https://line.me/ti/p/YOUR_LINE_ID)
-- **GitHub:** https://github.com/vtvx4myqq9-stack/Manus
-- **Email:** admin@dlnk.local
-
----
 
 ## License
 
