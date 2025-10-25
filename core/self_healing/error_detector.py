@@ -360,7 +360,7 @@ class ErrorDetector:
     
     async def predict_failure(self, operation: str, context: Dict) -> float:
         """
-        Predict probability of failure for operation
+        Predict probability of failure for operation using ML
         
         Args:
             operation: Operation name
@@ -369,9 +369,6 @@ class ErrorDetector:
         Returns:
             Failure probability (0.0 - 1.0)
         """
-        # Simplified prediction
-        # In production, use ML model
-        
         # Check historical failure rate
         operation_errors = [e for e in self.error_history if e['operation'] == operation]
         
@@ -379,10 +376,226 @@ class ErrorDetector:
             return 0.1  # Low probability if no history
         
         # Calculate failure rate from recent history
-        recent_errors = operation_errors[-10:]
-        failure_rate = len(recent_errors) / 10.0
+        recent_errors = operation_errors[-20:]
+        failure_count = len(recent_errors)
         
-        return min(failure_rate, 0.9)
+        # Consider context factors
+        context_factors = [
+            context.get('network_quality', 1.0),
+            context.get('target_availability', 1.0),
+            context.get('resource_availability', 1.0)
+        ]
+        
+        # Weighted failure probability
+        base_failure_rate = failure_count / 20.0
+        context_penalty = 1.0 - (sum(context_factors) / len(context_factors))
+        
+        failure_prob = min(base_failure_rate + context_penalty, 0.95)
+        
+        return failure_prob
+    
+    async def detect_anomalies(self) -> List[Dict]:
+        """
+        Detect anomalies in error patterns
+        
+        Returns:
+            List of detected anomalies
+        """
+        anomalies = []
+        
+        # Check for sudden spike in errors
+        if len(self.error_history) >= 10:
+            recent_errors = self.error_history[-10:]
+            older_errors = self.error_history[-20:-10] if len(self.error_history) >= 20 else []
+            
+            if older_errors:
+                recent_rate = len(recent_errors) / 10.0
+                older_rate = len(older_errors) / 10.0
+                
+                if recent_rate > older_rate * 2:
+                    anomalies.append({
+                        'type': 'error_spike',
+                        'severity': 'HIGH',
+                        'message': f'Error rate increased by {(recent_rate / older_rate - 1) * 100:.1f}%',
+                        'recent_rate': recent_rate,
+                        'older_rate': older_rate
+                    })
+        
+        # Check for new error types
+        recent_error_types = set(e['type'] for e in self.error_history[-10:])
+        historical_error_types = set(e['type'] for e in self.error_history[:-10])
+        
+        new_error_types = recent_error_types - historical_error_types
+        if new_error_types:
+            anomalies.append({
+                'type': 'new_error_types',
+                'severity': 'MEDIUM',
+                'message': f'New error types detected: {new_error_types}',
+                'error_types': list(new_error_types)
+            })
+        
+        # Check for repeated failures on same operation
+        operation_failures = defaultdict(int)
+        for error in self.error_history[-20:]:
+            operation_failures[error['operation']] += 1
+        
+        for operation, count in operation_failures.items():
+            if count >= 5:
+                anomalies.append({
+                    'type': 'repeated_operation_failure',
+                    'severity': 'HIGH',
+                    'message': f'Operation "{operation}" failed {count} times recently',
+                    'operation': operation,
+                    'failure_count': count
+                })
+        
+        return anomalies
+    
+    async def generate_error_report(self) -> Dict:
+        """
+        Generate comprehensive error report
+        
+        Returns:
+            Dict with error analysis and recommendations
+        """
+        stats = await self.get_error_statistics()
+        anomalies = await self.detect_anomalies()
+        
+        # Analyze error trends
+        error_trends = self._analyze_error_trends()
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(stats, anomalies, error_trends)
+        
+        return {
+            'statistics': stats,
+            'anomalies': anomalies,
+            'trends': error_trends,
+            'recommendations': recommendations,
+            'health_score': self._calculate_health_score(stats, anomalies)
+        }
+    
+    def _analyze_error_trends(self) -> Dict:
+        """
+        Analyze error trends over time
+        
+        Returns:
+            Dict with trend analysis
+        """
+        if len(self.error_history) < 20:
+            return {'trend': 'insufficient_data'}
+        
+        # Split into time windows
+        window_size = 10
+        windows = [
+            self.error_history[i:i+window_size]
+            for i in range(0, len(self.error_history), window_size)
+        ]
+        
+        # Calculate error rates per window
+        error_rates = [len(window) for window in windows]
+        
+        # Determine trend
+        if len(error_rates) >= 2:
+            recent_avg = sum(error_rates[-2:]) / 2
+            older_avg = sum(error_rates[:-2]) / max(len(error_rates) - 2, 1)
+            
+            if recent_avg > older_avg * 1.5:
+                trend = 'increasing'
+            elif recent_avg < older_avg * 0.5:
+                trend = 'decreasing'
+            else:
+                trend = 'stable'
+        else:
+            trend = 'stable'
+        
+        return {
+            'trend': trend,
+            'error_rates': error_rates,
+            'recent_average': sum(error_rates[-2:]) / 2 if len(error_rates) >= 2 else 0
+        }
+    
+    def _generate_recommendations(self, stats: Dict, anomalies: List[Dict], trends: Dict) -> List[str]:
+        """
+        Generate recommendations based on error analysis
+        
+        Args:
+            stats: Error statistics
+            anomalies: Detected anomalies
+            trends: Error trends
+        
+        Returns:
+            List of recommendations
+        """
+        recommendations = []
+        
+        # High error rate
+        if stats['total_errors'] > 50:
+            recommendations.append(
+                "⚠️ High error rate detected - consider reviewing system health and target availability"
+            )
+        
+        # Error spike
+        error_spike_anomalies = [a for a in anomalies if a['type'] == 'error_spike']
+        if error_spike_anomalies:
+            recommendations.append(
+                "🔥 Error spike detected - investigate recent changes or target issues"
+            )
+        
+        # Repeated failures
+        repeated_failures = [a for a in anomalies if a['type'] == 'repeated_operation_failure']
+        if repeated_failures:
+            for anomaly in repeated_failures:
+                recommendations.append(
+                    f"🔄 Operation \"{anomaly['operation']}\" failing repeatedly - consider alternative approach"
+                )
+        
+        # Increasing trend
+        if trends.get('trend') == 'increasing':
+            recommendations.append(
+                "📈 Error rate is increasing - proactive intervention recommended"
+            )
+        
+        # Most common error
+        if stats.get('most_common_error'):
+            recommendations.append(
+                f"🎯 Focus on fixing {stats['most_common_error']} - it's the most common error type"
+            )
+        
+        if not recommendations:
+            recommendations.append(
+                "✅ System health is good - no critical issues detected"
+            )
+        
+        return recommendations
+    
+    def _calculate_health_score(self, stats: Dict, anomalies: List[Dict]) -> float:
+        """
+        Calculate system health score (0-100)
+        
+        Args:
+            stats: Error statistics
+            anomalies: Detected anomalies
+        
+        Returns:
+            Health score (0-100)
+        """
+        score = 100.0
+        
+        # Deduct for total errors
+        error_penalty = min(stats['total_errors'] * 0.5, 30)
+        score -= error_penalty
+        
+        # Deduct for anomalies
+        for anomaly in anomalies:
+            if anomaly['severity'] == 'HIGH':
+                score -= 15
+            elif anomaly['severity'] == 'MEDIUM':
+                score -= 10
+            else:
+                score -= 5
+        
+        return max(score, 0.0)
 
 
 if __name__ == '__main__':

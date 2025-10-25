@@ -308,28 +308,193 @@ quit
     
     async def deduplicate_crashes(self, crashes: List[Dict]) -> Dict:
         """
-        Deduplicate crashes based on signatures
+        Deduplicate crashes based on signatures with advanced hashing
         
         Args:
             crashes: List of crash analysis results
         
         Returns:
-            Dict with unique crashes
+            Dict with unique crashes and deduplication stats
         """
+        import hashlib
+        
         unique_crashes = {}
+        duplicate_count = 0
         
         for crash in crashes:
-            signature = crash.get('signature')
-            if signature not in unique_crashes:
-                unique_crashes[signature] = []
+            # Generate enhanced signature
+            signature_data = [
+                crash.get('crash_type', ''),
+                crash.get('signal', ''),
+                str(crash.get('stack_trace', [])[:5]),  # Top 5 frames
+                crash.get('registers', {}).get('rip', '')
+            ]
             
-            unique_crashes[signature].append(crash)
+            # Create hash-based signature
+            signature_str = '|'.join(signature_data)
+            signature_hash = hashlib.sha256(signature_str.encode()).hexdigest()[:16]
+            
+            if signature_hash not in unique_crashes:
+                unique_crashes[signature_hash] = {
+                    'signature': signature_hash,
+                    'crash_type': crash.get('crash_type'),
+                    'exploitability': crash.get('exploitability', {}),
+                    'first_seen': crash.get('crash_file'),
+                    'count': 1,
+                    'examples': [crash]
+                }
+            else:
+                unique_crashes[signature_hash]['count'] += 1
+                if len(unique_crashes[signature_hash]['examples']) < 5:
+                    unique_crashes[signature_hash]['examples'].append(crash)
+                duplicate_count += 1
         
         return {
             'unique_count': len(unique_crashes),
             'total_count': len(crashes),
+            'duplicate_count': duplicate_count,
+            'deduplication_rate': f"{(duplicate_count / len(crashes) * 100):.2f}%" if crashes else "0%",
             'unique_crashes': unique_crashes
         }
+    
+    async def prioritize_crashes(self, crashes: List[Dict]) -> List[Dict]:
+        """
+        Prioritize crashes by exploitability and uniqueness
+        
+        Args:
+            crashes: List of crash analysis results
+        
+        Returns:
+            Sorted list of crashes (highest priority first)
+        """
+        def calculate_priority(crash: Dict) -> int:
+            priority = 0
+            
+            # Exploitability score (0-100)
+            exploitability = crash.get('exploitability', {})
+            priority += exploitability.get('score', 0)
+            
+            # Crash type priority
+            crash_type = crash.get('crash_type', '')
+            type_priority = {
+                'segfault_write': 50,
+                'heap_corruption': 45,
+                'double_free': 40,
+                'stack_smashing': 35,
+                'segfault_read': 20,
+                'segfault': 15,
+                'abort': 10,
+                'illegal_instruction': 5
+            }
+            priority += type_priority.get(crash_type, 0)
+            
+            # RIP control bonus
+            registers = crash.get('registers', {})
+            rip = registers.get('rip', '0')
+            if rip and rip.startswith(('41', '42', '43', '44')):
+                priority += 50
+            
+            return priority
+        
+        # Sort by priority (descending)
+        prioritized = sorted(crashes, key=calculate_priority, reverse=True)
+        
+        # Add priority score to each crash
+        for crash in prioritized:
+            crash['priority_score'] = calculate_priority(crash)
+        
+        return prioritized
+    
+    async def generate_exploitability_report(self, crashes: List[Dict]) -> Dict:
+        """
+        Generate comprehensive exploitability report
+        
+        Args:
+            crashes: List of crash analysis results
+        
+        Returns:
+            Dict with exploitability statistics and recommendations
+        """
+        if not crashes:
+            return {'error': 'No crashes to analyze'}
+        
+        # Deduplicate
+        dedup_result = await self.deduplicate_crashes(crashes)
+        unique_crashes = list(dedup_result['unique_crashes'].values())
+        
+        # Prioritize
+        prioritized = await self.prioritize_crashes(unique_crashes)
+        
+        # Statistics
+        exploitability_counts = {'HIGH': 0, 'MEDIUM': 0, 'LOW': 0, 'UNLIKELY': 0}
+        crash_type_counts = {}
+        
+        for crash in unique_crashes:
+            # Count exploitability ratings
+            rating = crash.get('exploitability', {}).get('rating', 'UNLIKELY')
+            exploitability_counts[rating] = exploitability_counts.get(rating, 0) + 1
+            
+            # Count crash types
+            crash_type = crash.get('crash_type', 'unknown')
+            crash_type_counts[crash_type] = crash_type_counts.get(crash_type, 0) + 1
+        
+        # Top exploitable crashes
+        top_exploitable = prioritized[:10]
+        
+        return {
+            'summary': {
+                'total_crashes': len(crashes),
+                'unique_crashes': dedup_result['unique_count'],
+                'deduplication_rate': dedup_result['deduplication_rate'],
+                'high_exploitability': exploitability_counts['HIGH'],
+                'medium_exploitability': exploitability_counts['MEDIUM'],
+                'low_exploitability': exploitability_counts['LOW']
+            },
+            'exploitability_distribution': exploitability_counts,
+            'crash_type_distribution': crash_type_counts,
+            'top_exploitable_crashes': top_exploitable,
+            'recommendations': self._generate_recommendations(exploitability_counts, crash_type_counts)
+        }
+    
+    def _generate_recommendations(self, exploitability_counts: Dict, crash_type_counts: Dict) -> List[str]:
+        """
+        Generate recommendations based on crash analysis
+        
+        Args:
+            exploitability_counts: Exploitability distribution
+            crash_type_counts: Crash type distribution
+        
+        Returns:
+            List of recommendations
+        """
+        recommendations = []
+        
+        if exploitability_counts.get('HIGH', 0) > 0:
+            recommendations.append(
+                f"⚠️ Found {exploitability_counts['HIGH']} highly exploitable crashes - prioritize these for exploit development"
+            )
+        
+        if crash_type_counts.get('heap_corruption', 0) > 0:
+            recommendations.append(
+                f"🔥 Found {crash_type_counts['heap_corruption']} heap corruption crashes - excellent candidates for exploitation"
+            )
+        
+        if crash_type_counts.get('stack_smashing', 0) > 0:
+            recommendations.append(
+                f"📊 Found {crash_type_counts['stack_smashing']} stack buffer overflows - classic exploitation targets"
+            )
+        
+        if exploitability_counts.get('MEDIUM', 0) > 5:
+            recommendations.append(
+                f"💡 {exploitability_counts['MEDIUM']} medium exploitability crashes - may be exploitable with additional analysis"
+            )
+        
+        if not recommendations:
+            recommendations.append(
+                "ℹ️ No high-priority exploitable crashes found - consider adjusting fuzzing strategy"
+            )
+        
+        return recommendations
 
 
 if __name__ == '__main__':
