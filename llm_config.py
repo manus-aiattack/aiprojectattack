@@ -7,41 +7,48 @@ import os
 from typing import Literal
 
 # LLM Provider Selection
-LLM_PROVIDER: Literal["openai", "ollama", "lmstudio", "localai"] = "ollama"
+LLM_PROVIDER: Literal["openai", "ollama", "lmstudio", "localai"] = os.getenv("LLM_PROVIDER", "ollama")
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = "gpt-4.1-mini"  # or gpt-4.1-nano, gemini-2.5-flash
-OPENAI_BASE_URL = None  # Use default
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")  # or gpt-4.1-nano, gemini-2.5-flash
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")  # Use default if not set
 
 # Ollama Configuration (Local - ฟรี 100%)
-OLLAMA_BASE_URL = "http://localhost:11434/v1"
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
+OLLAMA_PORT = os.getenv("OLLAMA_PORT", "11434")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/v1")
 # Available models:
 # - mixtral:latest (26GB) - Best for complex tasks
 # - llama3:8b-instruct-fp16 (16GB) - High quality instruction following
 # - llama3:latest (4.7GB) - Fast and efficient
 # - codellama:latest (3.8GB) - Best for code generation
 # - mistral:latest (4.4GB) - Good balance
-OLLAMA_MODEL = "mixtral:latest"  # เปลี่ยนได้ตามต้องการ
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mixtral:latest")  # เปลี่ยนได้ตามต้องการ
 OLLAMA_API_KEY = "ollama"  # Not used but required by OpenAI client
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "600"))  # seconds
 
 # LM Studio Configuration (Local)
-LMSTUDIO_BASE_URL = "http://localhost:1234/v1"
-LMSTUDIO_MODEL = "local-model"  # Model name in LM Studio
+LMSTUDIO_HOST = os.getenv("LMSTUDIO_HOST", "localhost")
+LMSTUDIO_PORT = os.getenv("LMSTUDIO_PORT", "1234")
+LMSTUDIO_BASE_URL = os.getenv("LMSTUDIO_BASE_URL", f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}/v1")
+LMSTUDIO_MODEL = os.getenv("LMSTUDIO_MODEL", "local-model")  # Model name in LM Studio
 LMSTUDIO_API_KEY = "lm-studio"
 
 # LocalAI Configuration (Local)
-LOCALAI_BASE_URL = "http://localhost:8080/v1"
-LOCALAI_MODEL = "gpt-3.5-turbo"  # Model alias in LocalAI
+LOCALAI_HOST = os.getenv("LOCALAI_HOST", "localhost")
+LOCALAI_PORT = os.getenv("LOCALAI_PORT", "8080")
+LOCALAI_BASE_URL = os.getenv("LOCALAI_BASE_URL", f"http://{LOCALAI_HOST}:{LOCALAI_PORT}/v1")
+LOCALAI_MODEL = os.getenv("LOCALAI_MODEL", "gpt-3.5-turbo")  # Model alias in LocalAI
 LOCALAI_API_KEY = "local"
 
 # Temperature & Generation Settings
-TEMPERATURE = 0.7
-MAX_TOKENS = 4000
-TOP_P = 0.9
+TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
+MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4000"))
+TOP_P = float(os.getenv("LLM_TOP_P", "0.9"))
 
 # Timeout Settings
-REQUEST_TIMEOUT = 120  # seconds
+REQUEST_TIMEOUT = int(os.getenv("LLM_REQUEST_TIMEOUT", "120"))  # seconds
 
 def get_llm_config():
     """Get LLM configuration based on selected provider"""

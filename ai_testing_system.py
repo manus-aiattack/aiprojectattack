@@ -492,10 +492,11 @@ class AITestingSystem:
         # Save markdown report
         self.generate_markdown_report(results, summary)
         
+        workspace_dir = os.getenv('WORKSPACE_DIR', 'workspace')
         print(f"\n✅ Results saved to:")
-        print(f"  - /home/ubuntu/ai_test_results.json")
-        print(f"  - /home/ubuntu/ai_test_summary.json")
-        print(f"  - /home/ubuntu/ai_test_report.md")
+        print(f"  - {os.path.join(workspace_dir, 'ai_test_results.json')}")
+        print(f"  - {os.path.join(workspace_dir, 'ai_test_summary.json')}")
+        print(f"  - {os.path.join(workspace_dir, 'ai_test_report.md')}")
     
     def generate_markdown_report(self, results: List[TestResult], summary: Dict[str, Any]):
         """Generate markdown report"""

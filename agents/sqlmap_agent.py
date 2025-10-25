@@ -7,6 +7,7 @@ from core.base_agent import BaseAgent
 from core.data_models import Strategy, SQLInjectionFinding, AttackPhase, AgentData
 from core.logger import log
 from core.data_exfiltration import DataExfiltrator
+from core.error_handlers import handle_agent_errors, handle_errors
 
 
 class SqlmapAgent(BaseAgent):
@@ -46,10 +47,12 @@ class SqlmapAgent(BaseAgent):
                 result = os.popen(f"{path} --version 2>/dev/null").read()
                 if "sqlmap" in result.lower():
                     return path
-            except:
+            except Exception as e:
+                log.debug(f"Failed to check sqlmap at {path}: {e}")
                 continue
         return "sqlmap"  # fallback
 
+    @handle_agent_errors
     async def run(self, directive: str, context: Dict[str, Any]) -> AgentData:
         """
         Main execution method

