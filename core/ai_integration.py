@@ -3,6 +3,7 @@
 AI Integration for dLNk dLNk Framework
 Integrates LLM capabilities into the framework
 """
+from datetime import datetime
 
 import os
 import json

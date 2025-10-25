@@ -2,6 +2,7 @@
 Windows Persistence Agent
 ฝังตัวในระบบ Windows แบบถาวร
 """
+from core.logger import log
 
 import asyncio
 import base64

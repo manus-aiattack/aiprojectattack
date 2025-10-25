@@ -2,6 +2,7 @@ import os
 import redis.asyncio as redis
 import json
 from dotenv import load_dotenv
+import asyncio
 
 # Load environment variables from .env file
 load_dotenv()

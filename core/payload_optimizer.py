@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from core.logger import log
 from core.exploit_generator import ExploitType
+import re
 
 
 class OptimizationStrategy(Enum):

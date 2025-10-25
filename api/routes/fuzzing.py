@@ -53,7 +53,6 @@ async def startup_event():
 @router.on_event("shutdown")
 async def shutdown_event():
     """Shutdown orchestrator"""
-    global orchestrator
     if orchestrator:
         await orchestrator.stop()
     log.info("[FuzzingAPI] Distributed fuzzing orchestrator stopped")

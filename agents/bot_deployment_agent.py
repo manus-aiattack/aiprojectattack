@@ -8,6 +8,7 @@ from core.target_model_manager import TargetModelManager
 import time
 
 from core.base_agent import BaseAgent
+from typing import Optional
 
 
 class BotDeploymentAgent(BaseAgent):

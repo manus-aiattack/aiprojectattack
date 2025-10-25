@@ -4,6 +4,7 @@ System Test Script - Test all components
 """
 
 import sys
+import os
 import asyncio
 from pathlib import Path
 

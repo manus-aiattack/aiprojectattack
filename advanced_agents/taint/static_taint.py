@@ -1,6 +1,8 @@
 """
 Static Taint Analysis using Semgrep
 """
+import os
+import os
 
 import asyncio
 import subprocess
