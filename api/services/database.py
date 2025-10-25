@@ -43,6 +43,10 @@ class Database:
             log.error(f"[Database] Connection failed: {e}")
             raise
     
+    async def init_db(self):
+        """Initialize database (alias for connect)"""
+        await self.connect()
+    
     async def disconnect(self):
         """Disconnect from database"""
         if self.pool:
@@ -170,6 +174,31 @@ class Database:
                 with open(admin_key_path, "w") as f:
                     f.write(f"Admin API Key: {admin_key}\n")
                     f.write(f"Created at: {datetime.now().isoformat()}\n")
+        
+        return admin_key
+    
+    async def get_or_create_admin_key(self) -> str:
+        """Get or create admin API key"""
+        import secrets
+        
+        admin_key = os.getenv("ADMIN_API_KEY", secrets.token_urlsafe(32))
+        
+        async with self.pool.acquire() as conn:
+            exists = await conn.fetchval(
+                "SELECT api_key FROM users WHERE username = $1",
+                "admin"
+            )
+            
+            if exists:
+                return exists
+            else:
+                await conn.execute("""
+                    INSERT INTO users (username, role, api_key, quota_limit, is_active)
+                    VALUES ($1, $2, $3, $4, $5)
+                """, "admin", "admin", admin_key, 999999, True)
+                
+                log.success(f"[Database] Default admin created with API Key: {admin_key}")
+                return admin_key
     
     # User operations
     async def create_user(self, username: str, role: str, api_key: str, quota_limit: int = 100) -> int:
