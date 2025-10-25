@@ -72,7 +72,7 @@ class DataHarvesterAgent(BaseAgent):
         find_patterns = " -o ".join(
             [f"-name '{p}'" for p in self.linux_patterns])
         search_dirs_str = " ".join(self.linux_search_dirs)
-        find_command = f"find {search_dirs_str} -type f \( {find_patterns} \) 2>/dev/null"
+        find_command = f"find {search_dirs_str} -type f \\( {find_patterns} \\) 2>/dev/null"
 
         log.info(f"Executing search command: {find_command}")
         found_files_output = await self.shell_manager.send_command(shell_id, find_command, timeout=300)

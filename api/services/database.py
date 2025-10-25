@@ -410,3 +410,16 @@ class Database:
             """, limit)
             return [dict(row) for row in rows]
 
+
+
+
+# Global database instance
+_database_instance = None
+
+def get_database() -> Database:
+    """Get global database instance"""
+    global _database_instance
+    if _database_instance is None:
+        _database_instance = Database()
+    return _database_instance
+
