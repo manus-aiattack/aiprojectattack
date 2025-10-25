@@ -4,6 +4,10 @@ Configuration settings for dLNk dLNk Framework
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent
