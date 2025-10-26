@@ -70,7 +70,7 @@ class BaseLLMProvider(ABC):
         pass
 
     @abstractmethod
-    def generate_test_sequence(self, test_plan: list, context: dict) -> list:
+    async def generate_test_sequence(self, test_plan: list, context: dict) -> list:
         pass
 
     @abstractmethod
@@ -596,7 +596,7 @@ Example for a Laravel RCE vulnerability:
                 f"Failed to generate corrected code from Ollama: {e}")
             return ""
 
-    def generate_test_sequence(self, test_plan: list, context: dict) -> list:
+    async def generate_test_sequence(self, test_plan: list, context: dict) -> list:
         self.logger.info(
             "Ollama LLM is generating a sequence of HTTP requests from a test plan...")
         prompt = f'''You are an automated testing expert. Your job is to convert a natural language test plan into a precise sequence of HTTP requests in JSON format.
@@ -748,7 +748,7 @@ class VanchinProvider(BaseLLMProvider):
         
         self.request_count += 1
     
-    def _call_vanchin_api(self, messages, max_tokens=None, temperature=0.7):
+    async def _call_vanchin_api(self, messages, max_tokens=None, temperature=0.7):
         """Call Vanchin API with retry logic"""
         self._rate_limit_check()
         
@@ -792,7 +792,7 @@ class VanchinProvider(BaseLLMProvider):
         
         raise Exception(f"All Vanchin API attempts failed. Last error: {last_error}")
     
-    def generate_next_step(self, context: dict):
+    async def generate_next_step(self, context: dict):
         """Generate next attack step using Vanchin AI"""
         try:
             prompt = f"""Based on the following attack context, suggest the next step:
@@ -812,15 +812,15 @@ Response format: {{"phase": "...", "action": "...", "reasoning": "...", "tools":
                 {"role": "system", "content": "You are an expert penetration testing AI assistant."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             return self.extract_and_parse_json(response, "next_step")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to generate next step: {e}")
             return {"phase": "RECONNAISSANCE", "action": "basic_scan", "reasoning": "Fallback to basic scan", "tools": ["nmap"]}
     
-    def suggest_vulnerabilities(self, recon_findings: dict) -> list:
+    async def suggest_vulnerabilities(self, recon_findings: dict) -> list:
         """Suggest potential vulnerabilities based on reconnaissance findings"""
         try:
             prompt = f"""Analyze these reconnaissance findings and suggest potential vulnerabilities:
@@ -840,19 +840,19 @@ Response format: [{{"type": "...", "severity": "...", "description": "...", "exp
                 {"role": "system", "content": "You are an expert vulnerability analyst."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             vulns = self.extract_and_parse_json(response, "vulnerabilities")
-            
+
             if isinstance(vulns, list):
                 return vulns
             return []
-            
+
         except Exception as e:
             self.logger.error(f"Failed to suggest vulnerabilities: {e}")
             return []
     
-    def generate_payload(self, vuln_type: str) -> list:
+    async def generate_payload(self, vuln_type: str) -> list:
         """Generate exploit payloads for a vulnerability type"""
         try:
             prompt = f"""Generate exploit payloads for {vuln_type} vulnerability.
@@ -869,19 +869,19 @@ Response format: [{{"payload": "...", "description": "...", "encoding": "...", "
                 {"role": "system", "content": "You are an expert exploit developer."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             payloads = self.extract_and_parse_json(response, "payloads")
-            
+
             if isinstance(payloads, list):
                 return payloads
             return []
-            
+
         except Exception as e:
             self.logger.error(f"Failed to generate payload: {e}")
             return []
     
-    def select_exploit_payload(self, findings: dict) -> dict:
+    async def select_exploit_payload(self, findings: dict) -> dict:
         """Select the best exploit payload based on findings"""
         try:
             prompt = f"""Based on these findings, select the best exploit payload:
@@ -901,15 +901,15 @@ Response format: {{"payload": "...", "reason": "...", "expected_outcome": "...",
                 {"role": "system", "content": "You are an expert exploit strategist."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             return self.extract_and_parse_json(response, "exploit_selection")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to select exploit payload: {e}")
             return {}
     
-    def suggest_bypass_payload(self, original_payload: dict, error_context: str) -> dict:
+    async def suggest_bypass_payload(self, original_payload: dict, error_context: str) -> dict:
         """Suggest bypass payload when original fails"""
         try:
             prompt = f"""The following payload failed. Suggest a bypass:
@@ -931,29 +931,29 @@ Response format: {{"bypass_payload": "...", "bypass_technique": "...", "reasonin
                 {"role": "system", "content": "You are an expert in WAF bypass and evasion techniques."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             return self.extract_and_parse_json(response, "bypass")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to suggest bypass payload: {e}")
             return {}
     
-    def generate_text(self, prompt: str, context: str = "text_generation") -> str:
+    async def generate_text(self, prompt: str, context: str = "text_generation") -> str:
         """Generate text response"""
         try:
             messages = [
                 {"role": "system", "content": f"You are an AI assistant for {context}."},
                 {"role": "user", "content": prompt}
             ]
-            
-            return self._call_vanchin_api(messages)
-            
+
+            return await self._call_vanchin_api(messages)
+
         except Exception as e:
             self.logger.error(f"Failed to generate text: {e}")
             return ""
     
-    def analyze_and_hypothesize_exploits(self, code_snippets: list, services: dict, http_responses: str) -> list:
+    async def analyze_and_hypothesize_exploits(self, code_snippets: list, services: dict, http_responses: str) -> list:
         """Analyze code and hypothesize potential exploits"""
         try:
             prompt = f"""Analyze the following information and hypothesize potential exploits:
@@ -980,19 +980,19 @@ Response format: [{{"exploit_type": "...", "confidence": "...", "target_componen
                 {"role": "system", "content": "You are an expert security researcher and exploit developer."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             hypotheses = self.extract_and_parse_json(response, "hypotheses")
-            
+
             if isinstance(hypotheses, list):
                 return hypotheses
             return []
-            
+
         except Exception as e:
             self.logger.error(f"Failed to analyze and hypothesize exploits: {e}")
             return []
     
-    def generate_exploit_code(self, hypothesis: dict, recon_findings: dict) -> dict:
+    async def generate_exploit_code(self, hypothesis: dict, recon_findings: dict) -> dict:
         """Generate exploit code based on hypothesis"""
         try:
             prompt = f"""Generate exploit code for this hypothesis:
@@ -1016,15 +1016,15 @@ Response format: {{"code": "...", "language": "...", "dependencies": [...], "usa
                 {"role": "system", "content": "You are an expert exploit developer. Generate working, production-ready exploit code."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages, max_tokens=50000)
+
+            response = await self._call_vanchin_api(messages, max_tokens=50000)
             return self.extract_and_parse_json(response, "exploit_code")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to generate exploit code: {e}")
             return {}
     
-    def correct_python_code(self, code: str, error: str) -> str:
+    async def correct_python_code(self, code: str, error: str) -> str:
         """Correct Python code based on error"""
         try:
             prompt = f"""Fix this Python code:
@@ -1043,9 +1043,9 @@ Provide only the corrected Python code without explanation."""
                 {"role": "system", "content": "You are an expert Python developer. Fix the code and return only the corrected code."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
-            
+
+            response = await self._call_vanchin_api(messages)
+
             # Extract code from markdown if present
             if "```python" in response:
                 code_match = re.search(r'```python\n(.*?)\n```', response, re.DOTALL)
@@ -1055,14 +1055,14 @@ Provide only the corrected Python code without explanation."""
                 code_match = re.search(r'```\n(.*?)\n```', response, re.DOTALL)
                 if code_match:
                     return code_match.group(1)
-            
+
             return response
-            
+
         except Exception as e:
             self.logger.error(f"Failed to correct Python code: {e}")
             return code
     
-    def generate_test_sequence(self, test_plan: list, context: dict) -> list:
+    async def generate_test_sequence(self, test_plan: list, context: dict) -> list:
         """Generate test sequence based on test plan"""
         try:
             prompt = f"""Generate a test sequence for this test plan:
@@ -1086,7 +1086,7 @@ Response format: [{{"step_number": 1, "action": "...", "expected_result": "...",
                 {"role": "user", "content": prompt}
             ]
             
-            response = self._call_vanchin_api(messages)
+            response = await self._call_vanchin_api(messages)
             sequence = self.extract_and_parse_json(response, "test_sequence")
             
             if isinstance(sequence, list):
@@ -1097,7 +1097,7 @@ Response format: [{{"step_number": 1, "action": "...", "expected_result": "...",
             self.logger.error(f"Failed to generate test sequence: {e}")
             return []
     
-    def confirm_hypothesis(self, final_response: dict, hypothesis: dict) -> dict:
+    async def confirm_hypothesis(self, final_response: dict, hypothesis: dict) -> dict:
         """Confirm if hypothesis was validated"""
         try:
             prompt = f"""Confirm if this hypothesis was validated:
@@ -1119,15 +1119,15 @@ Response format: {{"confirmed": true/false, "confidence": "...", "reason": "..."
                 {"role": "system", "content": "You are an expert security analyst."},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = self._call_vanchin_api(messages)
+
+            response = await self._call_vanchin_api(messages)
             confirmation = self.extract_and_parse_json(response, "hypothesis_confirmation")
-            
+
             if isinstance(confirmation, dict) and 'confirmed' in confirmation:
                 return confirmation
-            
+
             return {"confirmed": False, "reason": "Invalid confirmation format"}
-            
+
         except Exception as e:
             self.logger.error(f"Failed to confirm hypothesis: {e}")
             return {"confirmed": False, "reason": f"Exception: {e}"}

@@ -22,9 +22,14 @@ async def test_vanchin():
         from core.logger import log
         
         print("Creating Vanchin provider...")
+        import os
+        api_keys_str = os.getenv("VANCHIN_API_KEYS", "")
+        api_keys = [key.strip() for key in api_keys_str.split(',') if key.strip()] if api_keys_str else None
+
         provider = VanchinProvider(
             logger=log,
-            knowledge_base_path="knowledge_base.json"
+            knowledge_base_path="knowledge_base.json",
+            api_keys=api_keys
         )
         
         print(f"  ✓ Provider created")

@@ -43,7 +43,7 @@ class TestE2EWorkflows:
         
         # Step 2: AI analyzes results
         logger.info("Step 2: AI analyzing scan results...")
-        from services.ai_integration import AIIntegration
+        from core.ai_integration import AIIntegration
         
         ai = AIIntegration()
         analysis = await ai.analyze_target(scan_result.data)

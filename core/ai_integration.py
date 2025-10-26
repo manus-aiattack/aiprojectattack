@@ -9,7 +9,7 @@ import os
 import json
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
-from openai import OpenAI
+from core.llm_provider import VanchinProvider, OllamaProvider
 from loguru import logger
 
 
@@ -40,10 +40,39 @@ class AIOrchestrator:
     Manages AI-powered decision making and planning
     """
     
-    def __init__(self, model: str = "gpt-4.1-mini", api_key: Optional[str] = None):
+    def __init__(self, model: str = None, api_key: Optional[str] = None):
         """Initialize AI Orchestrator"""
+        self.provider_type = os.getenv("LLM_PROVIDER", "vanchin")
         self.model = model
-        self.client = OpenAI(api_key=api_key) if api_key else OpenAI()
+
+        if self.provider_type == "vanchin":
+            # Use Vanchin provider
+            vanchin_api_url = os.getenv("VANCHIN_API_URL")
+            vanchin_model = os.getenv("VANCHIN_MODEL")
+            vanchin_api_keys = os.getenv("VANCHIN_API_KEYS")
+
+            if vanchin_api_keys:
+                self.provider = VanchinProvider(
+                    logger=logger,
+                    knowledge_base_path="knowledge_base.json",
+                    api_url=vanchin_api_url,
+                    model=vanchin_model,
+                    api_keys=vanchin_api_keys
+                )
+            else:
+                logger.warning("Vanchin API keys not configured, falling back to local model")
+                self.provider_type = "ollama"
+                self.provider = OllamaProvider(
+                    logger=logger,
+                    knowledge_base_path="knowledge_base.json"
+                )
+        else:
+            # Use Ollama provider
+            self.provider = OllamaProvider(
+                logger=logger,
+                knowledge_base_path="knowledge_base.json"
+            )
+
         self.task_history: List[AITask] = []
         self.result_history: List[AIResult] = []
         
@@ -70,31 +99,26 @@ class AIOrchestrator:
         
         return base + prompts.get(task_type, "")
     
-    def execute_task(self, task: AITask) -> AIResult:
+    async def execute_task(self, task: AITask) -> AIResult:
         """Execute AI task"""
-        
+
         try:
             # Build prompt based on task type
             prompt = self._build_prompt(task)
-            
+
             # Call LLM with timeout
             timeout = int(os.getenv("LLM_REQUEST_TIMEOUT", "120"))
             logger.info(f"Executing AI task {task.task_id} with timeout={timeout}s")
-            
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": self.get_system_prompt(task.task_type)},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2500,
-                timeout=timeout
-            )
-            
+
+            messages = [
+                {"role": "system", "content": self.get_system_prompt(task.task_type)},
+                {"role": "user", "content": prompt}
+            ]
+
+            # Call LLM through provider
+            content = await self.provider._call_vanchin_api(messages, max_tokens=2500, temperature=0.7)
+
             logger.success(f"AI task {task.task_id} completed successfully")
-            
-            content = response.choices[0].message.content
             
             # Extract metadata
             recommendations = self._extract_recommendations(content)
@@ -362,7 +386,7 @@ class AIIntegration:
             context=context
         )
         
-        result = self.orchestrator.execute_task(task)
+        result = await self.orchestrator.execute_task(task)
         
         return {
             "success": result.success,
@@ -398,7 +422,7 @@ class AIIntegration:
             }
         )
         
-        result = self.orchestrator.execute_task(task)
+        result = await self.orchestrator.execute_task(task)
         
         return {
             "success": result.success,
@@ -433,7 +457,7 @@ class AIIntegration:
             }
         )
         
-        result = self.orchestrator.execute_task(task)
+        result = await self.orchestrator.execute_task(task)
         
         return {
             "success": result.success,
@@ -466,7 +490,7 @@ class AIIntegration:
             }
         )
         
-        result = self.orchestrator.execute_task(task)
+        result = await self.orchestrator.execute_task(task)
         
         return {
             "success": result.success,
@@ -505,7 +529,7 @@ class AIIntegration:
             }
         )
         
-        result = self.orchestrator.execute_task(task)
+        result = await self.orchestrator.execute_task(task)
         
         return {
             "success": result.success,
@@ -598,4 +622,54 @@ async def generate_report(
 ) -> Dict[str, Any]:
     """Generate report wrapper"""
     return await ai_integration.generate_report(findings, target_info)
+
+
+class AIIntegration:
+    """
+    AI Integration Class - ครอบคลุมการใช้ AI ทั้งหมด
+
+    Features:
+    - Attack planning
+    - Vulnerability analysis
+    - Exploit generation
+    - Report generation
+    - Learning from results
+    """
+
+    def __init__(self, model: str = "gpt-4.1-mini", api_key: Optional[str] = None):
+        """Initialize AI Integration"""
+        self.orchestrator = AIOrchestrator(model, api_key)
+        self.attack_history = []
+        self.learning_data = []
+
+    def get_model_status(self) -> Dict[str, Any]:
+        """
+        Get current model status and capabilities
+        """
+        try:
+            # Get model info from orchestrator
+            model_info = {
+                "model": self.orchestrator.model,
+                "status": "ready",
+                "capabilities": [
+                    "target_analysis",
+                    "vulnerability_identification",
+                    "attack_planning",
+                    "exploit_generation",
+                    "report_generation",
+                    "learning_from_results"
+                ],
+                "provider": "OpenAI" if hasattr(self.orchestrator.client, 'api_key') else "Unknown"
+            }
+
+            return model_info
+
+        except Exception as e:
+            return {
+                "model": "unknown",
+                "status": "error",
+                "capabilities": [],
+                "error": str(e),
+                "provider": "Unknown"
+            }
 

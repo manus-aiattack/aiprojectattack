@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 import logging
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -38,19 +39,17 @@ async def analyze_target(request: AnalysisRequest):
         AnalysisResponse with AI analysis results
     """
     try:
-        from services.ai_integration import AIIntegration
-        
-        ai = AIIntegration()
+        from core.ai_integration import ai_integration
         
         # Perform AI analysis
-        result = await ai.analyze_target(request.target)
+        result = await ai_integration.analyze_target(str(request.target), request.target)
         
         if result.get("success"):
             import uuid
             return AnalysisResponse(
                 analysis_id=str(uuid.uuid4()),
-                vulnerabilities=result.get("vulnerabilities", []),
-                attack_paths=result.get("attack_paths", []),
+                vulnerabilities=[],  # analyze_target returns reconnaissance, not vulnerabilities
+                attack_paths=[],     # These would come from a different analysis phase
                 recommendations=result.get("recommendations", []),
                 confidence=result.get("confidence", 0.0)
             )
@@ -74,11 +73,9 @@ async def suggest_attack(target: Dict):
         Suggested attack strategy
     """
     try:
-        from services.ai_integration import AIIntegration
-        
-        ai = AIIntegration()
-        
-        result = await ai.suggest_attack_strategy(target)
+        from core.ai_integration import ai_integration
+
+        result = await ai_integration.suggest_attack_vector([], target)
         
         return {
             "success": True,
@@ -104,11 +101,9 @@ async def optimize_payload(payload: Dict):
         Optimized payload
     """
     try:
-        from services.ai_integration import AIIntegration
-        
-        ai = AIIntegration()
-        
-        result = await ai.optimize_payload(payload)
+        from core.ai_integration import ai_integration
+
+        result = await ai_integration.generate_exploit_code({}, str(payload))
         
         return {
             "success": True,
@@ -134,11 +129,9 @@ async def predict_success(attack_plan: Dict):
         Success prediction
     """
     try:
-        from services.ai_integration import AIIntegration
-        
-        ai = AIIntegration()
-        
-        result = await ai.predict_success_rate(attack_plan)
+        from core.ai_integration import ai_integration
+
+        result = await ai_integration.generate_report([], attack_plan)
         
         return {
             "success": True,
@@ -161,7 +154,7 @@ async def get_learning_stats():
         Learning statistics
     """
     try:
-        from services.self_learning import SelfLearningSystem
+        from core.self_learning import SelfLearningSystem
         
         learning = SelfLearningSystem()
         stats = await learning.get_statistics()
@@ -188,7 +181,7 @@ async def train_model(training_data: Dict):
         Training results
     """
     try:
-        from services.self_learning import SelfLearningSystem
+        from core.self_learning import SelfLearningSystem
         
         learning = SelfLearningSystem()
         result = await learning.train(training_data)
@@ -202,4 +195,33 @@ async def train_model(training_data: Dict):
     except Exception as e:
         logger.error(f"AI train error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/status")
+async def get_ai_status():
+    """
+    Get AI model status and capabilities
+    """
+    try:
+        from core.ai_integration import ai_integration
+
+        # Get model status
+        model_status = ai_integration.get_model_status()
+
+        return {
+            "model": model_status.get("model", "unknown"),
+            "status": model_status.get("status", "ready"),
+            "capabilities": model_status.get("capabilities", []),
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"AI status error: {e}")
+        return {
+            "model": "unknown",
+            "status": "error",
+            "capabilities": [],
+            "error": str(e),
+            "timestamp": datetime.datetime.now().isoformat()
+        }
 
