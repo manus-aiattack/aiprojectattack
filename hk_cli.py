@@ -23,7 +23,17 @@ if env_file.exists():
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
                 key, value = line.split('=', 1)
-                os.environ[key.strip()] = value.strip().strip('"').strip("'")
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                
+                # Expand environment variables in value (e.g., ${VAR})
+                if value.startswith('${') and value.endswith('}'):
+                    var_name = value[2:-1]
+                    value = os.environ.get(var_name, value)
+                
+                # Only set if not already set in environment
+                if key not in os.environ or not os.environ[key]:
+                    os.environ[key] = value
 
 try:
     from openai import OpenAI
@@ -54,7 +64,16 @@ class FullAIAssistant:
     
     def __init__(self):
         self.console = Console()
-        self.client = OpenAI()
+        
+        # Check API key
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key or api_key.startswith('${'):
+            self.console.print("[red]❌ Error: OPENAI_API_KEY not set properly[/red]")
+            self.console.print(f"[yellow]Current value: {api_key}[/yellow]")
+            self.console.print("[cyan]Please set OPENAI_API_KEY environment variable[/cyan]")
+            sys.exit(1)
+        
+        self.client = OpenAI(api_key=api_key)
         self.model = "gpt-4.1-mini"
         self.conversation_history = []
         self.working_dir = Path.cwd()
