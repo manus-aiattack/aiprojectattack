@@ -42,13 +42,15 @@
 
 **URL:** https://7681-ioez7uufj9x8f2mxaeiwn-b6134a46.manus-asia.computer/
 
-**Credential:** `admin_key_001:` (ไม่ต้องใส่ password)
+**Credential:** `admin_key_001` (Password)
 
 **วิธีใช้:**
 1. เปิด URL ด้านบน
-2. กรอก Username: `admin_key_001`
-3. Password: เว้นว่าง (กด Enter เลย)
+2. Username: เว้นว่าง (ไม่ต้องใส่)
+3. Password: `admin_key_001`
 4. จะได้ Terminal แบบเต็มรูปแบบ
+
+**หมายเหตุ:** Web Terminal ทำงานผ่าน systemd service และจะ auto-start เมื่อ reboot
 
 **คำสั่งที่ใช้บ่อย:**
 ```bash
@@ -103,26 +105,41 @@ netstat -tulpn
 - **Web Terminal:** ttyd (port 7681)
 - **Agents:** 163+ AI-powered attack agents
 - **API Endpoints:** 121+ endpoints
+- **Version:** v3.0.0-complete
+
+## Auto-Start Services
+
+ระบบถูกตั้งค่าให้เริ่มทำงานอัตโนมัติเมื่อ reboot:
+
+- ✅ `dlnk-platform.service` - Main Platform
+- ✅ `dlnk-terminal.service` - Web Terminal
+- ✅ `postgresql@14-main.service` - Database
+- ✅ `redis-server.service` - Cache
+
+**ตรวจสอบ Auto-Start:**
+```bash
+sudo systemctl list-unit-files --type=service --state=enabled | grep -E "(dlnk|postgresql|redis)"
+```
 
 ## การจัดการระบบ
 
 ### Start/Stop/Restart
 
 ```bash
-# Start
+# Platform Service
 sudo systemctl start dlnk-platform
-
-# Stop
 sudo systemctl stop dlnk-platform
-
-# Restart
 sudo systemctl restart dlnk-platform
-
-# ดูสถานะ
 sudo systemctl status dlnk-platform
 
-# Enable auto-start on boot
-sudo systemctl enable dlnk-platform
+# Web Terminal Service
+sudo systemctl start dlnk-terminal
+sudo systemctl stop dlnk-terminal
+sudo systemctl restart dlnk-terminal
+sudo systemctl status dlnk-terminal
+
+# ดูสถานะทั้งหมด
+sudo systemctl list-units --type=service --state=running | grep -E "(dlnk|postgresql|redis)"
 ```
 
 ### ดู Logs
