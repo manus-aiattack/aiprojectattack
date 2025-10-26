@@ -600,24 +600,23 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ api_key: key })
+                // Verify API key by calling agents endpoint
+                const response = await fetch(`${API_BASE}/api/agents`, {
+                    method: 'GET',
+                    headers: { 'X-API-Key': key }
                 });
 
                 if (!response.ok) throw new Error('Invalid API key');
 
-                const data = await response.json();
                 apiKey = key;
                 
-                document.getElementById('userName').textContent = data.user_name.toUpperCase();
-                document.getElementById('keyType').textContent = `[${data.key_type.toUpperCase()}]`;
+                document.getElementById('userName').textContent = 'OPERATOR';
+                document.getElementById('keyType').textContent = '[AUTHENTICATED]';
                 
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
                 
-                addTerminalLine(`Authenticated as ${data.user_name} (${data.key_type})`);
+                addTerminalLine(`Authenticated successfully`);
                 loadAttacks();
                 updateStats();
                 
