@@ -118,6 +118,9 @@ class HackerKnowledge:
     def chat(self, user_message: str) -> str:
         """Send message to AI"""
         try:
+            # Clean and encode message properly
+            user_message = user_message.encode('utf-8', errors='ignore').decode('utf-8')
+            
             # Add to history
             self.conversation_history.append({
                 "role": "user",
@@ -139,6 +142,10 @@ class HackerKnowledge:
             
             ai_response = response.choices[0].message.content
             
+            # Clean response
+            if ai_response:
+                ai_response = ai_response.encode('utf-8', errors='ignore').decode('utf-8')
+            
             # Add to history
             self.conversation_history.append({
                 "role": "assistant",
@@ -148,7 +155,11 @@ class HackerKnowledge:
             return ai_response
             
         except Exception as e:
-            return f"❌ Error: {str(e)}"
+            import traceback
+            error_msg = f"❌ Error: {str(e)}"
+            self.console.print(f"[red]{error_msg}[/red]")
+            self.console.print(f"[dim]{traceback.format_exc()}[/dim]")
+            return error_msg
     
     def execute_command(self, command: str) -> bool:
         """Execute special commands"""
@@ -283,6 +294,13 @@ Use: `hk` and ask "แสดง bash payload" for specific payload
     
     def run(self):
         """Main loop"""
+        # Set UTF-8 encoding for stdin/stdout
+        import sys
+        if hasattr(sys.stdin, 'reconfigure'):
+            sys.stdin.reconfigure(encoding='utf-8', errors='ignore')
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='ignore')
+        
         self.show_banner()
         
         while True:
@@ -292,6 +310,9 @@ Use: `hk` and ask "แสดง bash payload" for specific payload
                 
                 if not user_input:
                     continue
+                
+                # Clean input
+                user_input = user_input.encode('utf-8', errors='ignore').decode('utf-8')
                 
                 # Check for special commands
                 cmd_result = self.execute_command(user_input)
@@ -307,13 +328,20 @@ Use: `hk` and ask "แสดง bash payload" for specific payload
                     response = self.chat(user_input)
                 
                 # Display response
-                self.console.print(Markdown(response))
+                if response:
+                    try:
+                        self.console.print(Markdown(response))
+                    except Exception:
+                        # Fallback to plain text if Markdown fails
+                        self.console.print(response)
                 
             except KeyboardInterrupt:
                 self.console.print("\n\n[bold cyan]👋 ขอบคุณที่ใช้งาน![/bold cyan]\n")
                 break
             except Exception as e:
+                import traceback
                 self.console.print(f"\n[red]❌ Error: {e}[/red]")
+                self.console.print(f"[dim]{traceback.format_exc()}[/dim]")
 
 
 def main():
