@@ -127,6 +127,35 @@ async def get_attack_results(attack_id: str, req: Request):
     }
 
 
+@router.get("/{attack_id}/logs")
+async def get_attack_logs(attack_id: str, req: Request, limit: int = 100):
+    """ดู logs การโจมตี"""
+    # Get user
+    api_key = req.headers.get("X-API-Key")
+    user = await auth_service.verify_key(api_key)
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Get attack
+    attack = await db.get_attack(attack_id)
+    
+    if not attack:
+        raise HTTPException(status_code=404, detail="Attack not found")
+    
+    # Check permission
+    if user["role"] != "admin" and attack["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get logs
+    logs = await db.get_attack_logs(attack_id, limit)
+    
+    return {
+        "attack_id": attack_id,
+        "logs": logs
+    }
+
+
 @router.get("/history")
 async def get_attack_history(req: Request, limit: int = 50):
     """ดูประวัติการโจมตี"""

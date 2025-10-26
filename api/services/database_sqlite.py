@@ -342,8 +342,15 @@ class DatabaseSQLite:
         ) as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
-
-
+    
+    # Alias methods for compatibility
+    async def get_attack_logs(self, attack_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get attack logs (alias for get_agent_logs)"""
+        return await self.get_agent_logs(attack_id, limit)
+    
+    async def get_attack_files(self, attack_id: str) -> List[Dict[str, Any]]:
+        """Get attack files (returns loot files)"""
+        return await self.get_loot(attack_id)
 
     async def update_quota(self, user_id: int, amount: int = 1):
         """Update user quota (increment quota_used)"""
