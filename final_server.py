@@ -131,6 +131,27 @@ async def activate_api_key(request: Request, key: Dict[str, Any] = Depends(get_a
         return {"status": "success"}
     raise HTTPException(status_code=404, detail="Key not found")
 
+# --- Auth API Endpoints --- #
+@app.post("/api/auth/login")
+async def login(request: Request):
+    """Login with API key"""
+    data = await request.json()
+    api_key = data.get("api_key")
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required")
+    
+    key_info = key_manager.validate_key(api_key)
+    if not key_info:
+        raise HTTPException(status_code=401, detail="Invalid or expired API key")
+    
+    return {
+        "status": "success",
+        "message": "Login successful",
+        "user": key_info["user_name"],
+        "key_type": key_info["key_type"]
+    }
+
 # --- Attack API Endpoints --- #
 @app.post("/api/attack/launch")
 async def launch_attack(request: Request, key: Dict[str, Any] = Depends(get_api_key)):

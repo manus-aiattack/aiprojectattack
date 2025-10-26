@@ -57,10 +57,10 @@ async def quick_scan(request: ScanRequest):
                 scan_id=f"scan_{request.target}",
                 status="completed",
                 target=request.target,
-                results=result.data
+                results=result.to_dict()
             )
         else:
-            raise HTTPException(status_code=500, detail=result.data.get("error", "Scan failed"))
+            raise HTTPException(status_code=500, detail=str(result.errors))
     
     except Exception as e:
         logger.error(f"Quick scan error: {e}")
@@ -99,7 +99,7 @@ async def full_scan(request: ScanRequest, background_tasks: BackgroundTasks):
                 result = await agent.run("full_scan", {"target": request.target})
                 
                 active_scans[scan_id]["status"] = "completed"
-                active_scans[scan_id]["results"] = result.data
+                active_scans[scan_id]["results"] = result.to_dict()
             except Exception as e:
                 active_scans[scan_id]["status"] = "failed"
                 active_scans[scan_id]["error"] = str(e)
@@ -147,7 +147,7 @@ async def vulnerability_scan(request: ScanRequest, background_tasks: BackgroundT
                 result = await agent.run("vuln_scan", {"target": request.target})
                 
                 active_scans[scan_id]["status"] = "completed"
-                active_scans[scan_id]["results"] = result.data
+                active_scans[scan_id]["results"] = result.to_dict()
             except Exception as e:
                 active_scans[scan_id]["status"] = "failed"
                 active_scans[scan_id]["error"] = str(e)
@@ -254,10 +254,10 @@ async def port_scan(request: ScanRequest):
                 scan_id=f"portscan_{request.target}",
                 status="completed",
                 target=request.target,
-                results=result.data
+                results=result.to_dict()
             )
         else:
-            raise HTTPException(status_code=500, detail=result.data.get("error", "Port scan failed"))
+            raise HTTPException(status_code=500, detail=str(result.errors))
     
     except Exception as e:
         logger.error(f"Port scan error: {e}")
@@ -287,10 +287,10 @@ async def service_detection(request: ScanRequest):
                 scan_id=f"service_{request.target}",
                 status="completed",
                 target=request.target,
-                results=result.data
+                results=result.to_dict()
             )
         else:
-            raise HTTPException(status_code=500, detail=result.data.get("error", "Service detection failed"))
+            raise HTTPException(status_code=500, detail=str(result.errors))
     
     except Exception as e:
         logger.error(f"Service detection error: {e}")
