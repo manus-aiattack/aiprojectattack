@@ -35,7 +35,7 @@ class ZeroDayHunterAgent(BaseAgent):
     - Adaptive attack strategies
     """
     
-    supported_phases = [AttackPhase.RECONNAISSANCE, AttackPhase.EXPLOITATION, AttackPhase.VULNERABILITY_DISCOVERY]
+    supported_phases = [AttackPhase.RECONNAISSANCE, AttackPhase.EXPLOITATION, AttackPhase.TRIAGE]
     required_tools = ["afl-fuzz", "semgrep"]
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
