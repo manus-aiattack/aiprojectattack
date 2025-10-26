@@ -15,6 +15,7 @@ import os
 from typing import List, Dict, Any
 from datetime import datetime
 
+from api.services.database import Database
 from api.services.auth import AuthService
 from api.services.attack_manager import AttackManager
 from api.services.websocket_manager import WebSocketManager
