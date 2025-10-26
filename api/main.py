@@ -26,7 +26,7 @@ from api.routes import (
     auth, admin, attack, files,  # v1 routes
     admin_v2, attack_v2,  # v2 routes
     ai, scan, exploit, knowledge, statistics,  # feature routes
-    c2, fuzzing, learning_routes, one_click_attack, zeroday_routes, monitoring  # additional routes
+    c2, fuzzing, learning_routes, one_click_attack, zeroday_routes, monitoring, workflow  # additional routes
 )
 
 # WebSocket Manager
@@ -324,6 +324,19 @@ async def websocket_system(websocket: WebSocket):
         ws_manager.disconnect_system(websocket)
 
 
+@app.websocket("/ws/logs")
+async def websocket_logs(websocket: WebSocket):
+    """WebSocket for live log monitoring"""
+    await ws_manager.connect_logs(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # For now, just send a ping response
+            await websocket.send_json({"type": "log_pong", "timestamp": datetime.now().isoformat()})
+    except WebSocketDisconnect:
+        ws_manager.disconnect_logs(websocket)
+
+
 @app.websocket("/ws")
 async def websocket_general(websocket: WebSocket):
     """General WebSocket endpoint"""
@@ -341,6 +354,7 @@ auth.set_dependencies(db, auth_service)
 admin.set_dependencies(db, auth_service)
 attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
 files.set_dependencies(db, auth_service)
+workflow.set_dependencies(db, auth_service)
 
 # Include ALL routers
 # V1 Routes
@@ -348,6 +362,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"], dependencies=[Depends(verify_admin)])
 app.include_router(attack.router, prefix="/api/attack", tags=["Attack V1"], dependencies=[Depends(verify_api_key)])
 app.include_router(files.router, prefix="/api/files", tags=["Files"], dependencies=[Depends(verify_api_key)])
+app.include_router(workflow.router, tags=["Workflow"])  # No auth required for testing
 
 # V2 Routes (with their own prefixes)
 app.include_router(attack_v2.router, tags=["Attack V2"])
@@ -369,7 +384,7 @@ app.include_router(monitoring.router, tags=["Monitoring"])
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main_complete:app",
+        "main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

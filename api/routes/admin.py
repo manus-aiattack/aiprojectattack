@@ -8,12 +8,23 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
-from api.middleware.auth_middleware import require_admin_key
+from api.middleware.auth import require_admin_key
 from api.database.db_service import db
 from loguru import logger
 
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+
+# Dependency injection - will be set by main.py
+db_instance = None
+auth_service_instance = None
+
+def set_dependencies(database, auth_svc):
+    """Set dependencies from main.py"""
+    global db_instance, auth_service_instance
+    db_instance = database
+    auth_service_instance = auth_svc
 
 
 # ===== Request Models =====

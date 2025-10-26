@@ -1,59 +1,118 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+import { ThemeProvider, useTheme } from './theme/ThemeProvider';
+import Dashboard from './components/Dashboard/Dashboard';
+import AuthPanel from './components/AuthPanel';
+import SettingsPanel from './components/SettingsPanel';
+import ReportGenerator from './components/ReportGenerator';
 
-// Lazy load components for code splitting
-const Layout = lazy(() => import('./components/Layout'));
-const Dashboard = lazy(() => import('./components/Dashboard'));
-const AttackManager = lazy(() => import('./components/AttackManager'));
-const C2Manager = lazy(() => import('./components/C2Manager'));
-const TargetManager = lazy(() => import('./components/TargetManager'));
-const AgentList = lazy(() => import('./components/AgentList'));
-const Login = lazy(() => import('./components/Login'));
+// Layout components
+const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { theme } = useTheme();
+  return (
+    <ThemeProvider>
+      <div style={{
+        minHeight: '100vh',
+        background: theme.colors.background,
+        color: theme.colors.text,
+        fontFamily: theme.fonts.family
+      }}>
+        <header style={{
+          background: `linear-gradient(135deg, ${theme.colors.backgroundDark} 0%, ${theme.colors.background} 100%)`,
+          padding: theme.spacing.md,
+          borderRadius: theme.borderRadius.md,
+          marginBottom: theme.spacing.md,
+          border: `2px solid ${theme.colors.border}`,
+          boxShadow: theme.shadows.md
+        }}>
+          <div style={{
+            maxWidth: '1000px',
+            margin: '0 auto',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <h1 style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: theme.colors.info,
+                margin: 0
+              }}>
+                ⚡ Apex Predator
+              </h1>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm
+            }}>
+              <SettingsPanel />
+            </div>
+          </div>
+        </header>
+        <main style={{
+          maxWidth: '1000px',
+          margin: '0 auto',
+          padding: theme.spacing.md
+        }}>
+          {children}
+        </main>
+      </div>
+    </ThemeProvider>
+  );
+};
 
-// Loading component
-const LoadingSpinner = () => (
-  <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-    <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-      <p className="mt-4 text-cyan-400">Loading...</p>
-    </div>
-  </div>
-);
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-
-  React.useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('auth_token');
-    setIsAuthenticated(!!token);
-  }, []);
-
-  if (!isAuthenticated) {
+  if (isLoading) {
     return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Login onLogin={() => setIsAuthenticated(true)} />
-      </Suspense>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
     );
   }
 
+  return isAuthenticated ? <Layout>{children}</Layout> : <Navigate to="/login" />;
+};
+
+const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<LoadingSpinner />}>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/attacks" element={<AttackManager />} />
-            <Route path="/c2" element={<C2Manager />} />
-            <Route path="/targets" element={<TargetManager />} />
-            <Route path="/agents" element={<AgentList />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
-      </Suspense>
-    </BrowserRouter>
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<AuthPanel />} />
+        <Route path="/register" element={<AuthPanel />} />
+
+        {/* Private routes */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <PrivateRoute>
+              <ReportGenerator />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Default redirect */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
 

@@ -472,7 +472,7 @@ class AgentMarketplace:
 ### Phase 6: AI Workflow Automation (สัปดาห์ที่ 10-11) ⚡
 
 #### 6.1 AI Workflow Generator
-**ไฟล์:** `core/ai_workflow_generator.py`
+**ไฟล์:** `core/ai_workflow_generator.ts`
 
 **การพัฒนา:**
 ```python

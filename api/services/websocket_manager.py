@@ -83,3 +83,6 @@ class WebSocketManager:
         for websocket in disconnected:
             self.disconnect_system(websocket)
 
+
+# Global websocket manager instance
+ws_manager = WebSocketManager()
