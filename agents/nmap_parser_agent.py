@@ -1,5 +1,5 @@
 
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from core.data_models import NmapServiceFinding, AgentData, AttackPhase, Strategy, NmapParserReport, ErrorType
 from core.logger import log
 from typing import Optional

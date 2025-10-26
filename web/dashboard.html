@@ -490,6 +490,10 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
                 addLog({ message: 'Workflow started: ' + data.message, level: 'success' });
                 closeModal('workflowModal');
@@ -517,7 +521,12 @@
             try {
                 let contextObj = {};
                 if (agentContext) {
-                    contextObj = JSON.parse(agentContext);
+                    try {
+                        contextObj = JSON.parse(agentContext);
+                    } catch (parseError) {
+                        alert('Invalid JSON in context field: ' + parseError.message);
+                        return;
+                    }
                 }
 
                 const response = await fetch(`${API_ENDPOINT}/agents/execute`, {
@@ -529,6 +538,10 @@
                         context: contextObj
                     })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
                 const data = await response.json();
                 addLog({ message: `Agent ${agentName} executed: ${data.summary}`, level: data.success ? 'success' : 'error' });

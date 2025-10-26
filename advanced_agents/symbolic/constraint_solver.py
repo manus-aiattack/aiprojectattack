@@ -6,6 +6,7 @@ Solves symbolic constraints to generate concrete inputs
 import asyncio
 from typing import List, Dict, Optional, Any
 import logging
+import ast
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class ConstraintSolver:
     async def add_constraint(self, constraint: str):
         """
         Add a constraint
-        
+
         Args:
             constraint: Constraint expression (e.g., "x > 10", "x + y == 100")
         """
@@ -78,19 +79,62 @@ class ConstraintSolver:
             self.constraints.append(constraint)
             log.debug(f"[ConstraintSolver] Added constraint (fallback): {constraint}")
             return
-        
+
         try:
-            # Parse constraint expression
+            # Parse constraint expression safely
             # This is a simplified parser - in production use proper parsing
-            constraint_expr = eval(constraint, {"__builtins__": {}}, self.variables)
-            
+            constraint_expr = self._safe_eval_constraint(constraint)
+
             self.solver.add(constraint_expr)
             self.constraints.append(constraint)
-            
+
             log.debug(f"[ConstraintSolver] Added constraint: {constraint}")
-            
+
         except Exception as e:
             log.error(f"[ConstraintSolver] Failed to add constraint '{constraint}': {e}")
+
+    def _safe_eval_constraint(self, expression: str):
+        """
+        Safely evaluate mathematical expressions only
+        This prevents code injection attacks while allowing mathematical constraints
+        """
+        if not expression or len(expression) > 100:
+            raise ValueError("Expression too long or empty")
+
+        try:
+            # Parse and validate the expression
+            parsed = ast.parse(expression, mode='eval')
+
+            # Only allow specific node types (numbers, variables, operators, basic functions)
+            allowed_nodes = (
+                ast.Expression, ast.BinOp, ast.UnaryOp, ast.operator,
+                ast.unaryop, ast.Constant, ast.Num, ast.Str, ast.Name,
+                ast.Load, ast.Compare, ast.Gt, ast.Lt, ast.Eq, ast.GtE,
+                ast.LtE, ast.NotEq
+            )
+
+            for node in ast.walk(parsed):
+                if not isinstance(node, allowed_nodes):
+                    raise ValueError(f"Unsafe expression node type: {type(node).__name__}")
+
+            # Create safe environment with only allowed variables and functions
+            safe_env = {
+                '__builtins__': {},
+                # Add mathematical constants and functions as needed
+                'int': int,
+                'float': float,
+                'bool': bool,
+                'str': str,
+            }
+
+            # Add the constraint solver's variables to the environment
+            safe_env.update(self.variables)
+
+            # Evaluate safely
+            return eval(compile(parsed, '<string>', 'eval'), safe_env)
+
+        except Exception as e:
+            raise ValueError(f"Invalid or unsafe constraint expression: {e}")
     
     async def solve(self) -> Optional[Dict[str, Any]]:
         """

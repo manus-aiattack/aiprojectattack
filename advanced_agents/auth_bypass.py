@@ -14,7 +14,7 @@ from datetime import datetime
 import hashlib
 
 
-class AuthBypassAgent:
+class AuthenticationBypassAgent:
     """Agent สำหรับหาช่องโหว่และ bypass authentication"""
     
     def __init__(self, target_url: str, workspace_dir: str):

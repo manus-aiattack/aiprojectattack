@@ -20,7 +20,7 @@ class StatisticsResponse(BaseModel):
     failedAttacks: int
     averageDuration: float
     attacksByType: Dict[str, int]
-    attacksOverTime: List[Dict[str, any]]
+    attacksOverTime: List[Dict[str, str]]
     successRate: float
 
 
