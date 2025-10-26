@@ -343,3 +343,23 @@ class DatabaseSQLite:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
+
+
+    async def update_quota(self, user_id: int, amount: int = 1):
+        """Update user quota (increment quota_used)"""
+        await self.conn.execute(
+            "UPDATE users SET quota_used = quota_used + ? WHERE id = ?",
+            (amount, user_id)
+        )
+        await self.conn.commit()
+    
+    async def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get user by ID"""
+        async with self.conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+

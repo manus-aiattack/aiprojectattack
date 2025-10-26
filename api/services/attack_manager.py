@@ -27,11 +27,17 @@ class AttackManager:
         attack_id = str(uuid.uuid4())
         
         # Create attack record
-        await self.db.create_attack(attack_id, user_id, target_url, attack_type)
+        await self.db.create_attack({
+            "attack_id": attack_id,
+            "user_id": user_id,
+            "target_url": target_url,
+            "attack_type": attack_type,
+            "status": "pending"
+        })
         
         # Log
         log.info(f"[AttackManager] Starting attack {attack_id} on {target_url}")
-        await self.db.add_agent_log(attack_id, "AttackManager", f"Starting {attack_type} attack", "pending")
+        await self.db.add_agent_log(attack_id, "AttackManager", "INFO", f"Starting {attack_type} attack")
         
         # Start attack in background
         task = asyncio.create_task(
@@ -98,7 +104,7 @@ class AttackManager:
             
         except Exception as e:
             log.error(f"[AttackManager] Attack {attack_id} failed: {e}")
-            await self.db.update_attack_status(attack_id, "failed", error=str(e))
+            await self.db.update_attack_status(attack_id, "failed", {"error": str(e)})
             await self.ws_manager.broadcast_to_attack(attack_id, {
                 "type": "attack_failed",
                 "error": str(e),
@@ -114,7 +120,7 @@ class AttackManager:
         """Execute full auto attack"""
         log.info(f"[AttackManager] Executing full auto attack on {target_url}")
         
-        await self.db.add_agent_log(attack_id, "Orchestrator", "Starting full auto attack", "running")
+        await self.db.add_agent_log(attack_id, "Orchestrator", "INFO", "Starting full auto attack")
         await self.ws_manager.broadcast_to_attack(attack_id, {
             "type": "agent_update",
             "agent": "Orchestrator",
@@ -123,14 +129,35 @@ class AttackManager:
         })
         
         # Use orchestrator to run full attack
-        context = {
+        workflow_path = "config/attack_full_auto_workflow.yaml"
+        target_context = {
             "attack_id": attack_id,
             "target_url": target_url,
-            "workflow": "attack_full_auto_workflow",
             **options
         }
         
-        result = await self.orchestrator.execute_workflow(context, self._log_callback(attack_id))
+        try:
+            result = await self.orchestrator.execute_workflow(workflow_path, target_context)
+            return {
+                "success": True,
+                "message": "Attack workflow completed",
+                "attack_id": attack_id,
+                "target_url": target_url,
+                "results": result,
+                "vulnerabilities": [],
+                "access_gained": False
+            }
+        except Exception as e:
+            log.error(f"[AttackManager] Workflow execution failed: {e}")
+            # Return simulated result as fallback
+            result = {
+                "success": False,
+                "message": f"Workflow execution failed: {str(e)}",
+                "attack_id": attack_id,
+                "target_url": target_url,
+                "vulnerabilities": [],
+                "access_gained": False
+            }
         
         return result
     
@@ -142,7 +169,7 @@ class AttackManager:
         
         agent = SqlmapAgent()
         
-        await self.db.add_agent_log(attack_id, "SqlmapAgent", "Starting SQL injection", "running")
+        await self.db.add_agent_log(attack_id, "SqlmapAgent", "INFO", "Starting SQL injection")
         await self.ws_manager.broadcast_to_attack(attack_id, {
             "type": "agent_update",
             "agent": "SqlmapAgent",
@@ -160,9 +187,8 @@ class AttackManager:
         await self.db.add_agent_log(
             attack_id,
             "SqlmapAgent",
-            "SQL injection completed",
-            "success" if result.success else "failed",
-            str(result.data)
+            "INFO",
+            f"SQL injection completed: {'success' if result.success else 'failed'}"
         )
         
         return {
@@ -179,7 +205,7 @@ class AttackManager:
         
         agent = CommandInjectionExploiter()
         
-        await self.db.add_agent_log(attack_id, "CommandInjectionExploiter", "Starting command injection", "running")
+        await self.db.add_agent_log(attack_id, "CommandInjectionExploiter", "INFO", "Starting command injection")
         await self.ws_manager.broadcast_to_attack(attack_id, {
             "type": "agent_update",
             "agent": "CommandInjectionExploiter",
@@ -202,9 +228,8 @@ class AttackManager:
         await self.db.add_agent_log(
             attack_id,
             "CommandInjectionExploiter",
-            "Command injection completed",
-            "success" if result.success else "failed",
-            str(result.data)
+            "INFO",
+            f"Command injection completed: {'success' if result.success else 'failed'}"
         )
         
         return {
@@ -224,7 +249,7 @@ class AttackManager:
         
         agent = ZeroDayHunterAgent()
         
-        await self.db.add_agent_log(attack_id, "ZeroDayHunterAgent", "Starting zero-day hunt", "running")
+        await self.db.add_agent_log(attack_id, "ZeroDayHunterAgent", "INFO", "Starting zero-day hunt")
         await self.ws_manager.broadcast_to_attack(attack_id, {
             "type": "agent_update",
             "agent": "ZeroDayHunterAgent",
@@ -242,9 +267,8 @@ class AttackManager:
         await self.db.add_agent_log(
             attack_id,
             "ZeroDayHunterAgent",
-            "Zero-day hunt completed",
-            "success" if result.success else "failed",
-            str(result.data)
+            "INFO",
+            f"Zero-day hunt completed: {'success' if result.success else 'failed'}"
         )
         
         return {
@@ -257,7 +281,7 @@ class AttackManager:
         """Execute data exfiltration"""
         log.info(f"[AttackManager] Starting data exfiltration for attack {attack_id}")
         
-        await self.db.add_agent_log(attack_id, "DataExfiltrator", "Starting data exfiltration", "running")
+        await self.db.add_agent_log(attack_id, "DataExfiltrator", "INFO", "Starting data exfiltration")
         await self.ws_manager.broadcast_to_attack(attack_id, {
             "type": "agent_update",
             "agent": "DataExfiltrator",
@@ -292,9 +316,8 @@ class AttackManager:
         await self.db.add_agent_log(
             attack_id,
             "DataExfiltrator",
-            f"Exfiltration completed: {result.get('total_files', 0)} files",
-            "success" if result.get("success") else "failed",
-            str(result)
+            "INFO",
+            f"Exfiltration completed: {result.get('total_files', 0)} files - {'success' if result.get('success') else 'failed'}"
         )
         
         await self.ws_manager.broadcast_to_attack(attack_id, {
@@ -307,7 +330,7 @@ class AttackManager:
     def _log_callback(self, attack_id: str):
         """Create log callback for orchestrator"""
         async def callback(agent_name: str, action: str, status: str, output: str = None):
-            await self.db.add_agent_log(attack_id, agent_name, action, status, output)
+            await self.db.add_agent_log(attack_id, agent_name, status, action)
             await self.ws_manager.broadcast_to_attack(attack_id, {
                 "type": "agent_update",
                 "agent": agent_name,
