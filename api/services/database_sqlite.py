@@ -370,3 +370,18 @@ class DatabaseSQLite:
                 return dict(row)
             return None
 
+
+
+    async def get_attack_logs(self, attack_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get attack logs (alias for get_agent_logs)"""
+        return await self.get_agent_logs(attack_id, limit)
+    
+    async def get_attack_files(self, attack_id: str) -> List[Dict[str, Any]]:
+        """Get attack files (loot files)"""
+        async with self.conn.execute(
+            "SELECT * FROM loot WHERE attack_id = ? AND file_path IS NOT NULL AND file_path != '' ORDER BY collected_at DESC",
+            (attack_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+
