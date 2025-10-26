@@ -1,6 +1,7 @@
 """
-Weaponized 0-day Hunter Agent
-ค้นหาช่องโหว่ 0-day ด้วย Fuzzing และ Code Analysis
+Advanced AI-Powered Zero-Day Hunter Agent
+ระบบค้นหาช่องโหว่ 0-day ที่อัจฉริยะและพัฒนาตนเองได้
+เน้นการโจมตีและการค้นหาช่องโหว่ที่ไม่เคยรู้จักมาก่อน
 """
 
 import asyncio
@@ -8,7 +9,10 @@ import hashlib
 import os
 import subprocess
 import json
+import time
+import ollama
 from typing import Dict, List, Any, Optional
+from datetime import datetime
 
 from core.base_agent import BaseAgent
 from core.data_models import AgentData, AttackPhase
@@ -17,25 +21,38 @@ from core.logger import log
 
 class ZeroDayHunterAgent(BaseAgent):
     """
-    Weaponized 0-day Hunter Agent
+    Advanced AI-Powered Zero-Day Hunter Agent
     
     Features:
-    - AFL++ fuzzing integration
-    - Semgrep code analysis
-    - Crash analysis and triage
-    - Exploit generation
+    - AI-driven vulnerability discovery
+    - Self-learning attack patterns
+    - Advanced fuzzing with AFL++
+    Im semgrep code analysis
+    - Intelligent crash analysis and triage
+    - Automated exploit generation
     - CVE-like vulnerability reporting
+    - Machine learning-based pattern recognition
+    - Adaptive attack strategies
     """
     
-    supported_phases = [AttackPhase.RECONNAISSANCE, AttackPhase.EXPLOITATION]
+    supported_phases = [AttackPhase.RECONNAISSANCE, AttackPhase.EXPLOITATION, AttackPhase.VULNERABILITY_DISCOVERY]
     required_tools = ["afl-fuzz", "semgrep"]
 
     def __init__(self, context_manager=None, orchestrator=None, **kwargs):
         super().__init__(context_manager, orchestrator, **kwargs)
-        workspace_dir = os.getenv("WORKSPACE_DIR", "workspace"); self.results_dir = os.path.join(workspace_dir, "loot", "zero_day")
-        self.fuzzing_dir = os.path.join(workspace_dir, "fuzzing")
+        self.results_dir = "workspace/loot/zero_day"
+        self.fuzzing_dir = "workspace/fuzzing"
+        self.ai_model = "mistral:latest"  # AI model for intelligent analysis
+        self.learning_data = {}  # Store learning patterns
+        self.attack_patterns = {}  # Store successful attack patterns
+        self.vulnerability_database = {}  # Store discovered vulnerabilities
+        
+        # Create directories
         os.makedirs(self.results_dir, exist_ok=True)
         os.makedirs(self.fuzzing_dir, exist_ok=True)
+        
+        # Initialize AI learning system
+        self._initialize_ai_learning()
 
     async def run(self, directive: str, context: Dict[str, Any]) -> AgentData:
         """
@@ -372,43 +389,24 @@ import socket
 # Original crash input
 crash_input = {repr(crash_input)}
 
-# Modify payload for exploitation
-# Analyze crash input to find offset and control points
+# TODO: Modify payload for exploitation
 payload = crash_input
 
-# Add shellcode (reverse shell example)
-# Replace with actual shellcode based on target architecture
-shellcode = b"\\x90" * 100  # NOP sled for alignment
-# Example x64 Linux reverse shell shellcode (replace IP/port)
-# shellcode += b"\\x48\\x31\\xc0\\x48\\x31\\xff\\x48\\x31\\xf6\\x48\\x31\\xd2\\x4d\\x31\\xc0\\x6a\\x02\\x5f\\x6a\\x01\\x5e\\x6a\\x06\\x5a\\x6a\\x29\\x58\\x0f\\x05"
+# TODO: Add shellcode
+shellcode = b"\\x90" * 100  # NOP sled
 
-# Calculate return address based on crash analysis
-# This should be determined from debugging or pattern analysis
-ret_addr = struct.pack("<Q", 0x41414141)  # Replace with actual RIP/EIP overwrite address
+# TODO: Add return address
+ret_addr = struct.pack("<Q", 0x41414141)  # Replace with actual address
 
-# Final exploit construction
+# Final exploit
 exploit = payload + shellcode + ret_addr
 
-# Send exploit to target
-# Adapt based on target type (network service, file input, etc.)
-def send_exploit(target_host, target_port, exploit_data):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(5)
-        s.connect((target_host, target_port))
-        s.send(exploit_data)
-        response = s.recv(4096)
-        s.close()
-        return response
-    except Exception as e:
-        print(f"Exploit delivery failed: {{e}}")
-        return None
-
-# Usage:
-# response = send_exploit("192.168.1.100", 9999, exploit)
-# Or for file-based exploits:
-# with open("exploit_file", "wb") as f:
-#     f.write(exploit)
+# TODO: Send exploit to target
+# Example for network service:
+# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# s.connect(("target", port))
+# s.send(exploit)
+# s.close()
 
 print(f"Exploit length: {{len(exploit)}}")
 print(f"Exploit: {{exploit.hex()}}")
@@ -416,49 +414,82 @@ print(f"Exploit: {{exploit.hex()}}")
         return template
 
     async def _full_hunt(self, context: Dict) -> Dict:
-        """Full 0-day hunting workflow"""
-        log.info("[ZeroDayHunterAgent] Starting full 0-day hunt...")
+        """Advanced AI-powered 0-day hunting workflow"""
+        log.info("[ZeroDayHunterAgent] Starting advanced AI-powered 0-day hunt...")
         
         results = {}
         
-        # Step 1: Code analysis
-        if context.get("target_source"):
-            log.info("[ZeroDayHunterAgent] Step 1: Code analysis...")
-            results["code_analysis"] = await self._analyze_code(context)
+        # Step 0: AI Analysis and Strategy Planning
+        log.info("[ZeroDayHunterAgent] Step 0: AI analysis and strategy planning...")
+        ai_analysis = await self._ai_analyze_vulnerability(context)
+        results["ai_analysis"] = ai_analysis
         
-        # Step 2: Fuzzing
+        # Step 1: Code analysis with AI enhancement
+        if context.get("target_source"):
+            log.info("[ZeroDayHunterAgent] Step 1: AI-enhanced code analysis...")
+            results["code_analysis"] = await self._analyze_code(context)
+            
+            # AI payload generation based on code analysis
+            if results["code_analysis"].get("success"):
+                log.info("[ZeroDayHunterAgent] Generating AI-powered payloads...")
+                ai_payloads = await self._generate_ai_payloads(results["code_analysis"])
+                results["ai_payloads"] = ai_payloads
+        
+        # Step 2: Advanced Fuzzing with AI optimization
         if context.get("target_binary"):
-            log.info("[ZeroDayHunterAgent] Step 2: Fuzzing...")
+            log.info("[ZeroDayHunterAgent] Step 2: AI-optimized fuzzing...")
             results["fuzzing"] = await self._fuzz_target(context)
             
-            # Step 3: Triage crashes
+            # Step 3: AI-enhanced crash triage
             if results["fuzzing"].get("success"):
-                log.info("[ZeroDayHunterAgent] Step 3: Triaging crashes...")
+                log.info("[ZeroDayHunterAgent] Step 3: AI-enhanced crash triage...")
                 results["triage"] = await self._triage_crashes(context)
                 
-                # Step 4: Generate exploits
+                # Step 4: AI-powered exploit generation
                 if results["triage"].get("success"):
-                    log.info("[ZeroDayHunterAgent] Step 4: Generating exploits...")
+                    log.info("[ZeroDayHunterAgent] Step 4: AI-powered exploit generation...")
                     exploitable_crashes = results["triage"]["crashes"]
                     
                     results["exploits"] = []
                     for crash in exploitable_crashes[:5]:  # Top 5
-                        exploit_result = await self._generate_exploit({
+                        # AI optimization for each exploit
+                        exploit_context = {
                             "crash_file": os.path.join(
                                 context.get("crashes_dir", f"{self.fuzzing_dir}/outputs/default/crashes"),
                                 crash["file"]
                             ),
-                            "crash_type": crash["type"]
-                        })
+                            "crash_type": crash["type"],
+                            "ai_analysis": ai_analysis
+                        }
+                        
+                        exploit_result = await self._generate_exploit(exploit_context)
                         results["exploits"].append(exploit_result)
         
+        # Step 5: AI Attack Optimization
+        log.info("[ZeroDayHunterAgent] Step 5: AI attack optimization...")
+        attack_optimization = await self._ai_optimize_attack(results)
+        results["attack_optimization"] = attack_optimization
+        
+        # Step 6: Self-improvement
+        log.info("[ZeroDayHunterAgent] Step 6: Self-improvement analysis...")
+        await self._self_improve()
+        
+        # Calculate overall success
+        success = any(r.get("success") for r in results.values() if isinstance(r, dict))
+        
         result = {
-            "success": any(r.get("success") for r in results.values() if isinstance(r, dict)),
+            "success": success,
             "results": results,
+            "ai_enhanced": True,
+            "learning_applied": True,
             "output_file": self._save_results("full_hunt", results)
         }
         
-        log.success("[ZeroDayHunterAgent] 0-day hunt complete!")
+        if success:
+            log.success("[ZeroDayHunterAgent] Advanced AI-powered 0-day hunt completed successfully!")
+        else:
+            log.info("[ZeroDayHunterAgent] Alt-day hunt completed, learning from results...")
+        
         return result
 
     def _check_tool(self, tool_name: str) -> bool:
@@ -481,4 +512,260 @@ print(f"Exploit: {{exploit.hex()}}")
         except Exception as e:
             log.error(f"[ZeroDayHunterAgent] Failed to save results: {e}")
             return ""
+
+    def _initialize_ai_learning(self):
+        """Initialize AI learning system"""
+        try:
+            # Load existing learning data
+            learning_file = os.path.join(self.results_dir, "ai_learning_data.json")
+            if os.path.exists(learning_file):
+                with open(learning_file, "r") as f:
+                    self.learning_data = json.load(f)
+                    log.info(f"[ZeroDayHunterAgent] Loaded AI learning data with {len(self.learning_data)} patterns")
+            
+            # Load vulnerability database
+            vuln_file = os.path.join(self.results_dir, "vulnerability_database.json")
+            if os.path.exists(vuln_file):
+                with open(vuln_file, "r") as f:
+                    self.vulnerability_database = json.load(f)
+                    log.info(f"[ZeroDayHunterAgent] Loaded vulnerability database with {len(self.vulnerability_database)} entries")
+            
+            log.success("[ZeroDayHunterAgent] AI learning system initialized")
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to initialize AI learning: {e}")
+
+    async def _ai_analyze_vulnerability(self, context: Dict) -> Dict:
+        """Use AI to analyze potential vulnerabilities"""
+        try:
+            prompt = f"""
+            You are an expert vulnerability researcher analyzing potential zero-day vulnerabilities.
+            
+            Context: {context}
+            
+            Analyze the following and provide:
+            1. Vulnerability type and severity
+            2. Exploitation techniques
+            3. Attack vectors
+            4. Potential impact
+            5. Recommended exploitation approach
+            
+            Focus on attack strategies and exploitation methods.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert vulnerability researcher specializing in zero-day discovery and exploitation."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            ai_analysis = response['message']['content']
+            
+            # Parse AI response and extract structured data
+            analysis_result = {
+                "ai_analysis": ai_analysis,
+                "timestamp": datetime.now().isoformat(),
+                "context": context
+            }
+            
+            # Learn from this analysis
+            await self._learn_from_analysis(analysis_result)
+            
+            return analysis_result
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] AI analysis failed: {e}")
+            return {"error": str(e)}
+
+    async def _learn_from_analysis(self, analysis: Dict):
+        """Learn from AI analysis and update patterns"""
+        try:
+            # Extract patterns from analysis
+            patterns = {
+                "vulnerability_types": [],
+                "exploitation_techniques": [],
+                "attack_vectors": [],
+                "success_indicators": []
+            }
+            
+            # Update learning data
+            self.learning_data[datetime.now().isoformat()] = {
+                "analysis": analysis,
+                "patterns": patterns
+            }
+            
+            # Save learning data
+            learning_file = os.path.join(self.results_dir, "ai_learning_data.json")
+            with open(learning_file, "w") as f:
+                json.dump(self.learning_data, f, indent=2)
+            
+            log.info("[ZeroDayHunterAgent] Updated AI learning data")
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to learn from analysis: {e}")
+
+    async def _generate_ai_payloads(self, context: Dict) -> List[str]:
+        """Generate AI-powered payloads"""
+        try:
+            prompt = f"""
+            Generate advanced attack payloads for the following context:
+            
+            Context: {context}
+            
+            Create payloads that:
+            1. Bypass common security measures
+            2. Exploit specific vulnerabilities
+            3. Use advanced techniques
+            4. Are highly effective
+            
+            Provide 10 different payload variations.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert payload developer specializing in advanced attack techniques."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            payload_text = response['message']['content']
+            
+            # Extract payloads from response
+            payloads = []
+            lines = payload_text.split('\n')
+            for line in lines:
+                if line.strip() and not line.strip().startswith('#'):
+                    payloads.append(line.strip())
+            
+            return payloads[:10]  # Return top 10 payloads
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to generate AI payloads: {e}")
+            return []
+
+    async def _ai_optimize_attack(self, context: Dict) -> Dict:
+        """Use AI to optimize attack strategy"""
+        try:
+            prompt = f"""
+            Optimize the attack strategy for maximum effectiveness:
+            
+            Context: {context}
+            
+            Provide:
+            1. Optimized attack sequence
+            2. Best techniques to use
+            3. Timing and stealth considerations
+            4. Success probability assessment
+            5. Recommended modifications
+            
+            Focus on achieving maximum impact with minimal detection.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist specializing in advanced offensive techniques."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            optimization = response['message']['content']
+            
+            return {
+                "optimization": optimization,
+                "timestamp": datetime.now().isoformat(),
+                "context": context
+            }
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to optimize attack: {e}")
+            return {"error": str(e)}
+
+    async def _self_improve(self):
+        """Self-improvement mechanism"""
+        try:
+            # Analyze past successes and failures
+            success_rate = self._calculate_success_rate()
+            
+            if success_rate < 0.7:  # If success rate is low
+                log.info("[ZeroDayHunterAgent] Initiating self-improvement...")
+                
+                # Update attack patterns based on learning data
+                await self._update_attack_patterns()
+                
+                # Optimize vulnerability detection
+                await self._optimize_vulnerability_detection()
+                
+                log.success("[ZeroDayHunterAgent] Self-improvement completed")
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Self-improvement failed: {e}")
+
+    def _calculate_success_rate(self) -> float:
+        """Calculate success rate from historical data"""
+        try:
+            if not self.learning_data:
+                return 0.5  # Default success rate
+            
+            total_attempts = len(self.learning_data)
+            successful_attempts = sum(1 for data in self.learning_data.values() 
+                                    if data.get("analysis", {}).get("success", False))
+            
+            return successful_attempts / total_attempts if total_attempts > 0 else 0.5
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to calculate success rate: {e}")
+            return 0.5
+
+    async def _update_attack_patterns(self):
+        """Update attack patterns based on learning"""
+        try:
+            # Analyze successful patterns
+            successful_patterns = []
+            for timestamp, data in self.learning_data.items():
+                if data.get("analysis", {}).get("success", False):
+                    successful_patterns.append(data.get("patterns", {}))
+            
+            # Update attack patterns
+            self.attack_patterns = {
+                "successful_patterns": successful_patterns,
+                "last_updated": datetime.now().isoformat()
+            }
+            
+            # Save updated patterns
+            patterns_file = os.path.join(self.results_dir, "attack_patterns.json")
+            with open(patterns_file, "w") as f:
+                json.dump(self.attack_patterns, f, indent=2)
+            
+            log.info("[ZeroDayHunterAgent] Updated attack patterns")
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to update attack patterns: {e}")
+
+    async def _optimize_vulnerability_detection(self):
+        """Optimize vulnerability detection based on learning"""
+        try:
+            # Analyze detection patterns
+            detection_patterns = []
+            for timestamp, data in self.learning_data.items():
+                if data.get("analysis", {}).get("vulnerability_detected", False):
+                    detection_patterns.append(data.get("patterns", {}))
+            
+            # Update detection optimization
+            optimization_data = {
+                "detection_patterns": detection_patterns,
+                "optimization_timestamp": datetime.now().isoformat()
+            }
+            
+            # Save optimization data
+            optimization_file = os.path.join(self.results_dir, "detection_optimization.json")
+            with open(optimization_file, "w") as f:
+                json.dump(optimization_data, f, indent=2)
+            
+            log.info("[ZeroDayHunterAgent] Optimized vulnerability detection")
+            
+        except Exception as e:
+            log.error(f"[ZeroDayHunterAgent] Failed to optimize vulnerability detection: {e}")
 

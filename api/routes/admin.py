@@ -1,151 +1,505 @@
 """
-Admin API Routes
+dLNk Attack Platform - Admin API Routes
+Admin-only endpoints for key management, user management, and system settings
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
-from api.services.database import Database
-from api.services.auth import AuthService
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
 
-router = APIRouter()
+from api.middleware.auth_middleware import require_admin_key
+from api.database.db_service import db
+from loguru import logger
 
-# Dependency injection - will be set by main.py
-db: Database = None
-auth_service: AuthService = None
 
-def set_dependencies(database: Database, auth_svc: AuthService):
-    """Set dependencies from main.py"""
-    global db, auth_service
-    db = database
-    auth_service = auth_svc
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
+
+# ===== Request Models =====
 
 class CreateKeyRequest(BaseModel):
-    username: str
-    role: str = "user"
-    quota_limit: int = 100
+    key_type: str = Field(..., description="Key type: 'admin' or 'user'")
+    user_name: Optional[str] = Field(None, description="User name")
+    expires_in_days: Optional[int] = Field(None, description="Expiration in days")
+    usage_limit: Optional[int] = Field(None, description="Usage limit (NULL = unlimited)")
+    notes: Optional[str] = Field(None, description="Notes")
 
 
-class ToggleUserRequest(BaseModel):
-    is_active: bool
+class UpdateKeyRequest(BaseModel):
+    user_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    usage_limit: Optional[int] = None
+    notes: Optional[str] = None
 
+
+class UpdateSettingRequest(BaseModel):
+    value: str = Field(..., description="Setting value")
+
+
+# ===== Key Management Endpoints =====
 
 @router.post("/keys/create")
-async def create_key(request: CreateKeyRequest):
-    """สร้าง API Key ใหม่ (Admin only)"""
+async def create_api_key(
+    request: CreateKeyRequest,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """
+    Create new API key (Admin only)
+    
+    **Key Types:**
+    - `admin`: Unlimited usage, no expiration
+    - `user`: Limited usage, can expire
+    
+    **Example:**
+    ```json
+    {
+        "key_type": "user",
+        "user_name": "John Doe",
+        "expires_in_days": 30,
+        "usage_limit": 100,
+        "notes": "Test user"
+    }
+    ```
+    """
     try:
-        result = await auth_service.create_user_key(
-            username=request.username,
-            role=request.role,
-            quota_limit=request.quota_limit
+        # Validate key_type
+        if request.key_type not in ['admin', 'user']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="key_type must be 'admin' or 'user'"
+            )
+        
+        # Admin keys should not have limits
+        if request.key_type == 'admin':
+            request.expires_in_days = None
+            request.usage_limit = None
+        
+        # Create key
+        key = await db.create_api_key(
+            key_type=request.key_type,
+            user_name=request.user_name,
+            expires_in_days=request.expires_in_days,
+            usage_limit=request.usage_limit,
+            notes=request.notes
         )
-        return result
+        
+        logger.info(f"✅ Admin {admin_key.get('user_name')} created key: {key['key_value']}")
+        
+        return {
+            "success": True,
+            "message": "API key created successfully",
+            "key": key
+        }
+        
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"❌ Failed to create API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
+
+@router.get("/keys")
+async def list_api_keys(
+    key_type: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """
+    List all API keys (Admin only)
+    
+    **Filters:**
+    - `key_type`: Filter by key type ('admin' or 'user')
+    - `is_active`: Filter by active status
+    """
+    try:
+        keys = await db.list_api_keys(key_type=key_type, is_active=is_active)
+        
+        return {
+            "success": True,
+            "count": len(keys),
+            "keys": keys
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to list API keys: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/keys/{key_id}")
+async def get_api_key(
+    key_id: str,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get API key details (Admin only)"""
+    try:
+        key = await db.get_api_key(key_id)
+        
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+        
+        return {
+            "success": True,
+            "key": key
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.patch("/keys/{key_id}")
+async def update_api_key(
+    key_id: str,
+    request: UpdateKeyRequest,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Update API key (Admin only)"""
+    try:
+        # Build update dict
+        updates = {}
+        if request.user_name is not None:
+            updates['user_name'] = request.user_name
+        if request.is_active is not None:
+            updates['is_active'] = request.is_active
+        if request.usage_limit is not None:
+            updates['usage_limit'] = request.usage_limit
+        if request.notes is not None:
+            updates['notes'] = request.notes
+        
+        if not updates:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields to update"
+            )
+        
+        # Update key
+        key = await db.update_api_key(key_id, **updates)
+        
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+        
+        logger.info(f"✅ Admin {admin_key.get('user_name')} updated key: {key_id}")
+        
+        return {
+            "success": True,
+            "message": "API key updated successfully",
+            "key": key
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to update API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.post("/keys/{key_id}/revoke")
+async def revoke_api_key(
+    key_id: str,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Revoke API key (Admin only)"""
+    try:
+        success = await db.revoke_api_key(key_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+        
+        logger.info(f"✅ Admin {admin_key.get('user_name')} revoked key: {key_id}")
+        
+        return {
+            "success": True,
+            "message": "API key revoked successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to revoke API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.delete("/keys/{key_id}")
+async def delete_api_key(
+    key_id: str,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Delete API key (Admin only)"""
+    try:
+        success = await db.delete_api_key(key_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+        
+        logger.info(f"✅ Admin {admin_key.get('user_name')} deleted key: {key_id}")
+        
+        return {
+            "success": True,
+            "message": "API key deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to delete API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ===== Statistics Endpoints =====
+
+@router.get("/stats")
+async def get_statistics(
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get system statistics (Admin only)"""
+    try:
+        attack_stats = await db.get_attack_statistics()
+        key_stats = await db.get_key_statistics()
+        
+        return {
+            "success": True,
+            "attack_statistics": attack_stats,
+            "key_statistics": key_stats
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get statistics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/stats/attacks")
+async def get_attack_statistics(
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get attack statistics (Admin only)"""
+    try:
+        stats = await db.get_attack_statistics()
+        
+        return {
+            "success": True,
+            "statistics": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get attack statistics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/stats/keys")
+async def get_key_statistics(
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get key statistics (Admin only)"""
+    try:
+        stats = await db.get_key_statistics()
+        
+        return {
+            "success": True,
+            "statistics": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get key statistics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ===== System Settings Endpoints =====
+
+@router.get("/settings")
+async def get_settings(
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get all system settings (Admin only)"""
+    try:
+        settings = {
+            "line_contact_url": await db.get_setting("line_contact_url"),
+            "default_usage_limit": await db.get_setting("default_usage_limit"),
+            "rate_limit_per_minute": await db.get_setting("rate_limit_per_minute"),
+            "attack_timeout_seconds": await db.get_setting("attack_timeout_seconds"),
+            "data_retention_days": await db.get_setting("data_retention_days")
+        }
+        
+        return {
+            "success": True,
+            "settings": settings
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get settings: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/settings/{key}")
+async def get_setting(
+    key: str,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get system setting (Admin only)"""
+    try:
+        value = await db.get_setting(key)
+        
+        if value is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Setting not found"
+            )
+        
+        return {
+            "success": True,
+            "key": key,
+            "value": value
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get setting: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.put("/settings/{key}")
+async def update_setting(
+    key: str,
+    request: UpdateSettingRequest,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """
+    Update system setting (Admin only)
+    
+    **Available Settings:**
+    - `line_contact_url`: LINE contact URL for admin
+    - `default_usage_limit`: Default usage limit for new keys
+    - `rate_limit_per_minute`: API rate limit per minute
+    - `attack_timeout_seconds`: Default attack timeout
+    - `data_retention_days`: Days to retain attack data
+    """
+    try:
+        await db.set_setting(key, request.value)
+        
+        logger.info(f"✅ Admin {admin_key.get('user_name')} updated setting: {key} = {request.value}")
+        
+        return {
+            "success": True,
+            "message": "Setting updated successfully",
+            "key": key,
+            "value": request.value
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to update setting: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ===== User Management Endpoints =====
 
 @router.get("/users")
-async def get_all_users():
-    """ดูรายการ Users ทั้งหมด (Admin only)"""
-    users = await db.get_all_users()
-    return {"users": users}
-
-
-@router.delete("/users/{user_id}")
-async def delete_user(user_id: int):
-    """ลบ User (Admin only)"""
+async def list_users(
+    admin_key: dict = Depends(require_admin_key)
+):
+    """List all users (Admin only)"""
     try:
-        await db.delete_user(user_id)
-        return {"success": True, "message": "User deleted"}
+        # Get user keys
+        keys = await db.list_api_keys(key_type='user')
+        
+        # Get statistics for each user
+        users = []
+        for key in keys:
+            attacks = await db.list_attacks(key_id=key['id'])
+            
+            users.append({
+                "key_id": key['id'],
+                "key_value": key['key_value'],
+                "user_name": key['user_name'],
+                "created_at": key['created_at'],
+                "is_active": key['is_active'],
+                "usage_count": key['usage_count'],
+                "usage_limit": key['usage_limit'],
+                "total_attacks": len(attacks),
+                "last_used_at": key['last_used_at']
+            })
+        
+        return {
+            "success": True,
+            "count": len(users),
+            "users": users
+        }
+        
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"❌ Failed to list users: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
-@router.post("/users/{user_id}/toggle")
-async def toggle_user(user_id: int, request: ToggleUserRequest):
-    """เปิด/ปิด User (Admin only)"""
+@router.get("/users/{key_id}/attacks")
+async def get_user_attacks(
+    key_id: str,
+    admin_key: dict = Depends(require_admin_key)
+):
+    """Get user's attack history (Admin only)"""
     try:
-        await db.toggle_user_status(user_id, request.is_active)
-        return {"success": True, "message": "User status updated"}
+        attacks = await db.list_attacks(key_id=key_id)
+        
+        return {
+            "success": True,
+            "count": len(attacks),
+            "attacks": attacks
+        }
+        
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/attacks")
-async def get_all_attacks(limit: int = 100):
-    """ดูการโจมตีทั้งหมด (Admin only)"""
-    attacks = await db.get_all_attacks(limit)
-    return {"attacks": attacks}
-
-
-@router.get("/logs/agents")
-async def get_agent_logs(limit: int = 500):
-    """ดู Agent logs ทั้งหมด (Admin only)"""
-    logs = await db.get_all_agent_logs(limit)
-    return {"logs": logs}
-
-
-@router.get("/logs/system")
-async def get_system_logs(limit: int = 500):
-    """ดู System logs ทั้งหมด (Admin only)"""
-    logs = await db.get_system_logs(limit)
-    return {"logs": logs}
-
-
-@router.get("/system/status")
-async def get_system_status():
-    """ดูสถานะระบบ (Admin only)"""
-    import psutil
-    import ollama
-    
-    # System resources
-    cpu_percent = psutil.cpu_percent(interval=1)
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
-    # LLM status
-    try:
-        models = ollama.list()
-        llm_status = {
-            "available": True,
-            "models": [
-                {
-                    "name": model["name"],
-                    "size": model.get("size", 0),
-                    "modified": model.get("modified_at", "")
-                }
-                for model in models.get("models", [])
-            ]
-        }
-    except Exception as e:
-        llm_status = {
-            "available": False,
-            "error": str(e)
-        }
-    
-    # Database status
-    db_status = await db.health_check()
-    
-    # Active attacks
-    active_attacks = await db.get_active_attacks_count()
-    
-    return {
-        "system": {
-            "cpu_percent": cpu_percent,
-            "memory_percent": memory.percent,
-            "memory_used_gb": round(memory.used / (1024**3), 2),
-            "memory_total_gb": round(memory.total / (1024**3), 2),
-            "disk_percent": disk.percent,
-            "disk_used_gb": round(disk.used / (1024**3), 2),
-            "disk_total_gb": round(disk.total / (1024**3), 2)
-        },
-        "llm": llm_status,
-        "database": {
-            "status": "healthy" if db_status else "unhealthy"
-        },
-        "attacks": {
-            "active": active_attacks
-        }
-    }
+        logger.error(f"❌ Failed to get user attacks: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 

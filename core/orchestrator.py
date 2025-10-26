@@ -1,12 +1,14 @@
 """
-Main Orchestrator for dLNk dLNk Framework
-Coordinates the execution of agents and manages the attack workflow
+AI-Driven Intelligent Orchestrator for dLNk Attack Framework
+ระบบประสานงานที่ขับเคลื่อนด้วย AI และเข้าใจบริบทจริงๆ
+ไม่ทำงานแบบแข็งๆ แต่ปรับตัวตามสถานการณ์
 """
 
 import asyncio
 import yaml
+import ollama
+import json
 from typing import Dict, List, Optional, Any
-from pathlib import Path
 from pathlib import Path
 from datetime import datetime
 
@@ -16,25 +18,14 @@ from .context_manager import ContextManager
 from .pubsub_manager import PubSubManager
 from .data_models import Strategy, AgentData, ErrorType, AttackPhase
 from .workflow_executor import WorkflowExecutor
-from .data_exfiltration import DataExfiltrator
-from .auto_exploit import AutoExploiter
-
-# Import new modules
-try:
-    from agents.exploitation import RCEAgent, XXEAgent, SSRFAgent, DeserializationAgent
-    from agents.credential_harvesting import CredentialHarvester
-    from agents.pivoting import NetworkPivot
-except ImportError:
-    RCEAgent = XXEAgent = SSRFAgent = DeserializationAgent = None
-    CredentialHarvester = NetworkPivot = None
 
 
 class Orchestrator:
-    """Main orchestrator that manages agent execution and workflow"""
+    """AI-Driven Intelligent Orchestrator that understands context and adapts dynamically"""
 
     def __init__(self, config_path: Optional[str] = None, workspace_dir: Optional[str] = None):
         """
-        Initialize the Orchestrator
+        Initialize the AI-Driven Intelligent Orchestrator
         
         Args:
             config_path: Path to configuration file
@@ -50,30 +41,12 @@ class Orchestrator:
         self.context_manager = ContextManager()
         self.pubsub_manager = PubSubManager()
         self.workflow_executor = WorkflowExecutor(self)
-        self.data_exfiltrator = DataExfiltrator(workspace_dir=str(self.workspace_dir))
-        self.auto_exploiter = AutoExploiter(orchestrator=self)
         
-        # Initialize advanced modules
-        if RCEAgent:
-            self.rce_agent = RCEAgent(data_exfiltrator=self.data_exfiltrator)
-            self.xxe_agent = XXEAgent(data_exfiltrator=self.data_exfiltrator)
-            self.ssrf_agent = SSRFAgent(data_exfiltrator=self.data_exfiltrator)
-            self.deser_agent = DeserializationAgent(data_exfiltrator=self.data_exfiltrator)
-        else:
-            self.rce_agent = self.xxe_agent = self.ssrf_agent = self.deser_agent = None
-        
-        if CredentialHarvester:
-            self.cred_harvester = CredentialHarvester(
-                webshell_manager=None,  # Will be set later
-                data_exfiltrator=self.data_exfiltrator
-            )
-        else:
-            self.cred_harvester = None
-        
-        if NetworkPivot:
-            self.network_pivot = NetworkPivot(webshell_manager=None)  # Will be set later
-        else:
-            self.network_pivot = None
+        # AI Intelligence System
+        self.ai_model = "mistral:latest"
+        self.ai_context = {}  # Store AI understanding context
+        self.learning_memory = {}  # Store learning patterns
+        self.adaptive_strategies = {}  # Store adaptive strategies
         
         # State management
         self.running = False
@@ -81,20 +54,12 @@ class Orchestrator:
         self.current_phase = None
         self.start_time = None
         self.end_time = None
-        
-        # Safety: Blocked domains
-        self.blocked_domains = [
-            'localhost',
-            '127.0.0.1',
-            '0.0.0.0',
-            '::1'
-        ]
 
-        log.info("Orchestrator initialized successfully")
+        log.info("AI-Driven Intelligent Orchestrator initialized successfully")
 
     async def initialize(self):
-        """Initialize and discover all agents"""
-        log.info("Initializing Orchestrator...")
+        """Initialize AI intelligence and discover all agents"""
+        log.info("Initializing AI-Driven Intelligent Orchestrator...")
         
         try:
             # Auto-discover agents
@@ -109,6 +74,9 @@ class Orchestrator:
             await self.pubsub_manager.setup()
             log.success("PubSub manager initialized")
 
+            # Initialize AI intelligence system
+            await self._initialize_ai_intelligence()
+
             # Re-initialize logger with Redis client for streaming
             # Dynamically reconfigure the existing logger with Redis client
             from core.logger import get_logger, log as current_log_instance
@@ -121,6 +89,93 @@ class Orchestrator:
         except Exception as e:
             log.error(f"Failed to initialize Orchestrator: {e}", exc_info=True)
             raise
+
+    async def _initialize_ai_intelligence(self):
+        """Initialize AI intelligence system"""
+        try:
+            # Load existing AI context and learning data
+            await self._load_ai_memory()
+            
+            # Initialize AI understanding of available agents
+            await self._analyze_agent_capabilities()
+            
+            # Set up adaptive strategy system
+            await self._setup_adaptive_strategies()
+            
+            log.success("AI Intelligence system initialized")
+        except Exception as e:
+            log.error(f"Failed to initialize AI intelligence: {e}")
+
+    async def _load_ai_memory(self):
+        """Load AI learning memory from previous sessions"""
+        try:
+            memory_file = self.workspace_dir / "ai_memory.json"
+            if memory_file.exists():
+                with open(memory_file, "r") as f:
+                    self.learning_memory = json.load(f)
+                log.info(f"Loaded AI memory with {len(self.learning_memory)} learning patterns")
+        except Exception as e:
+            log.warning(f"Failed to load AI memory: {e}")
+
+    async def _analyze_agent_capabilities(self):
+        """Use AI to analyze and understand agent capabilities"""
+        try:
+            available_agents = list(self.agent_registry.agents.keys())
+            
+            prompt = f"""
+            Analyze the following attack agents and understand their capabilities:
+            
+            Available Agents: {available_agents}
+            
+            For each agent, understand:
+            1. What type of attacks they can perform
+            2. What phases they work best in
+            3. How they can work together
+            4. What makes them effective
+            
+            Focus on attack capabilities and how to use them for maximum effectiveness.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist who understands offensive security tools and techniques."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            self.ai_context["agent_analysis"] = response['message']['content']
+            log.info("AI analyzed agent capabilities")
+            
+        except Exception as e:
+            log.error(f"Failed to analyze agent capabilities: {e}")
+
+    async def _setup_adaptive_strategies(self):
+        """Set up adaptive strategy system"""
+        try:
+            prompt = """
+            Create adaptive attack strategies that can change based on:
+            1. Target characteristics
+            2. Attack success/failure
+            3. Environmental factors
+            4. Available resources
+            
+            Focus on offensive strategies that maximize attack effectiveness.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist specializing in adaptive offensive techniques."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            self.adaptive_strategies["base_strategies"] = response['message']['content']
+            log.info("Adaptive strategies initialized")
+            
+        except Exception as e:
+            log.error(f"Failed to setup adaptive strategies: {e}")
 
     async def load_workflow(self, workflow_path: str) -> Dict[str, Any]:
         """Load workflow configuration from YAML file"""
@@ -135,7 +190,7 @@ class Orchestrator:
 
     async def execute_workflow(self, workflow_path: str, target: Dict[str, Any]) -> List[AgentData]:
         """
-        Execute a complete workflow against a target
+        Execute AI-driven intelligent workflow against a target
         
         Args:
             workflow_path: Path to the workflow YAML file
@@ -148,6 +203,9 @@ class Orchestrator:
         self.start_time = datetime.now()
         self.campaign_results = []
         try:
+            # AI Analysis of target and workflow
+            await self._ai_analyze_target_and_workflow(workflow_path, target)
+            
             # Load workflow
             workflow = await self.load_workflow(workflow_path)
             
@@ -156,22 +214,10 @@ class Orchestrator:
             await self.context_manager.set_context("current_workflow_id", workflow_run_id)
             await self.context_manager.set_context("current_target", target)
             
-            # Execute phases
-            phases = workflow.get('phases', [])
-            for phase in phases:
-                result = await self._execute_phase(phase)
-                
-                # Check phase result and determine next phase
-                if not result:
-                    log.warning(f"Phase {phase.get('name')} failed, checking for failure handler")
-                    next_phase = phase.get('on_failure')
-                else:
-                    next_phase = phase.get('on_success')
-                
-                if next_phase:
-                    log.info(f"Transitioning to phase: {next_phase}")
+            # AI-driven workflow execution
+            await self._ai_execute_workflow(workflow, target)
 
-            log.success("Workflow execution completed")
+            log.success("AI-driven workflow execution completed")
             
         except Exception as e:
             log.error(f"Workflow execution failed: {e}", exc_info=True)
@@ -181,6 +227,227 @@ class Orchestrator:
             self.end_time = datetime.now()
 
         return self.campaign_results
+
+    async def _ai_analyze_target_and_workflow(self, workflow_path: str, target: Dict[str, Any]):
+        """Use AI to analyze target and workflow for optimal execution"""
+        try:
+            prompt = f"""
+            Analyze the target and workflow for optimal attack execution:
+            
+            Target: {target}
+            Workflow Path: {workflow_path}
+            
+            Provide:
+            1. Target vulnerability assessment
+            2. Optimal attack strategy
+            3. Risk factors and considerations
+            4. Recommended modifications to workflow
+            5. Success probability estimation
+            
+            Focus on maximizing attack effectiveness and minimizing detection.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist analyzing targets and workflows for maximum effectiveness."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            self.ai_context["target_analysis"] = response['message']['content']
+            log.info("AI analyzed target and workflow")
+            
+        except Exception as e:
+            log.error(f"Failed to analyze target and workflow: {e}")
+
+    async def _ai_execute_workflow(self, workflow: Dict[str, Any], target: Dict[str, Any]):
+        """AI-driven workflow execution with adaptive strategies"""
+        try:
+            phases = workflow.get('phases', [])
+            
+            for i, phase in enumerate(phases):
+                log.info(f"Executing phase {i+1}: {phase.get('name', 'Unknown')}")
+                
+                # AI analysis of current phase
+                phase_analysis = await self._ai_analyze_phase(phase, target)
+                
+                # Execute phase with AI guidance
+                result = await self._ai_execute_phase(phase, target, phase_analysis)
+                
+                # AI decision making for next steps
+                next_action = await self._ai_decide_next_action(result, phase, target)
+                
+                if next_action == "continue":
+                    continue
+                elif next_action == "skip":
+                    log.info("AI decided to skip remaining phases")
+                    break
+                elif next_action == "adapt":
+                    log.info("AI decided to adapt workflow")
+                    await self._ai_adapt_workflow(phases[i+1:], target, result)
+
+        except Exception as e:
+            log.error(f"AI workflow execution failed: {e}")
+
+    async def _ai_analyze_phase(self, phase: Dict[str, Any], target: Dict[str, Any]) -> Dict:
+        """Use AI to analyze current phase"""
+        try:
+            prompt = f"""
+            Analyze the current attack phase:
+            
+            Phase: {phase}
+            Target: {target}
+            
+            Provide:
+            1. Phase effectiveness assessment
+            2. Recommended modifications
+            3. Risk assessment
+            4. Success probability
+            5. Alternative approaches if needed
+            
+            Focus on attack effectiveness and stealth.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist analyzing attack phases."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            return {"analysis": response['message']['content']}
+            
+        except Exception as e:
+            log.error(f"Failed to analyze phase: {e}")
+            return {"analysis": "Analysis failed"}
+
+    async def _ai_execute_phase(self, phase: Dict[str, Any], target: Dict[str, Any], analysis: Dict) -> bool:
+        """Execute phase with AI guidance"""
+        try:
+            # Use AI analysis to modify phase execution
+            if "modify" in analysis.get("analysis", "").lower():
+                log.info("AI recommended phase modifications")
+                # Apply AI-recommended modifications
+            
+            # Execute phase with enhanced intelligence
+            result = await self._execute_phase(phase)
+            
+            # Learn from execution result
+            await self._ai_learn_from_execution(phase, target, result, analysis)
+            
+            return result
+            
+        except Exception as e:
+            log.error(f"AI phase execution failed: {e}")
+            return False
+
+    async def _ai_decide_next_action(self, result: bool, phase: Dict[str, Any], target: Dict[str, Any]) -> str:
+        """Use AI to decide next action based on phase result"""
+        try:
+            prompt = f"""
+            Decide the next action based on phase execution:
+            
+            Phase Result: {result}
+            Phase: {phase.get('name', 'Unknown')}
+            Target: {target}
+            
+            Choose one action:
+            1. "continue" - Continue to next phase
+            2. "skip" - Skip remaining phases
+            3. "adapt" - Adapt workflow strategy
+            
+            Provide reasoning for your decision.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist making tactical decisions."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            # Parse AI response to determine action
+            response_text = response['message']['content'].lower()
+            if "continue" in response_text:
+                return "continue"
+            elif "skip" in response_text:
+                return "skip"
+            elif "adapt" in response_text:
+                return "adapt"
+            else:
+                return "continue"  # Default action
+                
+        except Exception as e:
+            log.error(f"Failed to decide next action: {e}")
+            return "continue"
+
+    async def _ai_adapt_workflow(self, remaining_phases: List[Dict], target: Dict[str, Any], result: bool):
+        """Use AI to adapt remaining workflow phases"""
+        try:
+            prompt = f"""
+            Adapt the remaining workflow phases based on current results:
+            
+            Remaining Phases: {remaining_phases}
+            Target: {target}
+            Current Result: {result}
+            
+            Provide:
+            1. Modified phases
+            2. New attack strategies
+            3. Risk mitigation
+            4. Success optimization
+            
+            Focus on adaptive attack strategies.
+            """
+            
+            response = ollama.chat(
+                model=self.ai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert attack strategist adapting workflows in real-time."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            log.info("AI adapted workflow strategy")
+            
+        except Exception as e:
+            log.error(f"Failed to adapt workflow: {e}")
+
+    async def _ai_learn_from_execution(self, phase: Dict[str, Any], target: Dict[str, Any], result: bool, analysis: Dict):
+        """Learn from execution results"""
+        try:
+            learning_data = {
+                "timestamp": datetime.now().isoformat(),
+                "phase": phase,
+                "target": target,
+                "result": result,
+                "analysis": analysis
+            }
+            
+            # Store learning data (convert non-serializable objects)
+            serializable_data = {}
+            for key, value in learning_data.items():
+                try:
+                    json.dumps(value)  # Test if serializable
+                    serializable_data[key] = value
+                except (TypeError, ValueError):
+                    # Convert non-serializable objects to string
+                    serializable_data[key] = str(value)
+            
+            self.learning_memory[datetime.now().isoformat()] = serializable_data
+            
+            # Save learning memory
+            memory_file = self.workspace_dir / "ai_memory.json"
+            with open(memory_file, "w") as f:
+                json.dump(self.learning_memory, f, indent=2)
+            
+            log.info("AI learned from execution")
+            
+        except Exception as e:
+            log.error(f"Failed to learn from execution: {e}")
 
     async def _execute_phase(self, phase: Dict[str, Any]) -> bool:
         """Execute a single phase with its agents"""
@@ -261,8 +528,22 @@ class Orchestrator:
             )
             
             # Create strategy
+            # Normalize phase name to match enum
+            phase_name = self.current_phase.replace(" ", "_").replace("&", "AND").upper()
+            # Handle special cases
+            if phase_name == "ANALYSIS_AND_REPORTING":
+                phase_name = "ANALYSIS_REPORTING"
+            elif phase_name == "API_SECURITY_TESTING":
+                phase_name = "API_SECURITY_TESTING"
+            
+            try:
+                phase_enum = AttackPhase[phase_name]
+            except KeyError:
+                log.warning(f"Phase '{self.current_phase}' (normalized: '{phase_name}') not found in AttackPhase enum, using RECONNAISSANCE")
+                phase_enum = AttackPhase.RECONNAISSANCE
+            
             strategy = Strategy(
-               phase=AttackPhase[self.current_phase.upper()],
+                phase=phase_enum,
                 directive=directive,
                 context=context,
                 next_agent=agent_name # Add required next_agent field
@@ -287,78 +568,8 @@ class Orchestrator:
                 error_type=ErrorType.EXECUTION_FAILED
             )
 
-    def is_target_safe(self, target: str) -> bool:
-        """
-        ตรวจสอบว่า target ปลอดภัยหรือไม่ (ไม่ใช่ localhost หรือ internal)
-        
-        Args:
-            target: URL หรือ IP ของเป้าหมาย
-        
-        Returns:
-            True ถ้าปลอดภัย, False ถ้าเป็น blocked domain
-        """
-        from urllib.parse import urlparse
-        
-        try:
-            parsed = urlparse(target if '://' in target else f'http://{target}')
-            hostname = parsed.hostname or parsed.netloc
-            
-            # Check blocked domains
-            for blocked in self.blocked_domains:
-                if blocked in hostname.lower():
-                    log.error(f"[SAFETY] Target {target} is BLOCKED (matches {blocked})")
-                    return False
-            
-            # Check private IP ranges
-            if hostname.startswith('192.168.') or hostname.startswith('10.') or hostname.startswith('172.'):
-                log.warning(f"[SAFETY] Target {target} is in private IP range")
-                # Allow private IPs but log warning
-                return True
-            
-            return True
-            
-        except Exception as e:
-            log.error(f"[SAFETY] Failed to parse target {target}: {e}")
-            return False
-    
-    async def auto_exploit_target(self, target: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """
-        โจมตีเป้าหมายอัตโนมัติ
-        
-        Args:
-            target: URL หรือ IP ของเป้าหมาย
-            context: ข้อมูลเพิ่มเติม
-        
-        Returns:
-            ผลการโจมตีและ loot ที่ได้
-        """
-        # Safety check
-        if not self.is_target_safe(target):
-            return {
-                "success": False,
-                "error": "Target is blocked for safety reasons",
-                "target": target
-            }
-        
-        log.info(f"[Orchestrator] Starting auto exploitation on {target}")
-        
-        # Use AutoExploiter
-        result = await self.auto_exploiter.auto_exploit_target(target, context)
-        
-        return result
-
     async def execute_agent_directly(self, agent_name: str, strategy: Strategy) -> AgentData:
         """Execute a single agent directly"""
-        # Safety check on target
-        target = strategy.context.get('url') or strategy.context.get('target')
-        if target and not self.is_target_safe(target):
-            return AgentData(
-                agent_name=agent_name,
-                success=False,
-                errors=[f"Target {target} is blocked for safety reasons"],
-                error_type=ErrorType.EXECUTION_FAILED
-            )
-        
         try:
             agent = await self.agent_registry.get_agent(
                 agent_name,

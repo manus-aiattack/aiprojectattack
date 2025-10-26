@@ -1,3 +1,0 @@
-Test file for GitHub write access check.
-Date: 2025-10-25
-Status: Initial content

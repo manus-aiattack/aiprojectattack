@@ -1,114 +1,78 @@
 """
-dLNk dLNk Attack Platform - Backend API
-FastAPI application with WebSocket support
-Merged version combining best features from both versions
+dLNk Attack Platform - Complete API Server
+Integrates ALL routes and features from all main files
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
-import os
 from typing import List, Dict, Any
 from datetime import datetime
+import os
 
+# Services
 from api.services.database import Database
 from api.services.auth import AuthService
 from api.services.attack_manager import AttackManager
 from api.services.websocket_manager import WebSocketManager
-from api.routes import auth, admin, attack, files
 from core.logger import log
 
+# Import ALL routes
+from api.routes import (
+    auth, admin, attack, files,  # v1 routes
+    admin_v2, attack_v2,  # v2 routes
+    ai, scan, exploit, knowledge, statistics,  # feature routes
+    c2, fuzzing, learning_routes, one_click_attack, zeroday_routes, monitoring  # additional routes
+)
 
 # WebSocket Manager
 ws_manager = WebSocketManager()
 
-# Database - Auto-detect PostgreSQL or fallback to SQLite
-async def get_database():
-    """Get database instance with auto-detection"""
-    try:
-        from api.services.database import Database
-        db = Database()
-        # Try to connect to PostgreSQL
-        await db.connect()
-        log.success("[API] Using PostgreSQL database")
-        return db
-    except Exception as e:
-        log.warning(f"[API] PostgreSQL unavailable: {e}")
-        log.info("[API] Falling back to SQLite database")
-        from api.services.database_sqlite import DatabaseSQLite
-        db = DatabaseSQLite()
-        await db.connect()
-        log.success("[API] Using SQLite database (fallback)")
-        return db
+# Database
+db = Database()
 
-db = None  # Will be initialized in lifespan
-auth_service = None
-attack_manager = None
+# Services
+auth_service = AuthService(db)
+attack_manager = AttackManager(db, ws_manager)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
-    global db, auth_service, attack_manager
-    
     # Startup
-    log.info("[API] Starting dLNk dLNk Attack Platform API...")
-    
-    # Initialize database with auto-detection
-    db = await get_database()
-    
-    # Initialize services
-    auth_service = AuthService(db)
-    attack_manager = AttackManager(db, ws_manager)
-    
-    # Create default admin if not exists
-    admin_key = await db.create_default_admin()
-    log.success(f"[API] Admin API Key: {admin_key}")
-    
-    # Set dependencies for routers AFTER initialization
-    from api.routes import auth, admin, attack, files
-    auth.set_dependencies(db, auth_service)
-    admin.set_dependencies(db, auth_service)
-    attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
-    files.set_dependencies(db, auth_service)
-    
-    # Set license routes dependencies if available
-    try:
-        from api import license_routes
-        license_routes.set_dependencies(db, auth_service)
-    except ImportError:
-        pass
-    
-    log.success("[API] Dependencies injected successfully")
+    log.info("[API] Starting dLNk Attack Platform API (Complete Edition)...")
+    await db.connect()
+    log.success("[API] Database connected")
     
     yield
     
     # Shutdown
     log.info("[API] Shutting down...")
-    if db:
-        await db.disconnect()
-        log.info("[API] Database disconnected")
+    await db.disconnect()
+    log.info("[API] Database disconnected")
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="dLNk dLNk Attack Platform API",
-    description="Advanced Penetration Testing Platform with AI-powered Zero-Day Discovery",
-    version="2.0.0",
-    lifespan=lifespan
+    title="dLNk Attack Platform API - Complete Edition",
+    description="Advanced Penetration Testing Platform with AI-powered Zero-Day Discovery - All Features Integrated",
+    version="3.0.0-complete",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-# CORS - Production Security Fix
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8080"],  # Specific origins only
+    allow_origins=["*"],  # In production, specify exact origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["X-API-Key", "Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -150,15 +114,126 @@ async def verify_admin(user: Dict = Depends(verify_api_key)):
     return user
 
 
-# Root endpoint
-@app.get("/")
+# Root endpoint with beautiful HTML
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {
-        "name": "dLNk dLNk Attack Platform API",
-        "version": "2.0.0",
-        "status": "operational",
-        "timestamp": datetime.now().isoformat()
-    }
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>dLNk Attack Platform API</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+                color: #e0e0e0;
+                padding: 40px;
+                margin: 0;
+            }
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+                background: rgba(26, 31, 58, 0.8);
+                border: 1px solid rgba(0, 255, 136, 0.3);
+                border-radius: 15px;
+                padding: 40px;
+            }
+            h1 {
+                color: #00ff88;
+                text-align: center;
+                font-size: 36px;
+                margin-bottom: 10px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #b0b0b0;
+                margin-bottom: 40px;
+            }
+            .links {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-top: 30px;
+            }
+            .link-card {
+                background: rgba(10, 14, 39, 0.8);
+                border: 1px solid rgba(0, 255, 136, 0.3);
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                text-decoration: none;
+                color: #e0e0e0;
+                transition: all 0.3s ease;
+            }
+            .link-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+                border-color: #00ff88;
+            }
+            .link-icon {
+                font-size: 48px;
+                margin-bottom: 10px;
+            }
+            .link-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #00ff88;
+                margin-bottom: 5px;
+            }
+            .link-desc {
+                font-size: 14px;
+                color: #b0b0b0;
+            }
+            .status {
+                background: rgba(0, 255, 136, 0.2);
+                border: 1px solid #00ff88;
+                border-radius: 20px;
+                padding: 8px 16px;
+                display: inline-block;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎯 dLNk Attack Platform API</h1>
+            <p class="subtitle">Advanced AI-Driven Penetration Testing Framework - Complete Edition v3.0.0</p>
+            
+            <div style="text-align: center;">
+                <span class="status">🟢 ALL SYSTEMS OPERATIONAL</span>
+            </div>
+            
+            <div class="links">
+                <a href="/docs" class="link-card">
+                    <div class="link-icon">📚</div>
+                    <div class="link-title">API Documentation</div>
+                    <div class="link-desc">Interactive Swagger UI</div>
+                </a>
+                
+                <a href="/health" class="link-card">
+                    <div class="link-icon">💚</div>
+                    <div class="link-title">Health Check</div>
+                    <div class="link-desc">System status</div>
+                </a>
+                
+                <a href="/api/status" class="link-card">
+                    <div class="link-icon">📊</div>
+                    <div class="link-title">System Status</div>
+                    <div class="link-desc">Detailed metrics</div>
+                </a>
+            </div>
+            
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center; color: #b0b0b0; font-size: 14px;">
+                <p>dLNk Attack Platform v3.0.0 - Complete Edition</p>
+                <p>© 2024 dLNk Team. All rights reserved.</p>
+                <p style="margin-top: 10px; font-size: 12px;">
+                    ⚠️ Authorized Use Only - Unauthorized access is illegal
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
 
 
 # Health check
@@ -168,192 +243,136 @@ async def health_check():
     return {
         "status": "healthy",
         "database": await db.health_check(),
-        "timestamp": datetime.now().isoformat()
-    }
-
-
-# API Status endpoint
-@app.get("/api/status")
-async def api_status():
-    """API Status endpoint"""
-    return {
-        "status": "operational",
-        "database": await db.health_check(),
         "timestamp": datetime.now().isoformat(),
-        "version": "2.0.0"
+        "version": "3.0.0-complete"
     }
 
 
-# WebSocket endpoint for real-time attack updates
-@app.websocket("/ws/attack/{attack_id}")
-async def websocket_attack(websocket: WebSocket, attack_id: str):
-    """WebSocket for real-time attack updates"""
-    try:
-        await ws_manager.connect(websocket, attack_id)
-        while True:
-            # Keep connection alive and handle client messages
-            try:
-                data = await websocket.receive_text()
-                # Echo back with timestamp
-                await websocket.send_json({
-                    "type": "pong", 
-                    "timestamp": datetime.now().isoformat(),
-                    "attack_id": attack_id
-                })
-            except Exception as e:
-                log.error(f"[WebSocket] Error handling message: {e}")
-                break
-    except WebSocketDisconnect:
-        ws_manager.disconnect(websocket, attack_id)
-    except Exception as e:
-        log.error(f"[WebSocket] Connection error: {e}")
-        try:
-            await websocket.close()
-        except Exception:
-            pass
-        ws_manager.disconnect(websocket, attack_id)
-
-
-# WebSocket endpoint for system monitoring (Admin only)
-@app.websocket("/ws/system")
-async def websocket_system(websocket: WebSocket):
-    """WebSocket for system monitoring (Admin only)"""
-    try:
-        # Get API key from query parameters for WebSocket auth
-        api_key = websocket.query_params.get("api_key")
-        if not api_key:
-            await websocket.close(code=1008, reason="API key required")
-            return
-        
-        # Verify admin key
-        user = await auth_service.verify_key(api_key)
-        if not user or user.get("role") != "admin":
-            await websocket.close(code=1008, reason="Admin access required")
-            return
-        
-        await ws_manager.connect_system(websocket)
-        while True:
-            try:
-                data = await websocket.receive_text()
-                # Handle system monitoring requests
-                await websocket.send_json({
-                    "type": "system_status", 
-                    "data": await get_system_status()
-                })
-            except Exception as e:
-                log.error(f"[WebSocket] System monitoring error: {e}")
-                break
-    except WebSocketDisconnect:
-        ws_manager.disconnect_system(websocket)
-    except Exception as e:
-        log.error(f"[WebSocket] System connection error: {e}")
-        try:
-            await websocket.close()
-        except Exception:
-            pass
-        ws_manager.disconnect_system(websocket)
-
-
-async def get_system_status() -> Dict:
-    """Get system status"""
-    try:
-        import psutil
-    except ImportError:
-        psutil = None
+# System status endpoint
+@app.get("/api/status")
+async def get_system_status():
+    """Get detailed system status"""
+    import psutil
     
     try:
         import ollama
-    except ImportError:
-        ollama = None
-    
-    # CPU and Memory
-    if psutil:
-        cpu_percent = psutil.cpu_percent(interval=1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
-        system_info = {
-            "cpu_percent": cpu_percent,
-            "memory_percent": memory.percent,
-            "memory_used_gb": memory.used / (1024**3),
-            "memory_total_gb": memory.total / (1024**3),
-            "disk_percent": disk.percent,
-            "disk_used_gb": disk.used / (1024**3),
-            "disk_total_gb": disk.total / (1024**3)
+        models = ollama.list()
+        llm_status = {
+            "available": True,
+            "models": [model["name"] for model in models.get("models", [])],
+            "count": len(models.get("models", []))
         }
-    else:
-        system_info = {
-            "cpu_percent": 0,
-            "memory_percent": 0,
-            "memory_used_gb": 0,
-            "memory_total_gb": 0,
-            "disk_percent": 0,
-            "disk_used_gb": 0,
-            "disk_total_gb": 0,
-            "error": "psutil not available"
-        }
-    
-    # LLM Status
-    llm_status = {}
-    if ollama:
-        try:
-            models = ollama.list()
-            llm_status = {
-                "available": True,
-                "models": [model["name"] for model in models.get("models", [])],
-                "count": len(models.get("models", []))
-            }
-        except Exception as e:
-            llm_status = {
-                "available": False,
-                "error": str(e)
-            }
-    else:
+    except Exception as e:
         llm_status = {
             "available": False,
-            "error": "ollama not available"
+            "error": str(e)
         }
+    
+    # CPU and Memory
+    cpu_percent = psutil.cpu_percent(interval=1)
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
     
     # Active attacks
     try:
         active_attacks = await db.get_active_attacks_count()
-    except Exception as e:
+    except:
         active_attacks = 0
-        log.error(f"Error getting active attacks count: {e}")
     
     return {
         "timestamp": datetime.now().isoformat(),
-        "system": system_info,
+        "version": "3.0.0-complete",
+        "system": {
+            "cpu_percent": cpu_percent,
+            "memory_percent": memory.percent,
+            "memory_used_gb": round(memory.used / (1024**3), 2),
+            "memory_total_gb": round(memory.total / (1024**3), 2),
+            "disk_percent": disk.percent,
+            "disk_used_gb": round(disk.used / (1024**3), 2),
+            "disk_total_gb": round(disk.total / (1024**3), 2)
+        },
         "llm": llm_status,
-        "attacks": {
-            "active": active_attacks
+        "database": {
+            "connected": await db.health_check(),
+            "active_attacks": active_attacks
         }
     }
 
 
-# Include routers
+# WebSocket endpoints
+@app.websocket("/ws/attack/{attack_id}")
+async def websocket_attack(websocket: WebSocket, attack_id: str):
+    """WebSocket for real-time attack updates"""
+    await ws_manager.connect(websocket, attack_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_json({"type": "pong", "timestamp": datetime.now().isoformat()})
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, attack_id)
+
+
+@app.websocket("/ws/system")
+async def websocket_system(websocket: WebSocket):
+    """WebSocket for system monitoring"""
+    await ws_manager.connect_system(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_json({"type": "system_status", "data": await get_system_status()})
+    except WebSocketDisconnect:
+        ws_manager.disconnect_system(websocket)
+
+
+@app.websocket("/ws")
+async def websocket_general(websocket: WebSocket):
+    """General WebSocket endpoint"""
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_json({"type": "pong", "message": "Connected to dLNk Attack Platform"})
+    except WebSocketDisconnect:
+        pass
+
+
+# Set dependencies for v1 routers
+auth.set_dependencies(db, auth_service)
+admin.set_dependencies(db, auth_service)
+attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
+files.set_dependencies(db, auth_service)
+
+# Include ALL routers
+# V1 Routes
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"], dependencies=[Depends(verify_admin)])
-app.include_router(attack.router, prefix="/api/attack", tags=["Attack"], dependencies=[Depends(verify_api_key)])
+app.include_router(attack.router, prefix="/api/attack", tags=["Attack V1"], dependencies=[Depends(verify_api_key)])
 app.include_router(files.router, prefix="/api/files", tags=["Files"], dependencies=[Depends(verify_api_key)])
 
-# Include license router if available
-try:
-    from api import license_routes
-    license_routes.set_dependencies(db, auth_service)
-    app.include_router(license_routes.router, prefix="/api/license", tags=["License"], dependencies=[Depends(verify_api_key)])
-except ImportError:
-    log.warning("[API] License routes not available")
+# V2 Routes (with their own prefixes)
+app.include_router(attack_v2.router, tags=["Attack V2"])
+app.include_router(admin_v2.router, tags=["Admin V2"])
+
+# Feature Routes
+app.include_router(ai.router, tags=["AI"])
+app.include_router(scan.router, tags=["Scan"])
+app.include_router(exploit.router, tags=["Exploit"])
+app.include_router(knowledge.router, tags=["Knowledge"])
+app.include_router(statistics.router, tags=["Statistics"])
+app.include_router(c2.router, tags=["C2 Server"])
+app.include_router(fuzzing.router, tags=["Fuzzing"])
+app.include_router(learning_routes.router, tags=["Learning"])
+app.include_router(one_click_attack.router, tags=["One-Click Attack"])
+app.include_router(zeroday_routes.router, tags=["Zero-Day"])
+app.include_router(monitoring.router, tags=["Monitoring"])
 
 
 if __name__ == "__main__":
-    # Production-ready configuration
     uvicorn.run(
-        "main:app",
-        host=os.getenv("API_HOST", "0.0.0.0"),
-        port=int(os.getenv("API_PORT", 8000)),
-        reload=os.getenv("API_DEBUG", "False").lower() == "true",
-        log_level=os.getenv("LOG_LEVEL", "info").lower(),
-        access_log=True,
-        workers=1 if os.getenv("API_DEBUG", "False").lower() == "true" else None
+        "main_complete:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
     )
 
