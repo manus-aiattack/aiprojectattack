@@ -9,9 +9,20 @@ import sys
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 
 # Add project to path
 sys.path.insert(0, '/home/ubuntu/aiprojectattack')
+
+# Load environment variables from .env
+env_file = Path('/home/ubuntu/aiprojectattack/.env')
+if env_file.exists():
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 try:
     from openai import OpenAI
