@@ -146,6 +146,10 @@ class DatabaseSQLite:
                 return dict(row)
             return None
     
+    async def get_user_by_key(self, api_key: str) -> Optional[Dict[str, Any]]:
+        """Alias for get_user_by_api_key"""
+        return await self.get_user_by_api_key(api_key)
+    
     async def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
         async with self.conn.execute(

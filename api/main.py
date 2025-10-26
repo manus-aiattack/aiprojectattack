@@ -69,6 +69,22 @@ async def lifespan(app: FastAPI):
     admin_key = await db.create_default_admin()
     log.success(f"[API] Admin API Key: {admin_key}")
     
+    # Set dependencies for routers AFTER initialization
+    from api.routes import auth, admin, attack, files
+    auth.set_dependencies(db, auth_service)
+    admin.set_dependencies(db, auth_service)
+    attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
+    files.set_dependencies(db, auth_service)
+    
+    # Set license routes dependencies if available
+    try:
+        from api import license_routes
+        license_routes.set_dependencies(db, auth_service)
+    except ImportError:
+        pass
+    
+    log.success("[API] Dependencies injected successfully")
+    
     yield
     
     # Shutdown
@@ -313,12 +329,6 @@ async def get_system_status() -> Dict:
         }
     }
 
-
-# Set dependencies for routers (from original root version)
-auth.set_dependencies(db, auth_service)
-admin.set_dependencies(db, auth_service)
-attack.set_dependencies(db, ws_manager, attack_manager, auth_service)
-files.set_dependencies(db, auth_service)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
