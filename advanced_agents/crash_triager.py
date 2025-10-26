@@ -10,9 +10,11 @@ import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from core.logger import log
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
 
 
-class CrashTriager:
+class CrashTriager(BaseAgent):
     """
     Triage crashes and determine exploitability
     
@@ -23,38 +25,55 @@ class CrashTriager:
     - Prioritize crashes by severity
     """
     
-    def __init__(self, workspace_dir: str = None):
+    supported_phases = [AttackPhase.EXPLOITATION, AttackPhase.POST_EXPLOITATION]
+    required_tools = []
+    
+    def __init__(self, context_manager=None, orchestrator=None, workspace_dir: str = None, **kwargs):
+        super().__init__(context_manager, orchestrator, **kwargs)
+        if workspace_dir is None:
+            workspace_dir = os.getenv("WORKSPACE_DIR", "workspace")
         self.workspace_dir = workspace_dir
         os.makedirs(workspace_dir, exist_ok=True)
     
-    async def run(self, target: Dict) -> Dict:
+    async def run(self, directive: str, context: Dict[str, Any]) -> AgentData:
         """
         Main entry point for CrashTriager
         
         Args:
-            target: Dict containing target information and parameters
+            directive: "triage" or "analyze"
+            context: Dict containing crash_file, binary, and other parameters
         
         Returns:
-            Dict with execution results
+            AgentData with execution results
         """
         try:
-            log.info(f"[CrashTriager] Starting execution")
+            log.info(f"[CrashTriager] Starting execution with directive: {directive}")
             
-            # TODO: Implement actual logic here
-            # This is a placeholder implementation
+            crash_file = context.get("crash_file")
+            binary = context.get("binary")
             
-            return {
-                'success': True,
-                'message': 'CrashTriager executed successfully',
-                'target': target
-            }
+            if not crash_file or not binary:
+                return AgentData(
+                    agent_name="CrashTriager",
+                    success=False,
+                    data={"error": "crash_file and binary are required"}
+                )
+            
+            result = await self.triage_crash(crash_file, binary)
+            
+            return AgentData(
+                agent_name="CrashTriager",
+                success=result.get("exploitable", False),
+                data=result
+            )
         
         except Exception as e:
             log.error(f"[CrashTriager] Error: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return AgentData(
+                agent_name="CrashTriager",
+                success=False,
+                data={"error": str(e)}
+            )
     
 
     async def triage_crash(self, crash_file: str, binary: str) -> Dict:

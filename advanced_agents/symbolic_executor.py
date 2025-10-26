@@ -8,6 +8,8 @@ import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from core.logger import log
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, AttackPhase
 
 try:
     import angr
@@ -18,7 +20,7 @@ except ImportError:
     log.warning("[SymbolicExecutor] angr not installed. Symbolic execution disabled.")
 
 
-class SymbolicExecutor:
+class SymbolicExecutor(BaseAgent):
     """
     Symbolic execution engine using angr for vulnerability analysis
     
@@ -29,40 +31,62 @@ class SymbolicExecutor:
     - Identify exploitable conditions
     """
     
-    def __init__(self, workspace_dir: str = None):
+    supported_phases = [AttackPhase.EXPLOITATION, AttackPhase.POST_EXPLOITATION]
+    required_tools = []
+    
+    def __init__(self, context_manager=None, orchestrator=None, workspace_dir: str = None, **kwargs):
+        super().__init__(context_manager, orchestrator, **kwargs)
+        if workspace_dir is None:
+            workspace_dir = os.getenv("WORKSPACE_DIR", "workspace")
         self.workspace_dir = workspace_dir
         os.makedirs(workspace_dir, exist_ok=True)
         
         if not ANGR_AVAILABLE:
             log.error("[SymbolicExecutor] angr is not installed. Install with: pip install angr")
     
-    async def run(self, target: Dict) -> Dict:
+    async def run(self, directive: str, context: Dict[str, Any]) -> AgentData:
         """
         Main entry point for SymbolicExecutor
         
         Args:
-            target: Dict containing target information and parameters
+            directive: "analyze", "find_paths", "generate_exploit"
+            context: Dict containing binary_path, crash_input, and other parameters
         
         Returns:
-            Dict with execution results
+            AgentData with execution results
         """
         try:
-            result = await self.find_vulnerable_paths(target)
+            if not ANGR_AVAILABLE:
+                return AgentData(
+                    agent_name="SymbolicExecutor",
+                    success=False,
+                    data={"error": "angr not installed"}
+                )
             
-            if isinstance(result, dict):
-                return result
+            if directive == "analyze":
+                result = await self.analyze_crash(
+                    context.get("binary_path"),
+                    context.get("crash_input", b""),
+                    context.get("crash_address")
+                )
+            elif directive == "find_paths":
+                result = await self.find_vulnerable_paths(context)
             else:
-                return {
-                    'success': True,
-                    'result': result
-                }
+                result = await self.find_vulnerable_paths(context)
+            
+            return AgentData(
+                agent_name="SymbolicExecutor",
+                success=result.get("success", False),
+                data=result
+            )
         
         except Exception as e:
             log.error(f"[SymbolicExecutor] Error: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return AgentData(
+                agent_name="SymbolicExecutor",
+                success=False,
+                data={"error": str(e)}
+            )
     
 
     async def analyze_crash(self, binary_path: str, crash_input: bytes, crash_address: int = None) -> Dict:
