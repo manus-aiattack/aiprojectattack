@@ -255,10 +255,10 @@ def server(host: str, port: int):
     """Start the API server"""
     try:
         import uvicorn
-        from web.api import app
+        from api.main import app
         
         log.info(f"Starting API server on {host}:{port}")
-        uvicorn.run(app, host=host, port=port)
+        uvicorn.run(app, host=host, port=port, reload=False)
         
     except ImportError:
         log.error("FastAPI not installed. Run: pip install fastapi uvicorn")
