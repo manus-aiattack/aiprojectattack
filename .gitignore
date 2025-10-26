@@ -82,3 +82,4 @@ payloads/
 
 .gemini/
 gha-creds-*.json
+.env

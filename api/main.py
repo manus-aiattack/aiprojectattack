@@ -15,7 +15,7 @@ import os
 from typing import List, Dict, Any
 from datetime import datetime
 
-from api.services.database_simple import Database
+from api.services.database import Database
 from api.services.auth import AuthService
 from api.services.attack_manager import AttackManager
 from api.services.websocket_manager import WebSocketManager
@@ -125,6 +125,18 @@ async def health_check():
         "status": "healthy",
         "database": await db.health_check(),
         "timestamp": datetime.now().isoformat()
+    }
+
+
+# API Status endpoint
+@app.get("/api/status")
+async def api_status():
+    """API Status endpoint"""
+    return {
+        "status": "operational",
+        "database": await db.health_check(),
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0.0"
     }
 
 
@@ -285,6 +297,14 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"], dependencies=[Depends(verify_admin)])
 app.include_router(attack.router, prefix="/api/attack", tags=["Attack"], dependencies=[Depends(verify_api_key)])
 app.include_router(files.router, prefix="/api/files", tags=["Files"], dependencies=[Depends(verify_api_key)])
+
+# Include license router if available
+try:
+    from api import license_routes
+    license_routes.set_dependencies(db, auth_service)
+    app.include_router(license_routes.router, prefix="/api/license", tags=["License"], dependencies=[Depends(verify_api_key)])
+except ImportError:
+    log.warning("[API] License routes not available")
 
 
 if __name__ == "__main__":
