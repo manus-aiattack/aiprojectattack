@@ -15,7 +15,7 @@ from pathlib import Path
 # Add project to path
 sys.path.insert(0, '/home/ubuntu/aiprojectattack')
 
-# Load environment variables from .env
+# Load environment variables from .env (but don't override existing ones)
 env_file = Path('/home/ubuntu/aiprojectattack/.env')
 if env_file.exists():
     with open(env_file) as f:
@@ -26,14 +26,21 @@ if env_file.exists():
                 key = key.strip()
                 value = value.strip().strip('"').strip("'")
                 
+                # Skip if already set in environment (system env takes priority)
+                if key in os.environ and os.environ[key] and not os.environ[key].startswith('${'):
+                    continue
+                
                 # Expand environment variables in value (e.g., ${VAR})
                 if value.startswith('${') and value.endswith('}'):
                     var_name = value[2:-1]
-                    value = os.environ.get(var_name, value)
+                    expanded = os.environ.get(var_name, '')
+                    if expanded:
+                        value = expanded
+                    else:
+                        # Try to get from system
+                        continue
                 
-                # Only set if not already set in environment
-                if key not in os.environ or not os.environ[key]:
-                    os.environ[key] = value
+                os.environ[key] = value
 
 try:
     from openai import OpenAI
@@ -77,6 +84,14 @@ class FullAIAssistant:
         self.model = "gpt-4.1-mini"
         self.conversation_history = []
         self.working_dir = Path.cwd()
+        
+        # History file
+        self.history_dir = Path.home() / '.hk_history'
+        self.history_dir.mkdir(exist_ok=True)
+        self.history_file = self.history_dir / 'conversation.json'
+        
+        # Load previous history
+        self._load_history()
         
         self.system_prompt = """คุณคือ AI Assistant แบบเต็มรูปแบบที่สามารถ:
 
@@ -127,6 +142,73 @@ class FullAIAssistant:
 """
         self.console.print(banner, style="bold cyan")
     
+    def _load_history(self):
+        """Load conversation history from file"""
+        try:
+            if self.history_file.exists():
+                with open(self.history_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # Load last 20 messages to keep context
+                    self.conversation_history = data.get('messages', [])[-20:]
+                    if self.conversation_history:
+                        self.console.print(f"[dim]โหลดประวัติการสนทนา {len(self.conversation_history)} ข้อความ[/dim]")
+        except Exception as e:
+            self.console.print(f"[dim]ไม่สามารถโหลดประวัติ: {e}[/dim]")
+    
+    def _save_history(self):
+        """Save conversation history to file"""
+        try:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'timestamp': datetime.now().isoformat(),
+                    'messages': self.conversation_history
+                }, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self.console.print(f"[dim]ไม่สามารถบันทึกประวัติ: {e}[/dim]")
+    
+    def export_history(self):
+        """Export history to markdown"""
+        try:
+            export_file = self.history_dir / f'export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.md'
+            
+            with open(export_file, 'w', encoding='utf-8') as f:
+                f.write(f"# HK Conversation History\n\n")
+                f.write(f"Exported: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                f.write("---\n\n")
+                
+                for msg in self.conversation_history:
+                    role = msg['role']
+                    content = msg['content']
+                    
+                    if role == 'user':
+                        f.write(f"## 👤 You\n\n{content}\n\n")
+                    elif role == 'assistant':
+                        f.write(f"## 🤖 AI Assistant\n\n{content}\n\n")
+                    
+                    f.write("---\n\n")
+            
+            self.console.print(f"[green]✓ ส่งออกประวัติไปยัง: {export_file}[/green]")
+            return str(export_file)
+        except Exception as e:
+            self.console.print(f"[red]✗ Error: {e}[/red]")
+            return None
+    
+    def show_history(self, limit=10):
+        """Show recent conversation history"""
+        if not self.conversation_history:
+            self.console.print("[yellow]ไม่มีประวัติการสนทนา[/yellow]")
+            return
+        
+        self.console.print(f"\n[bold cyan]ประวัติการสนทนา (ล่าสุด {limit} ข้อความ)[/bold cyan]\n")
+        
+        recent = self.conversation_history[-limit:]
+        for i, msg in enumerate(recent, 1):
+            role = "👤 You" if msg['role'] == 'user' else "🤖 AI"
+            content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
+            self.console.print(f"{i}. {role}: {content}")
+        
+        self.console.print()
+    
     def show_help(self):
         """Show help message"""
         help_text = """
@@ -135,6 +217,8 @@ class FullAIAssistant:
 - `exit`, `quit`, `q` - ออกจากโปรแกรม
 - `clear` - ล้างประวัติการสนทนา
 - `help` - แสดงความช่วยเหลือ
+- `history` - แสดงประวัติการสนทนา
+- `export` - ส่งออกประวัติเป็น Markdown
 - `pwd` - แสดง working directory
 - `cd <path>` - เปลี่ยน working directory
 
@@ -209,6 +293,9 @@ class FullAIAssistant:
                 "role": "assistant",
                 "content": full_response
             })
+            
+            # Save history after each exchange
+            self._save_history()
             
             # Try to parse as JSON (tool use)
             try:
@@ -374,6 +461,14 @@ class FullAIAssistant:
         
         elif cmd == 'help':
             self.show_help()
+            return True
+        
+        elif cmd == 'history':
+            self.show_history()
+            return True
+        
+        elif cmd == 'export':
+            self.export_history()
             return True
         
         elif cmd == 'pwd':
