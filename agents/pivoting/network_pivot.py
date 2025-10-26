@@ -1,3 +1,5 @@
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy, AttackPhase
 """
 Network Pivoting Agent
 สร้าง tunnels และ pivots เพื่อเข้าถึงเครือข่ายภายใน

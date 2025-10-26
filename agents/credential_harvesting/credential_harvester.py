@@ -1,3 +1,5 @@
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy, AttackPhase
 """
 Credential Harvesting Agent
 ขโมย credentials จากระบบเป้าหมาย

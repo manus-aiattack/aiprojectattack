@@ -1,3 +1,5 @@
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy, AttackPhase
 """
 Anti-Debugging and Anti-Analysis Techniques
 เทคนิคป้องกันการวิเคราะห์และ debug

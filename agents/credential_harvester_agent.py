@@ -2,14 +2,21 @@
 import json
 import re
 from core.logger import log
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy, AttackPhase
 
 
-class CredentialHarvesterAgent:
-    def __init__(self, context_manager):
-        self.context_manager = context_manager
-        self.db_manager = context_manager.orchestrator.db_manager
+class CredentialHarvesterAgent(BaseAgent):
+    supported_phases = [AttackPhase.RECONNAISSANCE, AttackPhase.POST_EXPLOITATION]
+    
+    def __init__(self, context_manager=None, orchestrator=None, **kwargs):
+        super().__init__(context_manager, orchestrator, **kwargs)
+        if context_manager and hasattr(context_manager, 'orchestrator'):
+            self.db_manager = context_manager.orchestrator.db_manager
+        else:
+            self.db_manager = None
 
-    async def run(self):
+    async def run(self, strategy: Strategy = None, **kwargs) -> AgentData:
         log.info("Running Credential Harvester Agent...")
         target_host = self.context_manager.target_host
 
@@ -57,3 +64,13 @@ class CredentialHarvesterAgent:
             await self.db_manager.redis.sadd(f"credentials:{target_host}:passwords", *list(passwords))
 
         log.info("Credential Harvester Agent finished.")
+        
+        return AgentData(
+            agent_name=self.agent_name,
+            status="success",
+            data={
+                "usernames": list(usernames),
+                "passwords_count": len(passwords),
+                "target": target_host
+            }
+        )

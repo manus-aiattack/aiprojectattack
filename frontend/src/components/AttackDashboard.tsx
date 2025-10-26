@@ -29,15 +29,15 @@ import {
   CardTitle,
   CardDescription,
   CardFooter
-} from './components/ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
+} from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Progress } from './ui/progress';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from '../ui/alert';
+} from './ui/alert';
 import {
   Table,
   TableBody,
@@ -45,10 +45,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
+} from './ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -56,16 +56,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './components/ui/dialog';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+} from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select';
+} from './ui/select';
 
 // Types
 interface Attack {

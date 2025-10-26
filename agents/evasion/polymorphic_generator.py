@@ -1,3 +1,5 @@
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy, AttackPhase
 """
 Polymorphic Payload Generator
 สร้าง payloads ที่เปลี่ยน signature ทุกครั้งเพื่อหลบหลีก AV/IDS
