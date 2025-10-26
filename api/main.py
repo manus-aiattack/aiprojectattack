@@ -15,7 +15,6 @@ import os
 from typing import List, Dict, Any
 from datetime import datetime
 
-from api.services.database import Database
 from api.services.auth import AuthService
 from api.services.attack_manager import AttackManager
 from api.services.websocket_manager import WebSocketManager
@@ -26,28 +25,56 @@ from core.logger import log
 # WebSocket Manager
 ws_manager = WebSocketManager()
 
-# Database
-db = Database()
+# Database - Auto-detect PostgreSQL or fallback to SQLite
+async def get_database():
+    """Get database instance with auto-detection"""
+    try:
+        from api.services.database import Database
+        db = Database()
+        # Try to connect to PostgreSQL
+        await db.connect()
+        log.success("[API] Using PostgreSQL database")
+        return db
+    except Exception as e:
+        log.warning(f"[API] PostgreSQL unavailable: {e}")
+        log.info("[API] Falling back to SQLite database")
+        from api.services.database_sqlite import DatabaseSQLite
+        db = DatabaseSQLite()
+        await db.connect()
+        log.success("[API] Using SQLite database (fallback)")
+        return db
 
-# Services
-auth_service = AuthService(db)
-attack_manager = AttackManager(db, ws_manager)
+db = None  # Will be initialized in lifespan
+auth_service = None
+attack_manager = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
+    global db, auth_service, attack_manager
+    
     # Startup
     log.info("[API] Starting dLNk dLNk Attack Platform API...")
-    await db.connect()
-    log.success("[API] Database connected")
+    
+    # Initialize database with auto-detection
+    db = await get_database()
+    
+    # Initialize services
+    auth_service = AuthService(db)
+    attack_manager = AttackManager(db, ws_manager)
+    
+    # Create default admin if not exists
+    admin_key = await db.create_default_admin()
+    log.success(f"[API] Admin API Key: {admin_key}")
     
     yield
     
     # Shutdown
     log.info("[API] Shutting down...")
-    await db.disconnect()
-    log.info("[API] Database disconnected")
+    if db:
+        await db.disconnect()
+        log.info("[API] Database disconnected")
 
 
 # Create FastAPI app

@@ -9,40 +9,49 @@ class PubSubManager:
         self.pubsub = None
         self.listeners = {} # {channel: [callback1, callback2]}
         self.listener_task = None
+        self.use_redis = False
+        self._memory_messages = [] # In-memory fallback
 
     async def setup(self):
         try:
             self.redis = await get_redis_client()
             self.pubsub = self.redis.pubsub()
-            log.info("PubSubManager initialized and connected to Redis.")
+            self.use_redis = True
+            log.success("PubSubManager: Using Redis backend")
         except Exception as e:
-            log.critical(f"PubSubManager failed to connect to Redis: {e}")
-            raise
+            log.warning(f"PubSubManager: Redis unavailable, using in-memory fallback: {e}")
+            self.use_redis = False
+            self.redis = None
+            self.pubsub = None
 
     async def publish(self, channel: str, message: dict):
         """Publishes a message to a given channel."""
-        if not self.redis:
-            log.error("Redis client not initialized for PubSubManager.")
-            return
-        try:
-            await self.redis.publish(channel, json.dumps(message))
-            log.debug(f"Published to channel '{channel}': {message}")
-        except Exception as e:
-            log.error(f"Failed to publish to channel '{channel}': {e}")
+        if self.use_redis and self.redis:
+            try:
+                await self.redis.publish(channel, json.dumps(message))
+                log.debug(f"Published to channel '{channel}': {message}")
+            except Exception as e:
+                log.error(f"Failed to publish to channel '{channel}': {e}")
+        else:
+            # In-memory fallback - just call callbacks directly
+            log.debug(f"Published to in-memory channel '{channel}': {message}")
+            if channel in self.listeners:
+                for callback in self.listeners[channel]:
+                    asyncio.create_task(callback(message))
 
     async def subscribe(self, channel: str, callback):
         """Subscribes a callback function to a channel."""
-        if not self.pubsub:
-            log.error("PubSub client not initialized for PubSubManager.")
-            return
-        
         if channel not in self.listeners:
             self.listeners[channel] = []
-            await self.pubsub.subscribe(channel)
-            log.info(f"Subscribed to channel '{channel}'.")
-            # Start the listener task if not already running
-            if not self.listener_task or self.listener_task.done():
-                self.listener_task = asyncio.create_task(self._listen_for_messages())
+            
+            if self.use_redis and self.pubsub:
+                await self.pubsub.subscribe(channel)
+                log.info(f"Subscribed to Redis channel '{channel}'.")
+                # Start the listener task if not already running
+                if not self.listener_task or self.listener_task.done():
+                    self.listener_task = asyncio.create_task(self._listen_for_messages())
+            else:
+                log.info(f"Subscribed to in-memory channel '{channel}'.")
         
         self.listeners[channel].append(callback)
         log.debug(f"Added callback for channel '{channel}'.")
@@ -54,7 +63,8 @@ class PubSubManager:
                 self.listeners[channel].remove(callback)
                 log.debug(f"Removed callback for channel '{channel}'.")
             if not self.listeners[channel]:
-                await self.pubsub.unsubscribe(channel)
+                if self.use_redis and self.pubsub:
+                    await self.pubsub.unsubscribe(channel)
                 del self.listeners[channel]
                 log.info(f"Unsubscribed from channel '{channel}'.")
                 # If no more listeners, stop the listener task
@@ -64,6 +74,9 @@ class PubSubManager:
 
     async def _listen_for_messages(self):
         """Listens for messages on subscribed channels and dispatches them to callbacks."""
+        if not self.use_redis or not self.pubsub:
+            return
+        
         try:
             while True:
                 message = await self.pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
@@ -94,9 +107,13 @@ class PubSubManager:
         """Closes the PubSubManager and its connections."""
         if self.listener_task and not self.listener_task.done():
             self.listener_task.cancel()
-            await self.listener_task
+            try:
+                await self.listener_task
+            except asyncio.CancelledError:
+                pass
         if self.pubsub:
             await self.pubsub.close()
         if self.redis:
             await self.redis.close()
         log.info("PubSubManager closed.")
+

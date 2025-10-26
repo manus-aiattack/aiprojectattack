@@ -9,12 +9,12 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor for adding auth token
+// Request interceptor for adding API key
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const apiKey = localStorage.getItem('api_key');
+    if (apiKey) {
+      config.headers['X-API-Key'] = apiKey;
     }
     return config;
   },
@@ -27,9 +27,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       // Unauthorized - redirect to login
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('api_key');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
