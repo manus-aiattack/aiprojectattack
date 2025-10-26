@@ -91,6 +91,13 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mixtral:latest")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", 300))
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
 
+# Vanchin AI configuration
+VANCHIN_API_URL = os.getenv("VANCHIN_API_URL", "https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/completions")
+VANCHIN_MODEL = os.getenv("VANCHIN_MODEL", "ep-x4jt3z-1761493764663181818")
+VANCHIN_API_KEYS = os.getenv("VANCHIN_API_KEYS", "")
+VANCHIN_MAX_TOKENS = int(os.getenv("VANCHIN_MAX_TOKENS", 150000))
+VANCHIN_RATE_LIMIT = int(os.getenv("VANCHIN_RATE_LIMIT", 20))
+
 # Feature flags
 SIMULATION_MODE = os.getenv("SIMULATION_MODE", "False").lower() == "true"  # False = Live Attack Mode
 ENABLE_PERSISTENCE = os.getenv("ENABLE_PERSISTENCE", "True").lower() == "true"

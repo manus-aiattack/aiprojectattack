@@ -45,15 +45,22 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
     log.info("[API] Starting dLNk Attack Platform API (Complete Edition)...")
-    await db.connect()
-    log.success("[API] Database connected")
+    try:
+        await db.connect()
+        log.success("[API] Database connected")
+    except Exception as e:
+        log.warning(f"[API] Database connection failed: {e}")
+        log.info("[API] Running without database (development mode)")
     
     yield
     
     # Shutdown
     log.info("[API] Shutting down...")
-    await db.disconnect()
-    log.info("[API] Database disconnected")
+    try:
+        await db.disconnect()
+        log.info("[API] Database disconnected")
+    except:
+        pass
 
 
 # Create FastAPI app
