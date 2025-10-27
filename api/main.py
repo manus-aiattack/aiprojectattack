@@ -407,3 +407,10 @@ if __name__ == "__main__":
         log_level="info"
     )
 
+
+# Vanchin Chat Interface
+@app.get("/chat")
+async def vanchin_chat_interface():
+    """Serve Vanchin Chat Interface"""
+    from fastapi.responses import FileResponse
+    return FileResponse("/home/ubuntu/aiprojectattack/vanchin_chat.html")
