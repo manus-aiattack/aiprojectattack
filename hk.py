@@ -10,30 +10,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-# Load environment
+# Load environment - use system env directly
 sys.path.insert(0, '/home/ubuntu/aiprojectattack')
-env_file = Path('/home/ubuntu/aiprojectattack/.env')
-if env_file.exists():
-    with open(env_file) as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                
-                if key in os.environ and os.environ[key] and not os.environ[key].startswith('${'):
-                    continue
-                
-                if value.startswith('${') and value.endswith('}'):
-                    var_name = value[2:-1]
-                    expanded = os.environ.get(var_name, '')
-                    if expanded:
-                        value = expanded
-                    else:
-                        continue
-                
-                os.environ[key] = value
 
 try:
     from openai import OpenAI
@@ -62,9 +40,13 @@ class HK:
         self.console = Console()
         
         # OpenAI client (connects to Manus API)
+        # Get API key from environment (already set by Manus)
         api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key or api_key.startswith('${'):
-            self.console.print("[red]❌ OPENAI_API_KEY not set[/red]")
+        api_base = os.getenv('OPENAI_BASE_URL')
+        
+        if not api_key:
+            self.console.print("[red]❌ OPENAI_API_KEY not found in environment[/red]")
+            self.console.print("[yellow]Please ensure you're running in Manus sandbox[/yellow]")
             sys.exit(1)
         
         self.client = OpenAI(api_key=api_key)
