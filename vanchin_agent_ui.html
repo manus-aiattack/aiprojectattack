@@ -378,19 +378,15 @@
                 <div id="settingsTab" class="tab-content" style="display: none;">
                     <div class="settings-section">
                         <h3>🔑 API Configuration</h3>
-                        <div class="form-group">
-                            <label for="apiKey">OpenAI API Key</label>
-                            <input type="password" id="apiKey" placeholder="sk-...">
+                        <div class="alert alert-success">
+                            <strong>✅ Using Vanchin AI</strong><br>
+                            This agent is powered by Vanchin AI API.<br>
+                            No API key configuration needed!
                         </div>
                         <div class="form-group">
-                            <label for="model">Model</label>
-                            <select id="model">
-                                <option value="gpt-4.1-mini">GPT-4.1 Mini (Fast)</option>
-                                <option value="gpt-4.1-nano">GPT-4.1 Nano (Fastest)</option>
-                                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                            </select>
+                            <label>Model</label>
+                            <input type="text" value="Vanchin AI (ep-rtt0hh)" disabled>
                         </div>
-                        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
                     </div>
                     
                     <div class="settings-section">
@@ -455,34 +451,22 @@
         
         // Load saved settings
         function loadSettings() {
-            const apiKey = localStorage.getItem('vanchin_api_key');
-            const model = localStorage.getItem('vanchin_model') || 'gpt-4.1-mini';
             const temperature = localStorage.getItem('vanchin_temperature') || '0.7';
             const maxTokens = localStorage.getItem('vanchin_max_tokens') || '2000';
             
-            if (apiKey) document.getElementById('apiKey').value = apiKey;
-            document.getElementById('model').value = model;
             document.getElementById('temperature').value = temperature;
             document.getElementById('maxTokens').value = maxTokens;
         }
         
         // Save settings
         function saveSettings() {
-            const apiKey = document.getElementById('apiKey').value;
-            const model = document.getElementById('model').value;
             const temperature = document.getElementById('temperature').value;
             const maxTokens = document.getElementById('maxTokens').value;
             
-            if (apiKey) {
-                localStorage.setItem('vanchin_api_key', apiKey);
-                localStorage.setItem('vanchin_model', model);
-                localStorage.setItem('vanchin_temperature', temperature);
-                localStorage.setItem('vanchin_max_tokens', maxTokens);
-                
-                showAlert('settingsAlert', 'Settings saved successfully!', 'success');
-            } else {
-                showAlert('settingsAlert', 'Please enter an API Key', 'error');
-            }
+            localStorage.setItem('vanchin_temperature', temperature);
+            localStorage.setItem('vanchin_max_tokens', maxTokens);
+            
+            showAlert('settingsAlert', 'Settings saved successfully!', 'success');
         }
         
         // Show alert
@@ -583,12 +567,7 @@
             
             if (!message) return;
             
-            const apiKey = localStorage.getItem('vanchin_api_key');
-            if (!apiKey) {
-                alert('Please set your API Key in Settings first!');
-                switchTab('settings');
-                return;
-            }
+            // No API key needed for Vanchin AI
             
             // Add user message to UI
             addMessage('user', message);
@@ -608,8 +587,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         messages: conversationHistory,
-                        api_key: apiKey,
-                        model: localStorage.getItem('vanchin_model') || 'gpt-4.1-mini',
                         temperature: parseFloat(localStorage.getItem('vanchin_temperature') || '0.7'),
                         max_tokens: parseInt(localStorage.getItem('vanchin_max_tokens') || '2000')
                     })
@@ -619,7 +596,7 @@
                 
                 if (response.ok) {
                     // Add assistant message
-                    addMessage('assistant', data.content, data.tool_calls);
+                    addMessage('assistant', data.content, data.actions_taken);
                     conversationHistory.push({ role: 'assistant', content: data.content });
                 } else {
                     addMessage('assistant', `Error: ${data.detail || 'Unknown error'}`, null, true);

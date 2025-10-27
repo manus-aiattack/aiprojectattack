@@ -1,6 +1,7 @@
 """
 Vanchin AI Agent API Routes
 Provides AI Agent capabilities with Sandbox filesystem access
+Uses Vanchin API instead of OpenAI
 """
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
@@ -11,6 +12,11 @@ import os
 import subprocess
 import json
 import pathlib
+import sys
+
+# Add core to path
+sys.path.insert(0, '/home/ubuntu/aiprojectattack')
+from core.vanchin_client import vanchin_client
 
 router = APIRouter(prefix="/api/vanchin")
 
@@ -26,8 +32,6 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage] = Field(..., description="Conversation history")
-    api_key: Optional[str] = Field(None, description="OpenAI API Key (optional, uses env if not provided)")
-    model: str = Field("gpt-4.1-mini", description="Model to use")
     temperature: float = Field(0.7, ge=0, le=2)
     max_tokens: int = Field(2000, ge=1, le=4000)
 
@@ -36,7 +40,7 @@ class ChatResponse(BaseModel):
     role: str
     content: str
     timestamp: str
-    tool_calls: Optional[List[Dict[str, Any]]] = None
+    actions_taken: Optional[List[Dict[str, Any]]] = None
 
 
 class FileListRequest(BaseModel):
@@ -65,10 +69,6 @@ class CommandExecuteRequest(BaseModel):
     command: str = Field(..., description="Shell command to execute")
     cwd: Optional[str] = Field(None, description="Working directory")
     timeout: int = Field(30, ge=1, le=300, description="Command timeout in seconds")
-
-
-class APIKeyConfig(BaseModel):
-    openai_api_key: Optional[str] = None
 
 
 # ============================================================================
@@ -260,112 +260,19 @@ async def execute_command(request: CommandExecuteRequest):
 
 
 # ============================================================================
-# AI Chat with Agent Capabilities
+# AI Chat with Agent Capabilities (Using Vanchin API)
 # ============================================================================
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_agent(request: ChatRequest):
-    """Chat with AI Agent that has access to filesystem and tools"""
+    """Chat with AI Agent that has access to filesystem and tools using Vanchin API"""
     try:
-        from openai import OpenAI
-        
-        # Use provided API key or environment variable
-        api_key = request.api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise HTTPException(status_code=400, detail="OpenAI API Key required")
-        
-        client = OpenAI(api_key=api_key)
-        
-        # Define tools for the agent
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "list_files",
-                    "description": "List files and directories in a given path",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Directory path to list"
-                            },
-                            "recursive": {
-                                "type": "boolean",
-                                "description": "List recursively"
-                            }
-                        },
-                        "required": ["path"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "read_file",
-                    "description": "Read content of a file",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "File path to read"
-                            }
-                        },
-                        "required": ["path"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "write_file",
-                    "description": "Write content to a file",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "File path to write"
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "Content to write"
-                            }
-                        },
-                        "required": ["path", "content"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "execute_command",
-                    "description": "Execute a shell command",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "command": {
-                                "type": "string",
-                                "description": "Shell command to execute"
-                            },
-                            "cwd": {
-                                "type": "string",
-                                "description": "Working directory (optional)"
-                            }
-                        },
-                        "required": ["command"]
-                    }
-                }
-            }
-        ]
-        
-        # Convert messages to OpenAI format
+        # Convert messages to dict format
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
         
         # Add system message if not present
         if not any(msg["role"] == "system" for msg in messages):
-            messages.insert(0, {
+            system_message = {
                 "role": "system",
                 "content": """You are Vanchin AI Agent, an intelligent assistant with access to the filesystem and command execution capabilities.
 
@@ -375,72 +282,49 @@ You are running in a Manus Sandbox environment with the following capabilities:
 - Access to the project directory: /home/ubuntu/aiprojectattack
 
 When users ask you to perform tasks:
-1. Use the available tools to interact with the filesystem
-2. Execute commands when needed
-3. Provide clear explanations of what you're doing
-4. Always verify operations completed successfully
+1. Analyze what needs to be done
+2. Explain your plan clearly
+3. Tell the user what actions you would take (list files, read files, execute commands)
+4. Provide helpful and accurate responses
 
-Be helpful, precise, and secure in your operations."""
-            })
+Be helpful, precise, and secure in your operations. Always explain what you're doing."""
+            }
+            messages.insert(0, system_message)
         
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model=request.model,
+        # Call Vanchin AI
+        response_text = vanchin_client.chat(
             messages=messages,
-            tools=tools,
             temperature=request.temperature,
             max_tokens=request.max_tokens
         )
         
-        assistant_message = response.choices[0].message
+        # Check if response contains action requests
+        actions_taken = []
         
-        # Handle tool calls if present
-        tool_calls_data = None
-        if assistant_message.tool_calls:
-            tool_calls_data = []
-            for tool_call in assistant_message.tool_calls:
-                tool_calls_data.append({
-                    "id": tool_call.id,
-                    "function": tool_call.function.name,
-                    "arguments": json.loads(tool_call.function.arguments)
-                })
+        # Simple pattern matching for common requests
+        if "list files" in response_text.lower() or "show files" in response_text.lower():
+            actions_taken.append({
+                "type": "suggestion",
+                "action": "list_files",
+                "description": "Agent suggests listing files"
+            })
+        
+        if "read file" in response_text.lower() or "show content" in response_text.lower():
+            actions_taken.append({
+                "type": "suggestion",
+                "action": "read_file",
+                "description": "Agent suggests reading a file"
+            })
         
         return ChatResponse(
             role="assistant",
-            content=assistant_message.content or "",
+            content=response_text,
             timestamp=datetime.now().isoformat(),
-            tool_calls=tool_calls_data
+            actions_taken=actions_taken if actions_taken else None
         )
     
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in chat: {str(e)}")
-
-
-# ============================================================================
-# Configuration
-# ============================================================================
-
-@router.post("/config/api-key")
-async def save_api_key(config: APIKeyConfig):
-    """Save API key configuration (in-memory only for security)"""
-    # In production, this should be stored securely
-    # For now, we just validate it
-    if config.openai_api_key:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=config.openai_api_key)
-            # Test the key
-            client.models.list()
-            return {
-                "success": True,
-                "message": "API Key validated and saved"
-            }
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid API Key: {str(e)}")
-    
-    return {"success": True, "message": "Configuration updated"}
 
 
 @router.get("/status")
@@ -448,12 +332,14 @@ async def get_status():
     """Get Vanchin Agent status"""
     return {
         "status": "operational",
-        "version": "1.0.0",
+        "version": "2.0.0",
+        "api_provider": "Vanchin AI",
+        "model": vanchin_client.model,
         "capabilities": [
             "filesystem_access",
             "command_execution",
             "ai_chat",
-            "tool_calling"
+            "project_analysis"
         ],
         "sandbox_path": "/home/ubuntu/aiprojectattack",
         "timestamp": datetime.now().isoformat()
