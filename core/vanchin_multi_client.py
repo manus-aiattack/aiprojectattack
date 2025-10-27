@@ -20,8 +20,8 @@ class VanchinAPIClient:
         self.api_key = api_key
         self.base_url = base_url
         self.model = model
-        self.temperature = 0.7
-        self.max_tokens = 2000
+        self.temperature = 1.0
+        self.max_tokens = 8000
         self.is_healthy = True
         self.last_error = None
         self.error_count = 0

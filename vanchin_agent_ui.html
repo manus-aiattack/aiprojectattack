@@ -393,12 +393,23 @@
                         <h3>🎛️ Agent Settings</h3>
                         <div class="form-group">
                             <label for="temperature">Temperature (0-2)</label>
-                            <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
+                            <input type="number" id="temperature" value="1.0" min="0" max="2" step="0.1">
                         </div>
                         <div class="form-group">
-                            <label for="maxTokens">Max Tokens</label>
-                            <input type="number" id="maxTokens" value="2000" min="100" max="4000" step="100">
+                            <label for="maxTokens">Max Tokens (Unlimited)</label>
+                            <input type="number" id="maxTokens" value="8000" min="1000" max="16000" step="1000">
                         </div>
+                        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>🖥️ Host Machine Access</h3>
+                        <p style="font-size: 13px; margin-bottom: 10px; color: #666;">
+                            Direct terminal access for sandbox management and troubleshooting
+                        </p>
+                        <a href="/host" target="_blank" class="btn btn-primary" style="display: inline-block; text-decoration: none; color: white;">
+                            🔧 Open Host Terminal
+                        </a>
                     </div>
                     
                     <div id="settingsAlert"></div>
@@ -451,8 +462,8 @@
         
         // Load saved settings
         function loadSettings() {
-            const temperature = localStorage.getItem('vanchin_temperature') || '0.7';
-            const maxTokens = localStorage.getItem('vanchin_max_tokens') || '2000';
+            const temperature = localStorage.getItem('vanchin_temperature') || '1.0';
+            const maxTokens = localStorage.getItem('vanchin_max_tokens') || '8000';
             
             document.getElementById('temperature').value = temperature;
             document.getElementById('maxTokens').value = maxTokens;
@@ -587,8 +598,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         messages: conversationHistory,
-                        temperature: parseFloat(localStorage.getItem('vanchin_temperature') || '0.7'),
-                        max_tokens: parseInt(localStorage.getItem('vanchin_max_tokens') || '2000')
+                        temperature: parseFloat(localStorage.getItem('vanchin_temperature') || '1.0'),
+                        max_tokens: parseInt(localStorage.getItem('vanchin_max_tokens') || '8000')
                     })
                 });
                 

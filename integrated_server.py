@@ -335,6 +335,12 @@ async def vanchin_agent_standalone():
     return FileResponse("/home/ubuntu/aiprojectattack/vanchin_agent_standalone.html")
 
 
+@app.get("/host")
+async def host_access():
+    """Host Machine Access Terminal for Sandbox Management"""
+    return FileResponse("/home/ubuntu/aiprojectattack/host_access.html")
+
+
 if __name__ == "__main__":
     uvicorn.run(
         "integrated_server:app",
