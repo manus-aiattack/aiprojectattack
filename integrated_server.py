@@ -341,6 +341,12 @@ async def host_access():
     return FileResponse("/home/ubuntu/aiprojectattack/host_access.html")
 
 
+@app.get("/infrastructure")
+async def manus_infrastructure():
+    """Manus Infrastructure Manager - Control all sandboxes"""
+    return FileResponse("/home/ubuntu/aiprojectattack/manus_infrastructure.html")
+
+
 if __name__ == "__main__":
     uvicorn.run(
         "integrated_server:app",
