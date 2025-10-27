@@ -329,6 +329,12 @@ async def vanchin_agent():
     return FileResponse("/home/ubuntu/aiprojectattack/vanchin_agent_ui.html")
 
 
+@app.get("/agent-standalone")
+async def vanchin_agent_standalone():
+    """Vanchin AI Agent Standalone Interface (works even if Manus is down)"""
+    return FileResponse("/home/ubuntu/aiprojectattack/vanchin_agent_standalone.html")
+
+
 if __name__ == "__main__":
     uvicorn.run(
         "integrated_server:app",

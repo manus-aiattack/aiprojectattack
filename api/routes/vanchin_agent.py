@@ -16,7 +16,7 @@ import sys
 
 # Add core to path
 sys.path.insert(0, '/home/ubuntu/aiprojectattack')
-from core.vanchin_client import vanchin_client
+from core.vanchin_multi_client import vanchin_multi_client
 
 router = APIRouter(prefix="/api/vanchin")
 
@@ -291,8 +291,8 @@ Be helpful, precise, and secure in your operations. Always explain what you're d
             }
             messages.insert(0, system_message)
         
-        # Call Vanchin AI
-        response_text = vanchin_client.chat(
+        # Call Vanchin Multi-Client (with automatic failover)
+        response_text = vanchin_multi_client.chat(
             messages=messages,
             temperature=request.temperature,
             max_tokens=request.max_tokens
@@ -330,18 +330,32 @@ Be helpful, precise, and secure in your operations. Always explain what you're d
 @router.get("/status")
 async def get_status():
     """Get Vanchin Agent status"""
+    client_status = vanchin_multi_client.get_status()
+    
     return {
         "status": "operational",
-        "version": "2.0.0",
-        "api_provider": "Vanchin AI",
-        "model": vanchin_client.model,
+        "version": "3.0.0",
+        "api_provider": "Vanchin Multi-Client System",
         "capabilities": [
             "filesystem_access",
             "command_execution",
             "ai_chat",
-            "project_analysis"
+            "project_analysis",
+            "automatic_failover",
+            "multi_api_support"
         ],
         "sandbox_path": "/home/ubuntu/aiprojectattack",
+        "api_clients": client_status,
         "timestamp": datetime.now().isoformat()
+    }
+
+
+@router.post("/reset_health")
+async def reset_health():
+    """Reset health status of all API clients"""
+    vanchin_multi_client.reset_health()
+    return {
+        "success": True,
+        "message": "All API clients health reset"
     }
 
