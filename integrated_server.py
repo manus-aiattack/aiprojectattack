@@ -347,6 +347,12 @@ async def manus_infrastructure():
     return FileResponse("/home/ubuntu/aiprojectattack/manus_infrastructure.html")
 
 
+@app.get("/attack")
+async def attack_control_center():
+    """Attack Control Center - Main attack dashboard"""
+    return FileResponse("/home/ubuntu/aiprojectattack/attack_control_center.html")
+
+
 if __name__ == "__main__":
     uvicorn.run(
         "integrated_server:app",

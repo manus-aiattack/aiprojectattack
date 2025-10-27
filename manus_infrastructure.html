@@ -310,9 +310,10 @@
                         <div>API: Vanchin Multi-Client (6 clients)</div>
                     </div>
                     <div class="sandbox-actions">
-                        <button class="btn btn-primary" onclick="openCurrentSandbox()">🔗 Open Agent</button>
-                        <button class="btn btn-primary" onclick="openHostTerminal()">🖥️ Host Terminal</button>
-                        <button class="btn btn-warning" onclick="restartCurrentSandbox()">🔄 Restart</button>
+                        <button class="btn btn-success" onclick="openAttackCenter()">⚡ ศูนย์ควบคุมการโจมตี</button>
+                        <button class="btn btn-primary" onclick="openCurrentSandbox()">🔗 เปิด Agent</button>
+                        <button class="btn btn-primary" onclick="openHostTerminal()">🖥️ เปิด Terminal</button>
+                        <button class="btn btn-warning" onclick="restartCurrentSandbox()">🔄 รีสตาร์ท</button>
                     </div>
                 </div>
                 
@@ -564,6 +565,11 @@
         // Open sandbox
         function openSandbox(url) {
             window.open(url + '/agent', '_blank');
+        }
+        
+        // Open attack control center
+        function openAttackCenter() {
+            window.open(CURRENT_SANDBOX.url + '/attack', '_blank');
         }
         
         // Open current sandbox
