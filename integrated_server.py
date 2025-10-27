@@ -21,6 +21,7 @@ import sys
 # Add api routes to path
 sys.path.insert(0, '/home/ubuntu/aiprojectattack')
 from api.routes import vanchin_agent
+from api.routes import agents_manager
 
 
 # ============================================================================
@@ -150,6 +151,7 @@ app = FastAPI(
 
 # Include Vanchin Agent routes
 app.include_router(vanchin_agent.router, tags=["Vanchin Agent"])
+app.include_router(agents_manager.router, tags=["Agents Manager"])
 
 app.add_middleware(
     CORSMiddleware,
