@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manus Infrastructure Manager</title>
+    <title>ระบบจัดการโครงสร้าง Manus</title>
     <style>
         * {
             margin: 0;
@@ -292,7 +292,7 @@
     <div class="container">
         <div class="header">
             <h1>🏗️ Manus Infrastructure Manager</h1>
-            <p>Centralized control panel for all Manus Sandbox instances</p>
+            <p>ศูนย์ควบคุมกลางสำหรับจัดการ Sandbox ทั้งหมดในระบบ Manus</p>
         </div>
         
         <div class="grid">
@@ -302,7 +302,7 @@
                 <div class="sandbox-item current">
                     <div class="sandbox-header">
                         <span class="sandbox-name" id="currentSandboxName">Loading...</span>
-                        <span class="sandbox-status status-running">RUNNING</span>
+                        <span class="sandbox-status status-running">กำลังทำงาน</span>
                     </div>
                     <div class="sandbox-info">
                         <div>URL: <span id="currentSandboxUrl">-</span></div>
@@ -339,7 +339,7 @@
                     <li class="sandbox-item offline">
                         <div class="sandbox-header">
                             <span class="sandbox-name">No other sandboxes configured</span>
-                            <span class="sandbox-status status-stopped">OFFLINE</span>
+                            <span class="sandbox-status status-stopped">ออฟไลน์</span>
                         </div>
                         <div class="sandbox-info">
                             Click "Add Sandbox" below to add more instances
@@ -485,7 +485,7 @@
                     <li class="sandbox-item offline">
                         <div class="sandbox-header">
                             <span class="sandbox-name">No other sandboxes configured</span>
-                            <span class="sandbox-status status-stopped">OFFLINE</span>
+                            <span class="sandbox-status status-stopped">ออฟไลน์</span>
                         </div>
                         <div class="sandbox-info">
                             Click "Add Sandbox" below to add more instances
@@ -499,7 +499,7 @@
                 <li class="sandbox-item">
                     <div class="sandbox-header">
                         <span class="sandbox-name">${sb.name}</span>
-                        <span class="sandbox-status status-hibernating">UNKNOWN</span>
+                        <span class="sandbox-status status-hibernating">ไม่ทราบ</span>
                     </div>
                     <div class="sandbox-info">
                         <div>URL: ${sb.url}</div>
