@@ -4,6 +4,8 @@ Coverage-guided fuzzing using AFL++
 """
 
 import asyncio
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy
 import os
 import subprocess
 import time
@@ -211,6 +213,39 @@ class AFLFuzzer:
             with open(self.input_dir / f"input_{i}", 'wb') as f:
                 f.write(data)
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute afl fuzzer"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _check_afl_installed(self) -> bool:
         """Check if AFL++ is installed"""
         

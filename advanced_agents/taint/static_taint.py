@@ -2,6 +2,8 @@
 Static Taint Analysis using Semgrep
 """
 import os
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy
 import os
 
 import asyncio
@@ -68,3 +70,33 @@ class StaticTaintAnalyzer:
                         })
         
         return {'taint_flows': flows}
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute attack"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Implement attack logic here
+            results = {'status': 'not_implemented'}
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} executed",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )

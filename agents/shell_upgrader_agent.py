@@ -4,6 +4,7 @@ fully interactive PTY (pseudo-terminal).
 """
 
 from core.logger import log
+from core.data_models import AgentData, Strategy
 from core.data_models import Strategy, ShellUpgraderReport, AttackPhase, ErrorType
 import time
 from typing import Optional
@@ -142,3 +143,36 @@ class ShellUpgraderAgent(BaseAgent):
             error_type=ErrorType.LOGIC,
             summary=final_msg
         )
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute shell upgrader agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )

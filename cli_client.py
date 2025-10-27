@@ -29,7 +29,7 @@ class Colors:
 class DLNkCLI:
     """CLI Client for dLNk Attack Platform"""
     
-    def __init__(self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None):
+    def __init__(self, base_url: str = "https://8000-i3ahfavoia7c7k1dxwwpn-567d442b.manus-asia.computer", api_key: Optional[str] = None):
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
         self.headers = {}
@@ -262,7 +262,7 @@ Examples:
         """
     )
     
-    parser.add_argument('--url', default='http://localhost:8000', help='API base URL')
+    parser.add_argument('--url', default='https://8000-i3ahfavoia7c7k1dxwwpn-567d442b.manus-asia.computer', help='API base URL')
     parser.add_argument('--api-key', help='API key for authentication')
     
     # Commands

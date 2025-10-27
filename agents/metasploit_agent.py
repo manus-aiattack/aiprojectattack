@@ -1,4 +1,5 @@
 import re
+from core.data_models import AgentData, Strategy
 from core.data_models import MetasploitReport, Strategy, AttackPhase, ErrorType
 from core.metasploit_client import MetasploitClient
 from core.logger import log
@@ -98,4 +99,37 @@ class MetasploitAgent(BaseAgent):
                 summary=f"Metasploit module {module} failed.",
                 output=result_data.get('error', 'Unknown error'),
                 module_used=module
+            )
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute metasploit agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
             )

@@ -31,7 +31,7 @@ LOG_FILE = os.path.join(LOGS_DIR, "dlnk.log")
 JSON_LOG_FILE = os.path.join(LOGS_DIR, "dlnk.json")
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dlnk.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://dlnk_user:dlnk_password@localhost/dlnk_attack_db")
 
 # PostgreSQL individual settings (for legacy code compatibility)
 DATABASE_HOST = os.getenv("DB_HOST", "localhost")

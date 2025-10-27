@@ -1,4 +1,5 @@
 import logging
+from core.data_models import AgentData, Strategy
 from typing import Dict, List, Optional
 from core.data_models import PostExReport, PostExFinding, Strategy, AttackPhase, ErrorType
 from core.logger import log
@@ -97,6 +98,39 @@ class PostExAgent(BaseAgent):
                 log.warning(f"PostExAgent: New strategy for post-exploitation on shell {shell_id} generated. Orchestrator needs to pick this up.")
             else:
                 log.warning("PostExAgent: EXPLOIT_SUCCESS event received but no shell_id found.")
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute post ex agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
 
     def _analyze_data(self, raw_outputs: Dict[str, str], os_type: str) -> (List[PostExFinding], List[Dict[str, str]]):
         """Analyzes the raw output from the enumeration commands to find potential vectors and interesting binaries."""

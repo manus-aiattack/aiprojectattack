@@ -16,7 +16,7 @@ except ImportError:
 
 # Import sqlite3 and other dependencies only when needed
 if not HAS_POSTGRESQL:
-    import sqlite3
+    import asyncpg
     import asyncio
     from contextlib import asynccontextmanager
 
@@ -30,7 +30,7 @@ class SQLitePool:
 
     async def initialize(self):
         """Initialize SQLite connection"""
-        self.connection = sqlite3.connect(self.db_path)
+        self.connection = await asyncpg.connect("postgresql://dlnk_user:dlnk_password@localhost/dlnk_attack_db")
         self.connection.row_factory = sqlite3.Row
 
     async def acquire(self):

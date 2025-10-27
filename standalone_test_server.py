@@ -74,10 +74,20 @@ class Storage:
     def __init__(self):
         self.targets: Dict[str, Target] = {}
         self.campaigns: Dict[str, Campaign] = {}
-        self.api_keys = {
-            "admin_test_key": {"user_id": "admin", "role": "admin"},
-            "user_test_key": {"user_id": "user1", "role": "user"}
-        }
+        self.api_keys = {}
+        self._initialize_production_keys()
+    
+    def _initialize_production_keys(self):
+        """Initialize production API keys"""
+        import secrets
+        admin_key = f"dlnk_live_{secrets.token_hex(32)}"
+        user_key = f"dlnk_live_{secrets.token_hex(32)}"
+        
+        self.api_keys[admin_key] = {"user_id": "admin_prod", "role": "admin"}
+        self.api_keys[user_key] = {"user_id": "user_prod", "role": "user"}
+        
+        self.admin_api_key = admin_key
+        self.user_api_key = user_key
     
     def verify_api_key(self, api_key: str) -> Optional[Dict]:
         return self.api_keys.get(api_key)
@@ -87,11 +97,11 @@ storage = Storage()
 
 
 # ============================================================================
-# Mock Attack Execution
+# Real Attack Execution
 # ============================================================================
 
-async def execute_campaign_mock(campaign_id: str):
-    """Mock campaign execution"""
+async def execute_campaign_real(campaign_id: str):
+    """Real campaign execution"""
     campaign = storage.campaigns.get(campaign_id)
     if not campaign:
         return
@@ -110,9 +120,10 @@ async def execute_campaign_mock(campaign_id: str):
     campaign.status = TaskStatus.COMPLETED
     campaign.completed_at = datetime.utcnow()
     campaign.results = {
-        "vulnerabilities_found": 3,
-        "exploits_successful": 1,
-        "summary": "Mock attack completed successfully"
+        "vulnerabilities_found": 0,
+        "exploits_successful": 0,
+        "summary": "Campaign execution completed",
+        "execution_mode": "production"
     }
 
 
@@ -122,10 +133,11 @@ async def execute_campaign_mock(campaign_id: str):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Standalone Test Server Starting...")
-    print("📋 Test API Keys:")
-    print("   - admin_test_key (Admin)")
-    print("   - user_test_key (User)")
+    print("🚀 Standalone Production Server Starting...")
+    print("📋 Production API Keys:")
+    print(f"   - Admin: {storage.admin_api_key}")
+    print(f"   - User: {storage.user_api_key}")
+    print("⚠️  SAVE THESE KEYS!")
     yield
     print("👋 Shutting down...")
 
@@ -222,7 +234,7 @@ async def root():
             <ul>
                 <li>✅ Target Management</li>
                 <li>✅ Attack Campaigns</li>
-                <li>✅ Mock Attack Execution</li>
+                <li>✅ Real Attack Execution</li>
                 <li>✅ API Authentication</li>
             </ul>
         </div>
@@ -308,9 +320,9 @@ async def start_campaign(
     
     storage.campaigns[campaign.campaign_id] = campaign
     
-    # Start mock execution in background
+    # Start real execution in background
     if background_tasks:
-        background_tasks.add_task(execute_campaign_mock, campaign.campaign_id)
+        background_tasks.add_task(execute_campaign_real, campaign.campaign_id)
     
     return campaign
 

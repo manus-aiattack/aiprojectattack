@@ -144,10 +144,10 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ### 4. เข้าใช้งาน
 
 - **🌐 Frontend Dashboard:**
-  เปิดเบราว์เซอร์ไปที่: **http://localhost:8000/**
+  เปิดเบราว์เซอร์ไปที่: **https://8000-i3ahfavoia7c7k1dxwwpn-567d442b.manus-asia.computer/**
 
 - **📚 API Documentation:**
-  เปิดเบราว์เซอร์ไปที่: **http://localhost:8000/docs**
+  เปิดเบราว์เซอร์ไปที่: **https://8000-i3ahfavoia7c7k1dxwwpn-567d442b.manus-asia.computer/docs**
 
 - **🔑 API Keys สำหรับทดสอบ:**
   - **Admin:** `admin_test_key`

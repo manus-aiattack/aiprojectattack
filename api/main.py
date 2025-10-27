@@ -27,7 +27,8 @@ from api.routes import (
     admin_v2, attack_v2,  # v2 routes
     ai, scan, exploit, knowledge, statistics,  # feature routes
     c2, c2_shell, fuzzing, learning_routes, one_click_attack, zeroday_routes, monitoring, workflow,  # additional routes
-    vanchin_chat  # Vanchin AI Chat
+    vanchin_chat,  # Vanchin AI Chat
+    vanchin_agent  # Vanchin AI Agent
 )
 
 # WebSocket Manager
@@ -398,6 +399,7 @@ app.include_router(one_click_attack.router, tags=["One-Click Attack"])
 app.include_router(zeroday_routes.router, tags=["Zero-Day"])
 app.include_router(monitoring.router, tags=["Monitoring"])
 app.include_router(vanchin_chat.router, tags=["Vanchin Chat"])
+app.include_router(vanchin_agent.router, tags=["Vanchin Agent"])
 
 
 if __name__ == "__main__":

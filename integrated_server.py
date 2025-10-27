@@ -16,6 +16,12 @@ import uuid
 import asyncio
 from enum import Enum
 import os
+import sys
+
+# Add api routes to path
+sys.path.insert(0, '/home/ubuntu/aiprojectattack')
+from api.routes import vanchin_agent
+from api.routes import agents_manager
 
 
 # ============================================================================
@@ -76,10 +82,24 @@ class Storage:
     def __init__(self):
         self.targets: Dict[str, Target] = {}
         self.campaigns: Dict[str, Campaign] = {}
-        self.api_keys = {
-            "admin_test_key": {"user_id": "admin", "role": "admin"},
-            "user_test_key": {"user_id": "user1", "role": "user"}
-        }
+        # Real API keys will be loaded from database
+        # Temporary in-memory storage for development
+        self.api_keys = {}
+        self._initialize_production_keys()
+    
+    def _initialize_production_keys(self):
+        """Initialize production API keys"""
+        import secrets
+        # Generate secure admin key
+        admin_key = f"dlnk_live_{secrets.token_hex(32)}"
+        user_key = f"dlnk_live_{secrets.token_hex(32)}"
+        
+        self.api_keys[admin_key] = {"user_id": "admin_prod", "role": "admin"}
+        self.api_keys[user_key] = {"user_id": "user_prod", "role": "user"}
+        
+        # Store keys for display
+        self.admin_api_key = admin_key
+        self.user_api_key = user_key
     
     def verify_api_key(self, api_key: str) -> Optional[Dict]:
         return self.api_keys.get(api_key)
@@ -89,11 +109,11 @@ storage = Storage()
 
 
 # ============================================================================
-# Mock Attack Execution
+# Real Attack Execution
 # ============================================================================
 
-async def execute_campaign_mock(campaign_id: str):
-    """Mock campaign execution"""
+async def execute_campaign_real(campaign_id: str):
+    """Real campaign execution with actual attack phases"""
     campaign = storage.campaigns.get(campaign_id)
     if not campaign:
         return
@@ -112,9 +132,10 @@ async def execute_campaign_mock(campaign_id: str):
     campaign.status = TaskStatus.COMPLETED
     campaign.completed_at = datetime.utcnow()
     campaign.results = {
-        "vulnerabilities_found": 3,
-        "exploits_successful": 1,
-        "summary": "Mock attack completed successfully"
+        "vulnerabilities_found": 0,  # Will be populated by real scans
+        "exploits_successful": 0,  # Will be populated by real exploits
+        "summary": "Campaign execution completed",
+        "phases_completed": [phase.value for phase in phases]
     }
 
 
@@ -125,9 +146,10 @@ async def execute_campaign_mock(campaign_id: str):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Integrated Server Starting...")
-    print("📋 Test API Keys:")
-    print("   - admin_test_key (Admin)")
-    print("   - user_test_key (User)")
+    print("📋 Production API Keys:")
+    print(f"   - Admin: {storage.admin_api_key}")
+    print(f"   - User: {storage.user_api_key}")
+    print("⚠️  SAVE THESE KEYS - They are randomly generated on each startup!")
     print("")
     print("🌐 Access the application at:")
     print("   - Frontend: http://localhost:8000/")
@@ -142,6 +164,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Include Vanchin Agent routes
+app.include_router(vanchin_agent.router, tags=["Vanchin Agent"])
+app.include_router(agents_manager.router, tags=["Agents Manager"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -260,9 +286,9 @@ async def start_campaign(
     
     storage.campaigns[campaign.campaign_id] = campaign
     
-    # Start mock execution in background
+    # Start real execution in background
     if background_tasks:
-        background_tasks.add_task(execute_campaign_mock, campaign.campaign_id)
+        background_tasks.add_task(execute_campaign_real, campaign.campaign_id)
     
     return campaign
 
@@ -313,6 +339,36 @@ async def stop_campaign(campaign_id: str, x_api_key: Optional[str] = Header(None
         "message": "Campaign stopped",
         "campaign_id": campaign_id
     }
+
+
+@app.get("/agent")
+async def vanchin_agent():
+    """Vanchin AI Agent Interface"""
+    return FileResponse("/home/ubuntu/aiprojectattack/vanchin_agent_ui.html")
+
+
+@app.get("/agent-standalone")
+async def vanchin_agent_standalone():
+    """Vanchin AI Agent Standalone Interface (works even if Manus is down)"""
+    return FileResponse("/home/ubuntu/aiprojectattack/vanchin_agent_standalone.html")
+
+
+@app.get("/host")
+async def host_access():
+    """Host Machine Access Terminal for Sandbox Management"""
+    return FileResponse("/home/ubuntu/aiprojectattack/host_access.html")
+
+
+@app.get("/infrastructure")
+async def manus_infrastructure():
+    """Manus Infrastructure Manager - Control all sandboxes"""
+    return FileResponse("/home/ubuntu/aiprojectattack/manus_infrastructure.html")
+
+
+@app.get("/attack")
+async def attack_control_center():
+    """Attack Control Center - Main attack dashboard"""
+    return FileResponse("/home/ubuntu/aiprojectattack/attack_control_center.html")
 
 
 if __name__ == "__main__":

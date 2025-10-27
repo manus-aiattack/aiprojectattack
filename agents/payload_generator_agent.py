@@ -1,4 +1,5 @@
 from core.data_models import Strategy, PayloadGeneratorReport, ErrorType
+from core.data_models import AgentData, Strategy
 from core.logger import log
 from core.doh_utils import resolve_doh
 
@@ -59,6 +60,39 @@ class PayloadGeneratorAgent(BaseAgent):
                 errors=[f"Error generating payload: {e}"],
                 error_type=ErrorType.LOGIC,
                 summary=f"Payload generation failed due to an unexpected error: {e}"
+            )
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute payload generator agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
             )
 
     def _build_prompt(self, os_type: str, c2_host: str, c2_port: int, user_agent: str) -> str:

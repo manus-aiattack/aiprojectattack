@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 from core.logger import log
+from core.data_models import AgentData, Strategy
 DirsearchAgent - AI-Powered Directory and File Discovery Agent
 Advanced directory brute-forcing with AI-driven payload generation
 """
