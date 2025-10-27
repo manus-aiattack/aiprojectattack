@@ -91,7 +91,7 @@ class AuthService:
             password_hash=self._hash_password("admin123"),
             role=UserRole.ADMIN,
             api_key=self._generate_api_key(),
-            license_key="DLNK-ENT-ADMIN-DEFAULT",
+            license_key=f"DLNK-ENT-{secrets.token_hex(8).upper()}",
             created_at=datetime.utcnow().isoformat(),
             last_login=None,
             is_active=True,
@@ -99,15 +99,19 @@ class AuthService:
         )
         
         await self._save_user(admin_user)
-        print(f"✅ Default admin user created: {admin_username} / admin123")
+        print(f"✅ Production admin user created: {admin_username}")
+        print(f"🔑 Admin API Key: {admin_user.api_key}")
+        print(f"📋 License Key: {admin_user.license_key}")
+        print("⚠️  SAVE THESE CREDENTIALS - They will not be shown again!")
         
     def _generate_user_id(self) -> str:
         """Generate unique user ID"""
         return f"usr_{secrets.token_hex(8)}"
         
     def _generate_api_key(self) -> str:
-        """Generate API key"""
-        return f"DLNK-{secrets.token_urlsafe(32)}"
+        """Generate API key with production format"""
+        # Production format: dlnk_live_<64_hex_chars>
+        return f"dlnk_live_{secrets.token_hex(32)}"
         
     def _hash_password(self, password: str) -> str:
         """Hash password with salt"""

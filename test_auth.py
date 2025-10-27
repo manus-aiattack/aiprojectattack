@@ -10,8 +10,9 @@ import json
 from datetime import datetime
 
 API_URL = "http://localhost:8000"
-TEST_API_KEY = "test_key_12345"  # This should fail
-ADMIN_API_KEY = None  # Will be set after generation
+# Production API key format: dlnk_live_<64_hex_chars>
+TEST_API_KEY = "dlnk_live_invalid_key_for_testing"  # This should fail
+ADMIN_API_KEY = None  # Will be set after generation from server
 
 
 async def test_endpoint(session, method, endpoint, data=None, headers=None, expected_status=200):
