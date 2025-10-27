@@ -243,6 +243,14 @@ async def root():
     """
 
 
+# Dashboard
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    """Main dashboard"""
+    with open("/home/ubuntu/aiprojectattack/dashboard.html") as f:
+        return f.read()
+
+
 # Health check
 @app.get("/health")
 async def health_check():
