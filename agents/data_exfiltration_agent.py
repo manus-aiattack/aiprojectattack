@@ -3,6 +3,7 @@ An agent that exfiltrates staged data from a target machine back to the C2 serve
 """
 
 import os
+from core.data_models import AgentData, Strategy
 import base64
 from datetime import datetime, timezone
 from core.logger import log
@@ -42,6 +43,39 @@ from core.target_model_manager import TargetModelManager
 import time
 
 from core.base_agent import BaseAgent
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute data exfiltration agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
 
 
 class DataExfiltrationAgent(BaseAgent):

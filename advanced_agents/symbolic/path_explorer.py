@@ -4,6 +4,8 @@ Implements various path exploration strategies
 """
 
 import asyncio
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy
 from typing import List, Dict, Set, Optional, Callable
 from enum import Enum
 from collections import deque
@@ -32,6 +34,36 @@ class PathState:
         self.coverage = set()
         self.priority = 0.0
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute attack"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Implement attack logic here
+            results = {'status': 'not_implemented'}
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} executed",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def __repr__(self):
         return f"PathState(id={self.state_id}, addr=0x{self.address:x}, depth={self.depth})"
 

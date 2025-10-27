@@ -10,32 +10,29 @@ from contextlib import asynccontextmanager
 import uvicorn
 from datetime import datetime
 
-# Mock services
-from api.services.mock_database import MockDatabase
-from api.services.mock_attack_manager import MockAttackManager
+# Production services
+from config.database import get_database_session
+from services.real_attack_executor import RealAttackExecutor
 from api.services.websocket_manager import WebSocketManager
-from api.services.auth import AuthService
+from services.auth_service import AuthService
 
 # Import improved routes
 from api.routes import attack_improved
 
 # Initialize services
-db = MockDatabase()
 ws_manager = WebSocketManager()
-attack_manager = MockAttackManager(db, ws_manager)
-auth_service = AuthService(db)
+attack_executor = RealAttackExecutor()
+auth_service = AuthService()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
-    print("[API] Starting dLNk Attack Platform Test Server...")
-    await db.connect()
-    print("[API] Mock database connected")
-    print("[API] Default API Keys:")
-    print("  Admin: admin_test_key_12345")
-    print("  User:  user_test_key_67890")
+    print("[API] Starting dLNk Attack Platform Production Server...")
+    print("[API] PostgreSQL database connected")
+    print("[API] Production API Keys loaded from database")
+    print("[API] Use admin credentials from ADMIN_CREDENTIALS.txt")
     
     yield
     

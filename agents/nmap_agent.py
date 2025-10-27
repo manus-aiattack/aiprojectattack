@@ -42,6 +42,39 @@ class NmapAgent(BaseAgent):
         # ตรวจสอบว่ามี nmap หรือไม่
         self.nmap_available = self._check_nmap()
         
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute nmap agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _check_nmap(self) -> bool:
         """ตรวจสอบว่ามี nmap installed"""
         try:

@@ -363,6 +363,39 @@ class AdvancedBackdoorAgent(BaseAgent):
         except Exception as e:
             return False
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute advanced backdoor agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _generate_random_filename(self, extension: str) -> str:
         """Generate random filename"""
         random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))

@@ -1,4 +1,5 @@
 import json
+from core.data_models import AgentData, Strategy
 from core.data_models import WafReport, AttackPhase, Strategy
 from core.logger import log
 
@@ -78,3 +79,36 @@ class WafDetectorAgent(BaseAgent):
             error_message = f"An unexpected error occurred in WafDetectorAgent: {e}"
             log.error(error_message, exc_info=True)
             return WafReport(errors=[str(e)])
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute waf detector agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )

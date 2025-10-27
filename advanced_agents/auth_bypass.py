@@ -4,6 +4,8 @@ Advanced techniques to bypass authentication mechanisms
 """
 
 from core.logger import log
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy
 import asyncio
 import aiohttp
 from typing import List, Dict, Any, Optional
@@ -14,7 +16,7 @@ from datetime import datetime
 import hashlib
 
 
-class AuthenticationBypassAgent:
+class AuthenticationBypassAgent(BaseAgent):
     """Agent สำหรับหาช่องโหว่และ bypass authentication"""
     
     def __init__(self, target_url: str, workspace_dir: str):
@@ -449,3 +451,36 @@ class AuthenticationBypassAgent:
         
         return result
 
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute auth bypass"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )

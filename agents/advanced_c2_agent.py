@@ -351,6 +351,39 @@ class AdvancedC2Agent(BaseAgent):
             log.error(f"[AdvancedC2Agent] Failed to deploy WebSocket client: {e}")
             raise
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute advanced c2 agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _generate_http_c2_client(self, c2_config: Dict) -> str:
         """Generate HTTP C2 client code"""
         client_template = f"""

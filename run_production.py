@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Set environment variables
 os.environ.setdefault("VC_API_KEY", "8-WmOAVImJdRrqBybLj55n-QDu1Y-WYnQNRb280wLhU")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
-os.environ.setdefault("DATABASE_URL", "sqlite:///./data/dlnk.db")
+os.environ.setdefault("DATABASE_URL", "postgresql://dlnk_user:dlnk_password@localhost/dlnk_attack_db")
 os.environ.setdefault("PYTHONUNBUFFERED", "1")
 
 import uvicorn

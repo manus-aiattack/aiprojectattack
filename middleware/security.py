@@ -217,3 +217,39 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
         
         return await call_next(request)
 
+
+
+
+
+class RateLimiter:
+    """Simple rate limiter"""
+    
+    def __init__(self, max_requests: int = 60, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests: Dict[str, list] = defaultdict(list)
+    
+    def check_rate_limit(self, client_id: str) -> bool:
+        """Check if client is within rate limit"""
+        current_time = time.time()
+        cutoff_time = current_time - self.window_seconds
+        
+        # Remove old requests
+        self.requests[client_id] = [
+            ts for ts in self.requests[client_id]
+            if ts > cutoff_time
+        ]
+        
+        # Check limit
+        if len(self.requests[client_id]) >= self.max_requests:
+            return False
+        
+        # Add new request
+        self.requests[client_id].append(current_time)
+        return True
+
+
+class SecurityMiddleware:
+    """Security middleware placeholder"""
+    pass
+

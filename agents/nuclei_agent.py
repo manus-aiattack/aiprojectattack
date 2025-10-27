@@ -1,4 +1,5 @@
 import os
+from core.data_models import AgentData, Strategy
 import json
 from core.data_models import ScannerReport, Strategy, ScanIntensity, AttackPhase, ErrorType
 from core.logger import log
@@ -120,4 +121,37 @@ class NucleiAgent(BaseAgent):
                 errors=[str(e)],
                 error_type=ErrorType.LOGIC,
                 summary=f"Nuclei scan failed due to an unexpected error: {e}"
+            )
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute nuclei agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
             )

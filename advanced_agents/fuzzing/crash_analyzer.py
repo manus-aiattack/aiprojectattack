@@ -4,6 +4,8 @@ Automatic crash analysis and exploitability assessment
 """
 
 import asyncio
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy
 import subprocess
 import re
 from typing import Dict, List, Optional
@@ -150,6 +152,39 @@ quit
             log.error(f"[CrashAnalyzer] GDB failed: {e}")
             return ""
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute crash analyzer"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _detect_crash_type(self, gdb_output: str) -> str:
         """Detect crash type from GDB output"""
         

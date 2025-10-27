@@ -2,7 +2,7 @@
 Database Service - SQLite for development
 """
 
-import sqlite3
+import asyncpg
 import os
 import aiosqlite
 from typing import Dict, List, Any, Optional
@@ -14,7 +14,7 @@ class Database:
     """Database service for SQLite"""
     
     def __init__(self):
-        self.db_path = os.getenv("DATABASE_URL", "sqlite:///./dlnk.db").replace("sqlite:///", "")
+        self.db_path = os.getenv("DATABASE_URL", "postgresql://dlnk_user:dlnk_password@localhost/dlnk_attack_db").replace("sqlite:///", "")
         self.connection = None
     
     async def connect(self):

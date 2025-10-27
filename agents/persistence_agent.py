@@ -1,4 +1,5 @@
 import logging
+from core.data_models import AgentData, Strategy
 import os
 import random
 import string
@@ -37,6 +38,39 @@ class PersistenceAgent(BaseAgent):
         self.shell_manager = await self.context_manager.get_context('shell_manager')
         self.target_model_manager = await self.context_manager.get_context('target_model_manager')
         self.payload_manager = await self.context_manager.get_context('payload_manager')
+
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute persistence agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
 
     def _get_attacker_ssh_public_key(self) -> str | None:
         """Reads the attacker's public SSH key from the project root."""

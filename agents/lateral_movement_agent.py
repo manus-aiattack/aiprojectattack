@@ -4,6 +4,7 @@ Enhanced Lateral Movement Agent
 """
 
 import asyncio
+from core.data_models import AgentData, Strategy
 import logging
 import time
 import os
@@ -385,6 +386,39 @@ class EnhancedLateralMovementAgent(BaseAgent):
         except Exception as e:
             return {"success": False, "error": str(e)}
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute lateral movement agent"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Call existing method
+            if asyncio.iscoroutinefunction(self.run):
+                results = await self.run(target)
+            else:
+                results = self.run(target)
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} completed successfully",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _error_report(self, start_time: float, error_msg: str, error_type: ErrorType) -> LateralMovementReport:
         """Create error report"""
         return LateralMovementReport(

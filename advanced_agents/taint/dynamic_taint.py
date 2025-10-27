@@ -4,6 +4,8 @@ Tracks data flow to detect vulnerabilities
 """
 
 import asyncio
+from core.base_agent import BaseAgent
+from core.data_models import AgentData, Strategy
 from typing import Dict, List, Optional, Set, Tuple
 from collections import defaultdict
 import logging
@@ -30,6 +32,36 @@ class DynamicTaintAnalyzer:
         
         self._initialize_sources_and_sinks()
     
+    async def execute(self, strategy: Strategy) -> AgentData:
+        """Execute attack"""
+        try:
+            target = strategy.context.get('target_url', '')
+            
+            # Implement attack logic here
+            results = {'status': 'not_implemented'}
+            
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=True,
+                summary=f"{self.__class__.__name__} executed",
+                errors=[],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={'results': results}
+            )
+        except Exception as e:
+            return AgentData(
+                agent_name=self.__class__.__name__,
+                success=False,
+                summary=f"{self.__class__.__name__} failed",
+                errors=[str(e)],
+                execution_time=0,
+                memory_usage=0,
+                cpu_usage=0,
+                context={}
+            )
+
     def _initialize_sources_and_sinks(self):
         """Initialize taint sources and sinks"""
         
