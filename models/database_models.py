@@ -90,7 +90,7 @@ class Target(Base):
     url = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)
-    metadata = Column(JSON, default=dict)
+    meta_data = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -162,7 +162,7 @@ class Vulnerability(Base):
     affected_url = Column(String, nullable=True)
     proof_of_concept = Column(Text, nullable=True)
     remediation = Column(Text, nullable=True)
-    metadata = Column(JSON, default=dict)
+    meta_data = Column(JSON, default=dict)
     discovered_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

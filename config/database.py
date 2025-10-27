@@ -52,8 +52,9 @@ def init_database():
 def check_database_connection() -> bool:
     """Check if database connection is working"""
     try:
+        from sqlalchemy import text
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")

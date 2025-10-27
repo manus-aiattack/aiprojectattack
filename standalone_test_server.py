@@ -97,7 +97,7 @@ storage = Storage()
 
 
 # ============================================================================
-# Mock Attack Execution
+# Real Attack Execution
 # ============================================================================
 
 async def execute_campaign_real(campaign_id: str):
@@ -234,7 +234,7 @@ async def root():
             <ul>
                 <li>✅ Target Management</li>
                 <li>✅ Attack Campaigns</li>
-                <li>✅ Mock Attack Execution</li>
+                <li>✅ Real Attack Execution</li>
                 <li>✅ API Authentication</li>
             </ul>
         </div>
