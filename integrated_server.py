@@ -16,6 +16,11 @@ import uuid
 import asyncio
 from enum import Enum
 import os
+import sys
+
+# Add api routes to path
+sys.path.insert(0, '/home/ubuntu/aiprojectattack')
+from api.routes import vanchin_agent
 
 
 # ============================================================================
@@ -142,6 +147,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Include Vanchin Agent routes
+app.include_router(vanchin_agent.router, tags=["Vanchin Agent"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -313,6 +321,12 @@ async def stop_campaign(campaign_id: str, x_api_key: Optional[str] = Header(None
         "message": "Campaign stopped",
         "campaign_id": campaign_id
     }
+
+
+@app.get("/agent")
+async def vanchin_agent():
+    """Vanchin AI Agent Interface"""
+    return FileResponse("/home/ubuntu/aiprojectattack/vanchin_agent_ui.html")
 
 
 if __name__ == "__main__":
