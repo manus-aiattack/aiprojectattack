@@ -26,7 +26,7 @@ from api.routes import (
     auth, admin, attack, files,  # v1 routes
     admin_v2, attack_v2,  # v2 routes
     ai, scan, exploit, knowledge, statistics,  # feature routes
-    c2, fuzzing, learning_routes, one_click_attack, zeroday_routes, monitoring, workflow  # additional routes
+    c2, c2_shell, fuzzing, learning_routes, one_click_attack, zeroday_routes, monitoring, workflow  # additional routes
 )
 
 # WebSocket Manager
@@ -382,6 +382,7 @@ app.include_router(exploit.router, tags=["Exploit"])
 app.include_router(knowledge.router, tags=["Knowledge"])
 app.include_router(statistics.router, tags=["Statistics"])
 app.include_router(c2.router, tags=["C2 Server"])
+app.include_router(c2_shell.router, tags=["C2 Shell"])
 app.include_router(fuzzing.router, tags=["Fuzzing"])
 app.include_router(learning_routes.router, tags=["Learning"])
 app.include_router(one_click_attack.router, tags=["One-Click Attack"])

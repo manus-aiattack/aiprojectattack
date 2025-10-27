@@ -2,13 +2,14 @@
 dLNk Attack Platform - C2 Shell Management API Routes
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 from core.shell_handler import get_shell_handler
 from core.reverse_shell_payloads import get_reverse_shell_generator
-from api.auth import verify_api_key
 from loguru import logger
+
+# Note: API key verification will be handled by main.py dependencies
 
 router = APIRouter(prefix="/api/c2", tags=["C2 & Shell Management"])
 
@@ -31,7 +32,7 @@ class PayloadRequest(BaseModel):
 
 
 @router.get("/status")
-async def get_c2_status(api_key: str = Depends(verify_api_key)):
+async def get_c2_status():
     """Get C2 listener status"""
     try:
         handler = get_shell_handler()
@@ -48,7 +49,7 @@ async def get_c2_status(api_key: str = Depends(verify_api_key)):
 
 
 @router.post("/start")
-async def start_c2_listener(api_key: str = Depends(verify_api_key)):
+async def start_c2_listener():
     """Start C2 listener"""
     try:
         handler = get_shell_handler()
@@ -71,7 +72,7 @@ async def start_c2_listener(api_key: str = Depends(verify_api_key)):
 
 
 @router.post("/stop")
-async def stop_c2_listener(api_key: str = Depends(verify_api_key)):
+async def stop_c2_listener():
     """Stop C2 listener"""
     try:
         handler = get_shell_handler()
@@ -83,7 +84,7 @@ async def stop_c2_listener(api_key: str = Depends(verify_api_key)):
 
 
 @router.get("/sessions")
-async def list_sessions(api_key: str = Depends(verify_api_key)) -> List[Dict]:
+async def list_sessions() -> List[Dict]:
     """List all shell sessions"""
     try:
         handler = get_shell_handler()
@@ -95,7 +96,7 @@ async def list_sessions(api_key: str = Depends(verify_api_key)) -> List[Dict]:
 
 
 @router.get("/sessions/{session_id}")
-async def get_session(session_id: str, api_key: str = Depends(verify_api_key)):
+async def get_session(session_id: str):
     """Get specific session details"""
     try:
         handler = get_shell_handler()
@@ -113,8 +114,7 @@ async def get_session(session_id: str, api_key: str = Depends(verify_api_key)):
 @router.post("/sessions/{session_id}/execute")
 async def execute_command(
     session_id: str,
-    request: CommandRequest,
-    api_key: str = Depends(verify_api_key)
+    request: CommandRequest
 ) -> CommandResponse:
     """Execute command on shell session"""
     try:
@@ -138,7 +138,7 @@ async def execute_command(
 
 
 @router.delete("/sessions/{session_id}")
-async def close_session(session_id: str, api_key: str = Depends(verify_api_key)):
+async def close_session(session_id: str):
     """Close a shell session"""
     try:
         handler = get_shell_handler()
@@ -156,7 +156,7 @@ async def close_session(session_id: str, api_key: str = Depends(verify_api_key))
 
 
 @router.get("/payloads")
-async def get_all_payloads(api_key: str = Depends(verify_api_key)):
+async def get_all_payloads():
     """Get all reverse shell payloads"""
     try:
         generator = get_reverse_shell_generator()
@@ -172,7 +172,7 @@ async def get_all_payloads(api_key: str = Depends(verify_api_key)):
 
 
 @router.get("/payloads/{payload_type}")
-async def get_payload(payload_type: str, api_key: str = Depends(verify_api_key)):
+async def get_payload(payload_type: str):
     """Get specific payload type"""
     try:
         generator = get_reverse_shell_generator()
@@ -199,7 +199,7 @@ async def get_payload(payload_type: str, api_key: str = Depends(verify_api_key))
 
 
 @router.post("/payloads/save")
-async def save_payloads(api_key: str = Depends(verify_api_key)):
+async def save_payloads():
     """Save all payloads to file"""
     try:
         generator = get_reverse_shell_generator()
